@@ -1,0 +1,40 @@
+{
+  "app": {
+    "name": "StudyQuest",
+    "tagline": "Turn studying into a daily adventure"
+  },
+  "nav": { "home": "Home", "study": "Study", "notes": "Notes", "plan": "Plan", "profile": "Profile" },
+  "common": {
+    "loading": "Loading...",
+    "retry": "Retry",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "on": "On",
+    "off": "Off",
+    "language": "Language",
+    "english": "English",
+    "khmer": "Khmer",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "sound": "Sound",
+    "reducedMotion": "Reduced motion"
+  },
+  "home": {
+    "welcome": "Welcome to StudyQuest",
+    "health": "Backend status",
+    "healthy": "Connected",
+    "unhealthy": "Not connected",
+    "healthHelp": "Make sure the backend is running at {{url}}"
+  },
+  "shell": { "settings": "Settings" },
+  "design": { "title": "Design System", "components": "Components preview" },
+  "components": {
+    "empty": "Nothing here yet",
+    "emptyHint": "Get started by adding something new."
+  }
+}

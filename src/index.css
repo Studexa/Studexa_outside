@@ -1,0 +1,58 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap');
+@import "tailwindcss";
+
+:root {
+  --color-bg: #f6f7fb;
+  --color-surface: #ffffff;
+  --color-surface-alt: #eef0ff;
+  --color-text: #1f2430;
+  --color-muted: #667085;
+  --color-border: #e4e7ec;
+  --color-primary: #4f46e5;
+  --color-primary-strong: #4338ca;
+  --color-accent: #f59e0b;
+  --color-success: #16a34a;
+  --color-danger: #dc2626;
+  --shadow-sm: 0 1px 2px rgba(16,24,40,0.06);
+  --shadow-md: 0 8px 24px rgba(16,24,40,0.08);
+  color-scheme: light;
+}
+
+:root.dark {
+  --color-bg: #0f1420;
+  --color-surface: #171d2b;
+  --color-surface-alt: #222a3d;
+  --color-text: #eef2ff;
+  --color-muted: #a5b0c5;
+  --color-border: #2b3447;
+  --color-primary: #818cf8;
+  --color-primary-strong: #6366f1;
+  --color-accent: #fbbf24;
+  --color-success: #4ade80;
+  --color-danger: #f87171;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.35);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { min-height: 100%; }
+body {
+  margin: 0;
+  font-family: 'Nunito', 'Noto Sans Khmer', system-ui, -apple-system, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+}
+:lang(km), .lang-km { line-height: 1.7; }
+button, input, select, textarea { font: inherit; }
+a { color: inherit; text-decoration: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "api:generate": "npm --prefix tools/openapi-gen install --no-audit --no-fund && node tools/openapi-gen/node_modules/openapi-typescript/bin/cli.js http://localhost:8080/v3/api-docs -o src/lib/api/schema.d.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.107.1",
@@ -18,9 +21,11 @@
     "framer-motion": "^14.12.0",
     "i18next": "^27.1.1",
     "katex": "^0.19.1",
+    "openapi-fetch": "^0.17.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-i18next": "^18.0.1",
+    "react-is": "^19.3.1",
     "react-router-dom": "^7.18.5",
     "recharts": "^3.10.1",
     "zustand": "^5.1.0"

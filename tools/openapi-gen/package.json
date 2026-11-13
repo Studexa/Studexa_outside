@@ -1,0 +1,9 @@
+{
+  "name": "openapi-gen",
+  "private": true,
+  "description": "Isolated generator for the typed API client. Pinned to TypeScript 5 because openapi-typescript uses the TS compiler API, which is incompatible with the app's TypeScript 7.",
+  "devDependencies": {
+    "openapi-typescript": "^7.13.0",
+    "typescript": "~5.9.0"
+  }
+}

@@ -326,11 +326,11 @@ type State = {
 }
 
 function freshQuests(): Quest[] {
-  return seedQuests.map((q) => ({ ...q }))
+  return seedQuests.map((q) => ({ ...q, progress: 0, completed: false }))
 }
 
 function freshBadges(): Record<string, boolean> {
-  return { ...seedBadges }
+  return Object.fromEntries(Object.keys(seedBadges).map((code) => [code, false]))
 }
 
 const initialState = {
@@ -339,26 +339,22 @@ const initialState = {
   buddy: 'owl' as BuddySpecies,
   levelOfStudy: 'highschool' as LevelOfStudy,
   dailyGoal: 10,
-  cardsToday: 7,
-  level: 12,
-  xp: 340,
-  coins: 240,
-  streak: 6,
-  bestStreak: 11,
-  joinedAt: isoInDays(-84),
+  cardsToday: 0,
+  level: 1,
+  xp: 0,
+  coins: 0,
+  streak: 0,
+  bestStreak: 0,
+  joinedAt: isoInDays(0),
   decks: seedDecks,
   notes: seedNotes,
   exams: seedExams,
   tasks: seedTasks,
   quests: freshQuests(),
   badges: freshBadges(),
-  owned: ['hat'],
-  equipped: 'hat',
-  weakCards: seedDecks.flatMap((d) =>
-    d.cards
-      .filter((c) => c.lapses > 0)
-      .map((c) => ({ id: c.id, front: c.front, back: c.back, lapses: c.lapses, deck: d.title })),
-  ),
+  owned: [] as string[],
+  equipped: null as string | null,
+  weakCards: [],
 }
 
 export const useApp = create<State>()(

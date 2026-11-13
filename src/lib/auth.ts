@@ -8,6 +8,7 @@ import {
   type UpdateProfileInput,
   type User,
 } from './api'
+import { queryClient } from './queryClient'
 import { useApp } from './store'
 
 type AuthStatus = 'idle' | 'loading' | 'authenticated' | 'unauthenticated'
@@ -35,6 +36,11 @@ function applySession(response: AuthResponse) {
   return { user: response.user, profile: response.profile }
 }
 
+function resetClientState() {
+  queryClient.clear()
+  useApp.getState().resetAll()
+}
+
 export const useAuth = create<AuthState>()((set, get) => ({
   status: 'idle',
   user: null,
@@ -60,12 +66,14 @@ export const useAuth = create<AuthState>()((set, get) => ({
 
   login: async (email, password) => {
     const response = await authApi.login({ email, password })
+    resetClientState()
     const session = applySession(response)
     set({ status: 'authenticated', ...session })
   },
 
   register: async (input) => {
     const response = await authApi.register(input)
+    resetClientState()
     const session = applySession(response)
     set({ status: 'authenticated', ...session })
   },
@@ -77,6 +85,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
       // The refresh cookie may already be gone; clear local state regardless.
     } finally {
       setAccessToken(null)
+      resetClientState()
       set({ status: 'unauthenticated', user: null, profile: null })
     }
   },

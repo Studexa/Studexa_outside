@@ -1,18 +1,6 @@
-const API_URL = (import.meta.env.VITE_API_URL as string | undefined) || 'http://localhost:8080/api'
+import { client, call, asBody, ApiError, setAccessToken, getAccessToken, refreshAccessToken, API_URL } from './api/client'
 
-export class ApiError extends Error {
-  readonly status: number
-  readonly code: string
-  readonly fields?: Record<string, string>
-
-  constructor(status: number, code: string, message: string, fields?: Record<string, string>) {
-    super(message)
-    this.name = 'ApiError'
-    this.status = status
-    this.code = code
-    this.fields = fields
-  }
-}
+export { ApiError, setAccessToken, getAccessToken, API_URL }
 
 export type User = {
   id: string
@@ -71,115 +59,19 @@ export type UpdateProfileInput = Partial<{
   dailyGoalMinutes: number
 }>
 
-let accessToken: string | null = null
-let refreshing: Promise<string | null> | null = null
-
-export function setAccessToken(token: string | null) {
-  accessToken = token
-}
-
-export function getAccessToken() {
-  return accessToken
-}
-
-type RequestOptions = Omit<RequestInit, 'body'> & {
-  body?: unknown
-  auth?: boolean
-  retryOnUnauthorized?: boolean
-}
-
-async function refreshAccessToken(): Promise<string | null> {
-  if (!refreshing) {
-    refreshing = (async () => {
-      try {
-        const res = await fetch(`${API_URL}/auth/refresh`, {
-          method: 'POST',
-          credentials: 'include',
-        })
-        if (!res.ok) {
-          accessToken = null
-          return null
-        }
-        const data = (await res.json()) as AuthResponse
-        accessToken = data.accessToken
-        return accessToken
-      } catch {
-        accessToken = null
-        return null
-      } finally {
-        refreshing = null
-      }
-    })()
-  }
-  return refreshing
-}
-
-async function send(path: string, options: RequestOptions, token: string | null) {
-  const { body, auth = true, headers, ...init } = options
-  const finalHeaders = new Headers(headers)
-  if (body !== undefined) {
-    finalHeaders.set('Content-Type', 'application/json')
-  }
-  if (auth && token) {
-    finalHeaders.set('Authorization', `Bearer ${token}`)
-  }
-  return fetch(`${API_URL}${path}`, {
-    ...init,
-    headers: finalHeaders,
-    credentials: 'include',
-    body: body === undefined ? undefined : JSON.stringify(body),
-  })
-}
-
-async function toApiError(res: Response): Promise<ApiError> {
-  let data: { code?: string; message?: string; fields?: Record<string, string> } = {}
-  try {
-    data = (await res.json()) as typeof data
-  } catch {
-    // Fall through to a generic message.
-  }
-  return new ApiError(
-    res.status,
-    data.code ?? 'REQUEST_FAILED',
-    data.message ?? 'Something went wrong. Please try again.',
-    data.fields,
-  )
-}
-
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { auth = true, retryOnUnauthorized = true } = options
-  let res = await send(path, options, accessToken)
-
-  if (res.status === 401 && auth && retryOnUnauthorized) {
-    const token = await refreshAccessToken()
-    if (token) {
-      res = await send(path, { ...options, retryOnUnauthorized: false }, token)
-    }
-  }
-
-  if (!res.ok) {
-    throw await toApiError(res)
-  }
-  if (res.status === 204) {
-    return undefined as T
-  }
-  return (await res.json()) as T
-}
-
 export const authApi = {
   register: (input: { email: string; password: string; nickname: string; language?: 'en' | 'km' }) =>
-    request<AuthResponse>('/auth/register', { method: 'POST', body: input, auth: false }),
+    call<AuthResponse>(client.POST('/api/v1/auth/register', { body: input })),
 
   login: (input: { email: string; password: string }) =>
-    request<AuthResponse>('/auth/login', { method: 'POST', body: input, auth: false }),
+    call<AuthResponse>(client.POST('/api/v1/auth/login', { body: input })),
 
-  logout: () =>
-    request<void>('/auth/logout', { method: 'POST', retryOnUnauthorized: false }),
+  logout: () => call<void>(client.POST('/api/v1/auth/logout', {})),
 
-  me: () => request<Me>('/me'),
+  me: () => call<Me>(client.GET('/api/v1/me')),
 
   updateMe: (input: UpdateProfileInput) =>
-    request<Me>('/me', { method: 'PUT', body: input }),
+    call<Me>(client.PUT('/api/v1/me', { body: asBody(input) })),
 }
 
 export async function restoreSession(): Promise<Me | null> {
@@ -190,15 +82,15 @@ export async function restoreSession(): Promise<Me | null> {
 
 export const subjectsApi = {
   list: (archived?: boolean) =>
-    request<Subject[]>(`/subjects${archived === undefined ? '' : `?archived=${archived}`}`),
+    call<Subject[]>(client.GET('/api/v1/subjects', { params: { query: { archived } } })),
 
   create: (input: SubjectInput) =>
-    request<Subject>('/subjects', { method: 'POST', body: input }),
+    call<Subject>(client.POST('/api/v1/subjects', { body: asBody(input) })),
 
   update: (id: string, input: UpdateSubjectInput) =>
-    request<Subject>(`/subjects/${id}`, { method: 'PUT', body: input }),
+    call<Subject>(client.PUT('/api/v1/subjects/{id}', { params: { path: { id } }, body: asBody(input) })),
 
-  remove: (id: string) => request<void>(`/subjects/${id}`, { method: 'DELETE' }),
+  remove: (id: string) => call<void>(client.DELETE('/api/v1/subjects/{id}', { params: { path: { id } } })),
 }
 
 
@@ -271,6 +163,85 @@ export type CardInput = {
   sourceExcerpt?: string
 }
 
+export type RatingLabel = Record<'AGAIN' | 'HARD' | 'GOOD' | 'EASY', string>
+
+export type ReviewQueueCard = {
+  id: string
+  deckId: string
+  deckTitle: string
+  deckColor: string
+  deckIcon: string | null
+  deckSubject: string | null
+  type: CardType
+  front: string
+  back: string
+  extra: Record<string, unknown>
+  tags: string[]
+  sourceTitle: string | null
+  sourceExcerpt: string | null
+  state: string
+  intervalDays: number
+  reps: number
+  lapses: number
+  ease: number
+  dueAt: string
+  due: boolean
+  previewLabels: RatingLabel
+}
+
+export type ReviewQueueResponse = {
+  cards: ReviewQueueCard[]
+  remainingNew: number
+  remainingReview: number
+  now: string
+}
+
+export type ReviewAnswerRequest = {
+  cardId: string
+  rating: ReviewRating
+  msTaken: number
+  clientReviewId?: string
+}
+
+export type ReviewAnswerResponse = {
+  cardId: string
+  deckId: string
+  type: CardType
+  front: string
+  back: string
+  extra: Record<string, unknown>
+  tags: string[]
+  state: string
+  intervalDays: number
+  reps: number
+  lapses: number
+  ease: number
+  dueAt: string
+  previewLabels: RatingLabel
+  xpEarned: number
+  leveledUp: boolean
+  newLevel: number
+  nextCardDueAt: string | null
+}
+
+export type ReviewUndoResponse = {
+  cardId: string
+  deckId: string
+  type: CardType
+  front: string
+  back: string
+  extra: Record<string, unknown>
+  tags: string[]
+  state: string
+  intervalDays: number
+  reps: number
+  lapses: number
+  ease: number
+  dueAt: string
+  previewLabels: RatingLabel
+  now: string
+}
+
 export type AiTask = 'FLASHCARDS' | 'QUIZ'
 
 export type AiCardItem = {
@@ -304,44 +275,64 @@ export type AiTutorResponse = {
 }
 
 export const decksApi = {
-  list: () => request<DeckSummary[]>('/decks'),
+  list: () => call<DeckSummary[]>(client.GET('/api/v1/decks')),
 
-  get: (id: string) => request<DeckSummary>(`/decks/${id}`),
+  get: (id: string) => call<DeckSummary>(client.GET('/api/v1/decks/{id}', { params: { path: { id } } })),
 
-  create: (input: DeckInput) => request<DeckSummary>('/decks', { method: 'POST', body: input }),
+  create: (input: DeckInput) =>
+    call<DeckSummary>(client.POST('/api/v1/decks', { body: asBody(input) })),
 
   update: (id: string, input: Partial<DeckInput>) =>
-    request<DeckSummary>(`/decks/${id}`, { method: 'PUT', body: input }),
+    call<DeckSummary>(client.PUT('/api/v1/decks/{id}', { params: { path: { id } }, body: asBody(input) })),
 
-  remove: (id: string) => request<void>(`/decks/${id}`, { method: 'DELETE' }),
+  remove: (id: string) => call<void>(client.DELETE('/api/v1/decks/{id}', { params: { path: { id } } })),
 }
 
 export const cardsApi = {
-  list: (deckId: string) => request<StudyCard[]>(`/decks/${deckId}/cards`),
+  list: (deckId: string) =>
+    call<StudyCard[]>(client.GET('/api/v1/decks/{deckId}/cards', { params: { path: { deckId } } })),
 
   create: (deckId: string, input: CardInput) =>
-    request<StudyCard>(`/decks/${deckId}/cards`, { method: 'POST', body: input }),
+    call<StudyCard>(
+      client.POST('/api/v1/decks/{deckId}/cards', { params: { path: { deckId } }, body: input }),
+    ),
 
   bulk: (deckId: string, cards: CardInput[]) =>
-    request<StudyCard[]>(`/decks/${deckId}/cards/bulk`, { method: 'POST', body: { cards } }),
+    call<StudyCard[]>(
+      client.POST('/api/v1/decks/{deckId}/cards/bulk', { params: { path: { deckId } }, body: { cards } }),
+    ),
 
   update: (id: string, input: Partial<CardInput> & { starred?: boolean; suspended?: boolean }) =>
-    request<StudyCard>(`/cards/${id}`, { method: 'PUT', body: input }),
+    call<StudyCard>(client.PUT('/api/v1/cards/{id}', { params: { path: { id } }, body: input })),
 
-  remove: (id: string) => request<void>(`/cards/${id}`, { method: 'DELETE' }),
+  remove: (id: string) => call<void>(client.DELETE('/api/v1/cards/{id}', { params: { path: { id } } })),
 
-  due: (limit = 50) => request<DueCard[]>(`/cards/due?limit=${limit}`),
+  due: (limit = 50) =>
+    call<DueCard[]>(client.GET('/api/v1/cards/due', { params: { query: { limit } } })),
 
   review: (id: string, rating: ReviewRating) =>
-    request<StudyCard>(`/cards/${id}/review`, { method: 'POST', body: { rating } }),
+    call<StudyCard>(
+      client.POST('/api/v1/cards/{id}/review', { params: { path: { id } }, body: { rating } }),
+    ),
+}
+
+export const reviewApi = {
+  queue: (deckId?: string | null) =>
+    call<ReviewQueueResponse>(
+      client.GET('/api/v1/review/queue', { params: { query: { deckId: deckId ?? undefined } } }),
+    ),
+
+  answer: (input: ReviewAnswerRequest) =>
+    call<ReviewAnswerResponse>(client.POST('/api/v1/review/answer', { body: input })),
+
+  undo: (cardId: string) =>
+    call<ReviewUndoResponse>(client.POST('/api/v1/review/undo', { params: { query: { cardId } } })),
 }
 
 export const aiApi = {
   generate: (input: AiGenerateInput) =>
-    request<{ items: AiCardItem[] }>('/ai/generate', { method: 'POST', body: input }),
+    call<{ items: AiCardItem[] }>(client.POST('/api/v1/ai/generate', { body: asBody(input) })),
 
   tutor: (input: AiTutorInput) =>
-    request<AiTutorResponse>('/ai/tutor', { method: 'POST', body: input }),
+    call<AiTutorResponse>(client.POST('/api/v1/ai/tutor', { body: input })),
 }
-
-export { API_URL }

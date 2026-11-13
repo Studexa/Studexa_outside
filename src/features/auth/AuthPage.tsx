@@ -1,0 +1,221 @@
+import { useEffect, useState, type FormEvent } from 'react'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { Button } from '../../components/Button'
+import { Icon } from '../../components/Icon'
+import { Mascot } from '../../components/Mascot'
+import { ApiError } from '../../lib/api'
+import { useAuth } from '../../lib/auth'
+
+type Mode = 'login' | 'register'
+
+export function AuthPage({ mode }: { mode: Mode }) {
+  const { t, i18n } = useTranslation()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const status = useAuth((s) => s.status)
+  const bootstrap = useAuth((s) => s.bootstrap)
+  const login = useAuth((s) => s.login)
+  const register = useAuth((s) => s.register)
+
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [nickname, setNickname] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [fields, setFields] = useState<Record<string, string>>({})
+
+  const from = (location.state as { from?: string } | null)?.from ?? '/'
+
+  useEffect(() => {
+    if (status === 'idle') void bootstrap()
+  }, [status, bootstrap])
+
+  if (status === 'authenticated') {
+    return <Navigate to="/" replace />
+  }
+
+  const onSubmit = async (event: FormEvent) => {
+    event.preventDefault()
+    setBusy(true)
+    setError(null)
+    setFields({})
+    try {
+      if (mode === 'login') {
+        await login(email.trim(), password)
+        navigate(from, { replace: true })
+      } else {
+        await register({
+          email: email.trim(),
+          password,
+          nickname: nickname.trim(),
+          language: i18n.language === 'km' ? 'km' : 'en',
+        })
+        navigate('/onboarding', { replace: true })
+      }
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message)
+        setFields(err.fields ?? {})
+      } else {
+        setError(t('auth.errorGeneric'))
+      }
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const fieldError = (name: string) =>
+    fields[name] ? <p className="mt-1 text-xs font-bold text-[var(--color-danger)]">{fields[name]}</p> : null
+
+  return (
+    <div className="min-h-dvh bg-[var(--color-bg)] text-[var(--color-text)]">
+      <div className="mx-auto grid min-h-dvh w-full max-w-6xl items-center gap-8 px-4 py-6 md:grid-cols-[1fr_1fr] md:px-8">
+        <section className="relative hidden overflow-hidden rounded-[32px] bg-gradient-to-br from-[var(--color-primary)] via-violet-600 to-indigo-500 p-8 text-white md:flex md:flex-col md:justify-between">
+          <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10" />
+          <div className="pointer-events-none absolute -bottom-20 left-10 h-52 w-52 rounded-full bg-amber-300/20" />
+          <div className="relative flex items-center gap-2">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25">
+              <Icon name="sparkles" size={24} />
+            </span>
+            <span className="text-xl font-black">{t('app.name')}</span>
+          </div>
+          <div className="relative my-8 flex flex-col items-center">
+            <Mascot species="owl" mood="sparkle" size={230} />
+            <p className="mt-4 max-w-sm text-center text-lg font-bold leading-relaxed text-white/90">
+              {t('auth.kicker')}
+            </p>
+          </div>
+          <ul className="relative space-y-2 text-sm font-semibold text-white/85">
+            <li className="flex items-center gap-2">
+              <Icon name="cards" size={17} className="text-amber-300" /> {t('auth.featureMemory')}
+            </li>
+            <li className="flex items-center gap-2">
+              <Icon name="flame" size={17} className="text-amber-300" /> {t('auth.featureStreak')}
+            </li>
+            <li className="flex items-center gap-2">
+              <Icon name="shield" size={17} className="text-amber-300" /> {t('auth.featureSafe')}
+            </li>
+          </ul>
+        </section>
+
+        <section className="mx-auto w-full max-w-md">
+          <div className="mb-5 flex items-center justify-between md:hidden">
+            <div className="flex items-center gap-2">
+              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] text-white">
+                <Icon name="sparkles" size={22} />
+              </span>
+              <span className="text-lg font-black">{t('app.name')}</span>
+            </div>
+            <button
+              onClick={() => i18n.changeLanguage(i18n.language === 'km' ? 'en' : 'km')}
+              className="min-h-11 rounded-full border border-[var(--color-border)] px-3 text-sm font-bold"
+            >
+              {i18n.language === 'km' ? 'EN' : 'ខ្មែរ'}
+            </button>
+          </div>
+
+          <div className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-md)] sm:p-7">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-primary)]">
+              {mode === 'login' ? t('auth.welcomeBack') : t('auth.start')}
+            </p>
+            <h1 className="mt-2 text-2xl font-black sm:text-3xl">
+              {mode === 'login' ? t('auth.loginTitle') : t('auth.registerTitle')}
+            </h1>
+            <p className="mt-2 text-sm text-[var(--color-muted)]">
+              {mode === 'login' ? t('auth.loginSubtitle') : t('auth.registerSubtitle')}
+            </p>
+
+            <form className="mt-6 space-y-4" onSubmit={onSubmit}>
+              {mode === 'register' && (
+                <div>
+                  <label className="block text-sm font-bold" htmlFor="nickname">
+                    {t('auth.nickname')}
+                  </label>
+                  <input
+                    id="nickname"
+                    value={nickname}
+                    onChange={(e) => setNickname(e.target.value)}
+                    placeholder={t('auth.nicknamePlaceholder')}
+                    autoComplete="nickname"
+                    maxLength={50}
+                    required
+                    className="mt-1 w-full rounded-[16px] px-4 py-3 font-semibold"
+                  />
+                  {fieldError('nickname')}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-bold" htmlFor="email">
+                  {t('auth.email')}
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={t('auth.emailPlaceholder')}
+                  autoComplete="email"
+                  required
+                  className="mt-1 w-full rounded-[16px] px-4 py-3 font-semibold"
+                />
+                {fieldError('email')}
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold" htmlFor="password">
+                  {t('auth.password')}
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={t('auth.passwordPlaceholder')}
+                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                  minLength={8}
+                  required
+                  className="mt-1 w-full rounded-[16px] px-4 py-3 font-semibold"
+                />
+                {fieldError('password')}
+              </div>
+
+              {error && (
+                <p
+                  role="alert"
+                  className="rounded-2xl bg-[var(--color-danger-soft,var(--color-surface-alt))] px-3 py-2 text-sm font-bold text-[var(--color-danger)]"
+                >
+                  {error}
+                </p>
+              )}
+
+              <Button type="submit" full size="lg" disabled={busy}>
+                {busy ? t('common.loading') : mode === 'login' ? t('auth.loginButton') : t('auth.registerButton')}
+                <Icon name="arrowRight" size={19} />
+              </Button>
+            </form>
+
+            <p className="mt-5 text-center text-sm text-[var(--color-muted)]">
+              {mode === 'login' ? t('auth.noAccount') : t('auth.haveAccount')}{' '}
+              <Link
+                to={mode === 'login' ? '/register' : '/login'}
+                className="font-black text-[var(--color-primary)]"
+              >
+                {mode === 'login' ? t('auth.toRegister') : t('auth.toLogin')}
+              </Link>
+            </p>
+          </div>
+
+          <button
+            onClick={() => i18n.changeLanguage(i18n.language === 'km' ? 'en' : 'km')}
+            className="mx-auto mt-4 hidden min-h-11 items-center gap-2 rounded-full px-3 text-sm font-bold text-[var(--color-muted)] hover:bg-[var(--color-surface-alt)] md:flex"
+          >
+            <Icon name="compass" size={16} />
+            {i18n.language === 'km' ? t('common.english') : t('common.khmer')}
+          </button>
+        </section>
+      </div>
+    </div>
+  )
+}

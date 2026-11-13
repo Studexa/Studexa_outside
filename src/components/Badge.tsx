@@ -1,5 +1,20 @@
 import type { PropsWithChildren } from 'react'
-export function Badge({ children, tone = 'neutral' }: PropsWithChildren<{ tone?: 'neutral' | 'success' | 'accent' }>) {
-  const tones = { neutral: 'bg-[var(--color-surface-alt)] text-[var(--color-text)]', success: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-100', accent: 'bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100' }
-  return <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${tones[tone]}`}>{children}</span>
+
+export function Badge({
+  children,
+  tone = 'neutral',
+  className = '',
+}: PropsWithChildren<{ tone?: 'neutral' | 'success' | 'accent' | 'primary' | 'danger'; className?: string }>) {
+  const tones = {
+    neutral: 'bg-[var(--color-surface-alt)] text-[var(--color-text)]',
+    success: 'bg-[var(--color-success-soft)] text-[var(--color-success)]',
+    accent: 'bg-[var(--color-accent-soft)] text-[#92610a] dark:text-[var(--color-accent)]',
+    primary: 'bg-[var(--color-primary-soft)] text-[var(--color-primary)]',
+    danger: 'bg-[var(--color-danger-soft)] text-[#b91c1c] dark:text-[var(--color-danger)]',
+  }
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${tones[tone]} ${className}`}>
+      {children}
+    </span>
+  )
 }

@@ -1,6 +1,7 @@
 export type Theme = 'light' | 'dark'
-type Settings = { theme: Theme; sound: boolean; reducedMotion: boolean }
-const KEY = 'studyquest_settings'
+export type FontSize = 'sm' | 'md' | 'lg'
+type Settings = { theme: Theme; sound: boolean; reducedMotion: boolean; fontSize: FontSize }
+const KEY = 'studexa_settings'
 const listeners = new Set<() => void>()
 
 function systemPrefersDark() {
@@ -11,11 +12,19 @@ function systemPrefersReduced() {
 }
 
 export function getSettings(): Settings {
+  const base: Settings = {
+    theme: systemPrefersDark() ? 'dark' : 'light',
+    sound: true,
+    reducedMotion: systemPrefersReduced(),
+    fontSize: 'md',
+  }
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return { theme: systemPrefersDark() ? 'dark' : 'light', sound: true, reducedMotion: systemPrefersReduced(), ...JSON.parse(raw) }
-  } catch {}
-  return { theme: systemPrefersDark() ? 'dark' : 'light', sound: true, reducedMotion: systemPrefersReduced() }
+    if (raw) return { ...base, ...JSON.parse(raw) }
+  } catch {
+    return base
+  }
+  return base
 }
 
 export function updateSettings(patch: Partial<Settings>) {
@@ -27,9 +36,13 @@ export function updateSettings(patch: Partial<Settings>) {
 
 export function subscribeSettings(fn: () => void) {
   listeners.add(fn)
-  return () => { listeners.delete(fn) }
+  return () => {
+    listeners.delete(fn)
+  }
 }
 
 export function applySettings(s = getSettings()) {
+  if (typeof document === 'undefined') return
   document.documentElement.classList.toggle('dark', s.theme === 'dark')
+  document.documentElement.dataset.fontSize = s.fontSize
 }

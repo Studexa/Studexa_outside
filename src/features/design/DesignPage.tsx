@@ -17,33 +17,33 @@ export function DesignPage() {
     <div className="space-y-4">
       <h1 className="text-2xl font-extrabold">{t('design.title')}</h1>
       <p className="text-[var(--color-muted)]">{t('design.components')}</p>
-      <Card title="Buttons">
+      <Card title={t('design.buttons')}>
         <div className="flex flex-wrap gap-2">
-          <Button>Primary</Button>
-          <Button variant="secondary">Secondary</Button>
-          <Button variant="ghost">Ghost</Button>
-          <Button variant="danger">Danger</Button>
-          <Button onClick={celebrate}>Celebrate</Button>
+          <Button>{t('design.primary')}</Button>
+          <Button variant="secondary">{t('design.secondary')}</Button>
+          <Button variant="ghost">{t('design.ghost')}</Button>
+          <Button variant="danger">{t('design.danger')}</Button>
+          <Button onClick={celebrate}>{t('design.celebrate')}</Button>
         </div>
       </Card>
-      <Card title="Progress / Badge / Spinner">
+      <Card title={t('design.progressBadges')}>
         <div className="space-y-3">
           <ProgressBar value={65} />
-          <div className="flex gap-2"><Badge>Neutral</Badge><Badge tone="success">Success</Badge><Badge tone="accent">Accent</Badge></div>
+          <div className="flex gap-2"><Badge>{t('design.neutral')}</Badge><Badge tone="success">{t('design.success')}</Badge><Badge tone="accent">{t('design.accent')}</Badge></div>
           <Spinner label={t('common.loading')} />
         </div>
       </Card>
-      <Card title="Toast / Modal">
+      <Card title={t('design.toastModal')}>
         <div className="space-y-2">
-          <Toast message="Info toast" />
-          <Toast kind="success" message="Success toast" />
-          <Toast kind="error" message="Error toast" />
-          <Button variant="secondary" onClick={() => setOpen(true)}>Open modal</Button>
+          <Toast message={t('design.infoToast')} />
+          <Toast kind="success" message={t('design.successToast')} />
+          <Toast kind="error" message={t('design.errorToast')} />
+          <Button variant="secondary" onClick={() => setOpen(true)}>{t('design.openModal')}</Button>
         </div>
       </Card>
-      <Card title="Empty state"><EmptyState /></Card>
-      <Modal open={open} title="Example modal" onClose={() => setOpen(false)}>
-        <p className="mb-3 text-sm text-[var(--color-muted)]">Modal content works with keyboard Escape and tap outside.</p>
+      <Card title={t('design.emptyState')}><EmptyState /></Card>
+      <Modal open={open} title={t('design.exampleModal')} onClose={() => setOpen(false)}>
+        <p className="mb-3 text-sm text-[var(--color-muted)]">{t('design.modalContent')}</p>
         <Button full onClick={() => setOpen(false)}>{t('common.close')}</Button>
       </Modal>
     </div>

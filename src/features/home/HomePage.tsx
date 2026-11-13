@@ -41,13 +41,19 @@ export function HomePage() {
 
   return (
     <div className="space-y-4">
-      <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-indigo-600 via-violet-600 to-indigo-500 p-5 text-white shadow-[var(--shadow-lift)] sm:p-7">
+      {/* Hero Banner: Today's Goal & Main Action */}
+      <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 p-5 text-white shadow-[var(--shadow-lift)] sm:p-7">
         <div className="pointer-events-none absolute -right-10 -top-12 h-44 w-44 rounded-full bg-white/10" />
         <div className="pointer-events-none absolute -bottom-16 left-16 h-40 w-40 rounded-full bg-amber-300/15" />
 
         <div className="relative flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/70">{today}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/70">{today}</p>
+              <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-white">
+                {t('home.dailyCadence')}
+              </span>
+            </div>
             <h1 className="mt-1 text-2xl font-black leading-tight sm:text-4xl">
               {t('home.greeting', { name: nickname })}
             </h1>
@@ -78,21 +84,28 @@ export function HomePage() {
 
         <Link
           to="/study/review"
-          className="relative mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-lg font-black text-[var(--color-primary)] shadow-[0_12px_30px_rgba(15,23,42,0.18)] transition hover:-translate-y-0.5 active:scale-[0.99]"
+          className="relative mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-lg font-black text-[#0f172a] shadow-[0_12px_30px_rgba(15,23,42,0.18)] transition hover:-translate-y-0.5 hover:bg-slate-100 active:scale-[0.99]"
         >
-          <Icon name="play" size={22} />
-          {t('home.startStudying')}
-          <span className="rounded-full bg-[var(--color-primary-soft)] px-2.5 py-1 text-xs font-black">
+          <Icon name="play" size={22} className="text-[#2563eb]" />
+          <span className="text-[#0f172a] font-black">{t('home.startStudying')}</span>
+          <span className="rounded-full bg-[#eff6ff] text-[#1e40af] px-2.5 py-1 text-xs font-black">
             {t('home.cardsDue', { count: due })}
           </span>
         </Link>
       </section>
 
+      {/* Operational 2-Column Grid: Daily Quests & Upcoming Exam Boss */}
       <div className="grid gap-4 md:grid-cols-2">
+        {/* Section 1: Daily Quests */}
         <section className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-lg font-extrabold">{t('home.quests')}</h2>
-            <Link to="/study" className="inline-flex items-center gap-1 text-xs font-bold text-[var(--color-primary)]">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-extrabold">{t('home.quests')}</h2>
+              <Badge tone="primary" className="text-[10px] font-black uppercase tracking-wider">
+                {t('home.dailyCadence')}
+              </Badge>
+            </div>
+            <Link to="/study" className="inline-flex items-center gap-1 text-xs font-bold text-[var(--color-primary)] hover:underline">
               {t('common.seeAll')} <Icon name="chevronRight" size={14} />
             </Link>
           </div>
@@ -134,12 +147,18 @@ export function HomePage() {
           </div>
         </section>
 
+        {/* Section 2: Next Exam Milestone (Upcoming Event Cadence) */}
         {nextExam && (
           <section className="relative overflow-hidden rounded-[24px] bg-[var(--color-navy)] p-5 text-white shadow-[var(--shadow-md)]">
-            <div className="pointer-events-none absolute -right-6 -top-8 h-36 w-36 rounded-full bg-violet-500/20 blur-xl" />
+            <div className="pointer-events-none absolute -right-6 -top-8 h-36 w-36 rounded-full bg-blue-500/20 blur-xl" />
             <div className="relative flex items-start justify-between gap-2">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-amber-300">{t('home.examBoss')}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-amber-300">{t('home.examBoss')}</p>
+                  <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-300">
+                    {t('home.upcomingCadence')}
+                  </span>
+                </div>
                 <h2 className="mt-1 text-xl font-black leading-snug">{nextExam.title}</h2>
                 <p className="mt-1 text-sm text-white/70">{nextExam.subject}</p>
               </div>
@@ -160,10 +179,16 @@ export function HomePage() {
         )}
       </div>
 
-      <section className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-        <div className="mb-3 flex items-center gap-2">
-          <Icon name="chart" size={18} className="text-[var(--color-primary)]" />
-          <h2 className="text-base font-extrabold">{t('home.weeklySummary')}</h2>
+      {/* Section 3: Weekly Retrospective Cadence */}
+      <section className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Icon name="chart" size={18} className="text-[var(--color-primary)]" />
+            <h2 className="text-base font-extrabold">{t('home.weeklySummary')}</h2>
+            <Badge tone="neutral" className="text-[10px] font-black uppercase tracking-wider">
+              {t('home.weeklyCadence')}
+            </Badge>
+          </div>
         </div>
         <div className="grid grid-cols-3 gap-2">
           <div className="rounded-2xl bg-[var(--color-primary-soft)] p-3 text-center">
@@ -179,7 +204,7 @@ export function HomePage() {
             <p className="text-[11px] font-bold text-[var(--color-muted)]">{t('home.weekAccuracy')}</p>
           </div>
         </div>
-        <Link to="/stats" className="mt-3 flex items-center justify-center gap-1 text-xs font-bold text-[var(--color-primary)]">
+        <Link to="/stats" className="mt-3 flex items-center justify-center gap-1 text-xs font-bold text-[var(--color-primary)] hover:underline">
           {t('home.seeStats')} <Icon name="arrowRight" size={13} />
         </Link>
       </section>

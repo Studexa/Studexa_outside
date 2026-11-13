@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button } from '../../components/Button'
 import { Icon } from '../../components/Icon'
 import { Modal } from '../../components/Modal'
-import { Spinner } from '../../components/Spinner'
+import { SubjectCardSkeleton } from '../../components/Skeleton'
 import {
   ApiError,
   subjectsApi,
@@ -101,8 +101,10 @@ export function SubjectsPage() {
       )}
 
       {subjectsQuery.isLoading ? (
-        <div className="flex justify-center py-12">
-          <Spinner label={t('subjects.loading')} />
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <SubjectCardSkeleton />
+          <SubjectCardSkeleton />
+          <SubjectCardSkeleton />
         </div>
       ) : subjectsQuery.isError ? (
         <div className="rounded-[24px] border border-dashed border-[var(--color-border)] p-8 text-center">

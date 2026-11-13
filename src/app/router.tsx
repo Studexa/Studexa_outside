@@ -1,37 +1,75 @@
+import { lazy, Suspense, type ReactNode } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppShell } from './AppShell'
 import { RequireAuth } from './RequireAuth'
 import { ErrorBoundary } from '../components/ErrorBoundary'
-import { AuthPage } from '../features/auth/AuthPage'
-import { SubjectsPage } from '../features/subjects/SubjectsPage'
-import { OnboardingPage } from '../features/onboarding/OnboardingPage'
+import { PageSkeleton } from '../components/Skeleton'
 import { HomePage } from '../features/home/HomePage'
-import { StudyPage } from '../features/study/StudyPage'
-import { ReviewPage } from '../features/review/ReviewPage'
-import { BossPage } from '../features/boss/BossPage'
-import { TimerPage } from '../features/timer/TimerPage'
-import { QuizPage } from '../features/quiz/QuizPage'
-import { MinigamesPage } from '../features/minigames/MinigamesPage'
-import { DecksPage } from '../features/decks/DecksPage'
-import { DeckEditorPage } from '../features/decks/DeckEditorPage'
-import { NotesPage } from '../features/notes/NotesPage'
-import { NoteEditorPage } from '../features/notes/NoteEditorPage'
-import { PlanPage } from '../features/planner/PlanPage'
-import { StatsPage } from '../features/stats/StatsPage'
-import { ProfilePage } from '../features/profile/ProfilePage'
-import { ExplorePage } from '../features/explore/ExplorePage'
-import { SettingsPage } from '../features/settings/SettingsPage'
-import { DesignPage } from '../features/design/DesignPage'
+
+const AuthPage = lazy(() => import('../features/auth/AuthPage').then((m) => ({ default: m.AuthPage })))
+const SubjectsPage = lazy(() => import('../features/subjects/SubjectsPage').then((m) => ({ default: m.SubjectsPage })))
+const OnboardingPage = lazy(() => import('../features/onboarding/OnboardingPage').then((m) => ({ default: m.OnboardingPage })))
+const StudyPage = lazy(() => import('../features/study/StudyPage').then((m) => ({ default: m.StudyPage })))
+const ReviewPage = lazy(() => import('../features/review/ReviewPage').then((m) => ({ default: m.ReviewPage })))
+const BossPage = lazy(() => import('../features/boss/BossPage').then((m) => ({ default: m.BossPage })))
+const TimerPage = lazy(() => import('../features/timer/TimerPage').then((m) => ({ default: m.TimerPage })))
+const QuizPage = lazy(() => import('../features/quiz/QuizPage').then((m) => ({ default: m.QuizPage })))
+const MinigamesPage = lazy(() => import('../features/minigames/MinigamesPage').then((m) => ({ default: m.MinigamesPage })))
+const DecksPage = lazy(() => import('../features/decks/DecksPage').then((m) => ({ default: m.DecksPage })))
+const DeckEditorPage = lazy(() => import('../features/decks/DeckEditorPage').then((m) => ({ default: m.DeckEditorPage })))
+const NotesPage = lazy(() => import('../features/notes/NotesPage').then((m) => ({ default: m.NotesPage })))
+const NoteEditorPage = lazy(() => import('../features/notes/NoteEditorPage').then((m) => ({ default: m.NoteEditorPage })))
+const PlanPage = lazy(() => import('../features/planner/PlanPage').then((m) => ({ default: m.PlanPage })))
+const StatsPage = lazy(() => import('../features/stats/StatsPage').then((m) => ({ default: m.StatsPage })))
+const ProfilePage = lazy(() => import('../features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })))
+const ExplorePage = lazy(() => import('../features/explore/ExplorePage').then((m) => ({ default: m.ExplorePage })))
+const SettingsPage = lazy(() => import('../features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
+const DesignPage = lazy(() => import('../features/design/DesignPage').then((m) => ({ default: m.DesignPage })))
+const StudexaHeroDemoPage = lazy(() => import('../features/demo/StudexaHeroDemoPage').then((m) => ({ default: m.StudexaHeroDemoPage })))
+
+function LazyRoute({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<PageSkeleton />}>{children}</Suspense>
+}
 
 export const router = createBrowserRouter([
-  { path: '/login', element: (<ErrorBoundary><AuthPage mode="login" /></ErrorBoundary>) },
-  { path: '/register', element: (<ErrorBoundary><AuthPage mode="register" /></ErrorBoundary>) },
+  {
+    path: '/login',
+    element: (
+      <ErrorBoundary>
+        <LazyRoute>
+          <AuthPage mode="login" />
+        </LazyRoute>
+      </ErrorBoundary>
+    ),
+  },
+  {
+    path: '/register',
+    element: (
+      <ErrorBoundary>
+        <LazyRoute>
+          <AuthPage mode="register" />
+        </LazyRoute>
+      </ErrorBoundary>
+    ),
+  },
+  {
+    path: '/demo',
+    element: (
+      <ErrorBoundary>
+        <LazyRoute>
+          <StudexaHeroDemoPage />
+        </LazyRoute>
+      </ErrorBoundary>
+    ),
+  },
   {
     path: '/onboarding',
     element: (
       <RequireAuth>
         <ErrorBoundary>
-          <OnboardingPage />
+          <LazyRoute>
+            <OnboardingPage />
+          </LazyRoute>
         </ErrorBoundary>
       </RequireAuth>
     ),
@@ -46,24 +84,146 @@ export const router = createBrowserRouter([
       </RequireAuth>
     ),
     children: [
-      { index: true, element: <HomePage /> },
-      { path: 'study', element: <StudyPage /> },
-      { path: 'subjects', element: <SubjectsPage /> },
-      { path: 'study/review', element: <ReviewPage /> },
-      { path: 'study/boss', element: <BossPage /> },
-      { path: 'study/timer', element: <TimerPage /> },
-      { path: 'study/quiz', element: <QuizPage /> },
-      { path: 'study/minigames', element: <MinigamesPage /> },
-      { path: 'study/decks', element: <DecksPage /> },
-      { path: 'study/decks/:deckId', element: <DeckEditorPage /> },
-      { path: 'notes', element: <NotesPage /> },
-      { path: 'notes/:noteId', element: <NoteEditorPage /> },
-      { path: 'plan', element: <PlanPage /> },
-      { path: 'stats', element: <StatsPage /> },
-      { path: 'profile', element: <ProfilePage /> },
-      { path: 'explore', element: <ExplorePage /> },
-      { path: 'settings', element: <SettingsPage /> },
-      { path: 'design', element: <DesignPage /> },
+      {
+        index: true,
+        element: <HomePage />,
+      },
+      {
+        path: 'study',
+        element: (
+          <LazyRoute>
+            <StudyPage />
+          </LazyRoute>
+        ),
+      },
+      {
+        path: 'subjects',
+        element: (
+          <LazyRoute>
+            <SubjectsPage />
+          </LazyRoute>
+        ),
+      },
+      {
+        path: 'study/review',
+        element: (
+          <LazyRoute>
+            <ReviewPage />
+          </LazyRoute>
+        ),
+      },
+      {
+        path: 'study/boss',
+        element: (
+          <LazyRoute>
+            <BossPage />
+          </LazyRoute>
+        ),
+      },
+      {
+        path: 'study/timer',
+        element: (
+          <LazyRoute>
+            <TimerPage />
+          </LazyRoute>
+        ),
+      },
+      {
+        path: 'study/quiz',
+        element: (
+          <LazyRoute>
+            <QuizPage />
+          </LazyRoute>
+        ),
+      },
+      {
+        path: 'study/minigames',
+        element: (
+          <LazyRoute>
+            <MinigamesPage />
+          </LazyRoute>
+        ),
+      },
+      {
+        path: 'study/decks',
+        element: (
+          <LazyRoute>
+            <DecksPage />
+          </LazyRoute>
+        ),
+      },
+      {
+        path: 'study/decks/:deckId',
+        element: (
+          <LazyRoute>
+            <DeckEditorPage />
+          </LazyRoute>
+        ),
+      },
+      {
+        path: 'notes',
+        element: (
+          <LazyRoute>
+            <NotesPage />
+          </LazyRoute>
+        ),
+      },
+      {
+        path: 'notes/:noteId',
+        element: (
+          <LazyRoute>
+            <NoteEditorPage />
+          </LazyRoute>
+        ),
+      },
+      {
+        path: 'plan',
+        element: (
+          <LazyRoute>
+            <PlanPage />
+          </LazyRoute>
+        ),
+      },
+      {
+        path: 'stats',
+        element: (
+          <LazyRoute>
+            <StatsPage />
+          </LazyRoute>
+        ),
+      },
+      {
+        path: 'profile',
+        element: (
+          <LazyRoute>
+            <ProfilePage />
+          </LazyRoute>
+        ),
+      },
+      {
+        path: 'explore',
+        element: (
+          <LazyRoute>
+            <ExplorePage />
+          </LazyRoute>
+        ),
+      },
+      {
+        path: 'settings',
+        element: (
+          <LazyRoute>
+            <SettingsPage />
+          </LazyRoute>
+        ),
+      },
+      {
+        path: 'design',
+        element: (
+          <LazyRoute>
+            <DesignPage />
+          </LazyRoute>
+        ),
+      },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },

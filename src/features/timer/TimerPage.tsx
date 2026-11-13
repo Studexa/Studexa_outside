@@ -187,7 +187,7 @@ export function TimerPage() {
           </Button>
           <button
             onClick={() => reset()}
-            className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/80 text-[var(--color-muted)] hover:text-[var(--color-text)]"
+            className="flex h-12 w-12 shrink-0 aspect-square items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/80 text-[var(--color-muted)] hover:text-[var(--color-text)]"
             aria-label={t('common.reset')}
           >
             <Icon name="reset" size={20} />

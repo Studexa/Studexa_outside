@@ -12,7 +12,7 @@ export function Button({ variant = 'primary', size = 'md', full, className = '',
     'inline-flex items-center justify-center gap-2 rounded-2xl font-bold transition active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]'
   const styles: Record<string, string> = {
     primary:
-      'bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-strong)] shadow-[0_10px_24px_rgba(79,70,229,0.25)]',
+      'bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-strong)] shadow-[0_10px_24px_rgba(37,99,235,0.25)]',
     secondary:
       'bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-surface-alt)] border border-[var(--color-border)]',
     ghost: 'bg-transparent text-[var(--color-text)] hover:bg-[var(--color-surface-alt)]',

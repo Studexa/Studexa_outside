@@ -22,6 +22,7 @@ type AuthState = {
   register: (input: { email: string; password: string; nickname: string; language?: 'en' | 'km' }) => Promise<void>
   logout: () => Promise<void>
   updateProfile: (input: UpdateProfileInput) => Promise<Profile>
+  loginAsGuest: () => void
 }
 
 function syncLocalProfile(profile: Profile) {
@@ -49,6 +50,11 @@ export const useAuth = create<AuthState>()((set, get) => ({
   bootstrap: async () => {
     const status = get().status
     if (status === 'loading' || status === 'authenticated') return
+
+    if (typeof window !== 'undefined' && localStorage.getItem('studexa_guest_mode') === 'true') {
+      get().loginAsGuest()
+      return
+    }
 
     set({ status: 'loading' })
     try {
@@ -79,6 +85,9 @@ export const useAuth = create<AuthState>()((set, get) => ({
   },
 
   logout: async () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('studexa_guest_mode')
+    }
     try {
       await authApi.logout()
     } catch {
@@ -90,10 +99,68 @@ export const useAuth = create<AuthState>()((set, get) => ({
     }
   },
 
+  loginAsGuest: () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('studexa_guest_mode', 'true')
+    }
+    const guestUser: User = {
+      id: 'demo-guest-user',
+      email: 'guest@studexa.local',
+      role: 'STUDENT',
+      createdAt: new Date().toISOString(),
+    }
+    const guestProfile: Profile = {
+      userId: 'demo-guest-user',
+      nickname: 'Demo Student',
+      avatar: null,
+      language: 'en',
+      levelOfStudy: 'university',
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+      dailyGoalCards: 20,
+      dailyGoalMinutes: 30,
+      updatedAt: new Date().toISOString(),
+    }
+    syncLocalProfile(guestProfile)
+    set({ status: 'authenticated', user: guestUser, profile: guestProfile })
+  },
+
   updateProfile: async (input) => {
-    const me = await authApi.updateMe(input)
-    syncLocalProfile(me.profile)
-    set({ user: me.user, profile: me.profile })
-    return me.profile
+    if (typeof window !== 'undefined' && localStorage.getItem('studexa_guest_mode') === 'true') {
+      const current = get().profile
+      const guestProfile: Profile = {
+        userId: current?.userId ?? 'demo-guest-user',
+        nickname: input.nickname ?? current?.nickname ?? 'Demo Student',
+        avatar: input.avatar !== undefined ? input.avatar : (current?.avatar ?? null),
+        language: input.language ?? current?.language ?? 'en',
+        levelOfStudy: input.levelOfStudy !== undefined ? input.levelOfStudy : (current?.levelOfStudy ?? null),
+        timezone: input.timezone ?? current?.timezone ?? 'UTC',
+        dailyGoalCards: input.dailyGoalCards ?? current?.dailyGoalCards ?? 20,
+        dailyGoalMinutes: input.dailyGoalMinutes ?? current?.dailyGoalMinutes ?? 30,
+        updatedAt: new Date().toISOString(),
+      }
+      syncLocalProfile(guestProfile)
+      set({ profile: guestProfile })
+      return guestProfile
+    }
+
+    try {
+      const me = await authApi.updateMe(input)
+      syncLocalProfile(me.profile)
+      set({ user: me.user, profile: me.profile })
+      return me.profile
+    } catch (err) {
+      const current = get().profile
+      if (current) {
+        const fallbackProfile: Profile = {
+          ...current,
+          ...input,
+          updatedAt: new Date().toISOString(),
+        }
+        syncLocalProfile(fallbackProfile)
+        set({ profile: fallbackProfile })
+        return fallbackProfile
+      }
+      throw err
+    }
   },
 }))

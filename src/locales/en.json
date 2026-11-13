@@ -23,6 +23,8 @@
     "delete": "Delete",
     "edit": "Edit",
     "close": "Close",
+    "expand": "Expand",
+    "collapse": "Collapse",
     "on": "On",
     "off": "Off",
     "language": "Language",
@@ -46,7 +48,8 @@
     "undo": "Undo",
     "done": "Done",
     "refresh": "Refresh",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "or": "or"
   },
   "shell": {
     "settings": "Settings",
@@ -123,7 +126,10 @@
     "weekCards": "cards reviewed",
     "weekTime": "focus time",
     "weekAccuracy": "accuracy",
-    "seeStats": "See full stats"
+    "seeStats": "See full stats",
+    "dailyCadence": "Daily Cadence",
+    "upcomingCadence": "Upcoming Event",
+    "weeklyCadence": "Weekly Recap"
   },
   "quests": {
     "warmup": "Warm up with 10 cards",
@@ -627,7 +633,20 @@
     "resetHint": "This clears decks, notes, XP, and coins on this device.",
     "resetConfirm": "Delete all local Studexa data and start fresh? This cannot be undone.",
     "version": "Version",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "experience": "Experience & Audio",
+    "appearance": "Display & Appearance",
+    "notifications": "Notifications & Reminders",
+    "soundDesc": "Feedback sounds during review and quizzes",
+    "themeDesc": "Switch between light and dark modes",
+    "langDesc": "Interface language and buddy instructions",
+    "dailyReminder": "Daily Study Nudge",
+    "dailyReminderFreq": "Daily · 8:00 PM",
+    "streakAlert": "Streak Protector",
+    "streakAlertFreq": "2h before midnight",
+    "weeklyDigest": "Weekly Digest",
+    "weeklyDigestFreq": "Sundays · 7:00 PM",
+    "dangerZone": "Data & Reset"
   },
   "design": {
     "title": "Design system",
@@ -682,7 +701,8 @@
     "featureMemory": "Spaced review that remembers for you",
     "featureStreak": "Streaks, XP, and coins that make progress visible",
     "featureSafe": "Your study data stays with your account",
-    "errorGeneric": "Could not reach the server. Check that the backend is running."
+    "errorGeneric": "Could not reach the server. Check that the backend is running.",
+    "guestButton": "Continue in Demo / Offline Mode"
   },
   "subjects": {
     "title": "Subjects",

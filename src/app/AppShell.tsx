@@ -34,7 +34,7 @@ const immersiveRoutes = ['/study/review', '/study/boss', '/study/timer']
 
 function Logo() {
   return (
-    <span className="relative inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] text-white shadow-[0_8px_18px_rgba(79,70,229,0.28)]">
+    <span className="relative inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] text-white shadow-[0_8px_18px_rgba(37,99,235,0.28)]">
       <svg viewBox="0 0 32 32" width="24" height="24" fill="none" aria-hidden="true">
         <path d="M7 8h18a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3h-8l-5 4v-4H7a3 3 0 0 1-3-3v-9a3 3 0 0 1 3-3Z" fill="currentColor" opacity="0.22" />
         <path d="M7 8h18a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3h-8l-5 4v-4H7a3 3 0 0 1-3-3v-9a3 3 0 0 1 3-3Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />

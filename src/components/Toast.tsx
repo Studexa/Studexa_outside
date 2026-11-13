@@ -3,8 +3,8 @@ import { Icon } from './Icon'
 export function Toast({ message, kind = 'info' }: { message: string; kind?: 'info' | 'success' | 'error' }) {
   const styles = {
     info: 'bg-[var(--color-surface-alt)] text-[var(--color-text)]',
-    success: 'bg-[var(--color-success-soft)] text-[var(--color-success)]',
-    error: 'bg-[var(--color-danger-soft)] text-[#b91c1c] dark:text-[var(--color-danger)]',
+    success: 'bg-[var(--color-success-soft)] text-[var(--color-success-text)]',
+    error: 'bg-[var(--color-danger-soft)] text-[var(--color-danger-text)]',
   }
   const icon = kind === 'success' ? 'checkCircle' : kind === 'error' ? 'xCircle' : 'sparkles'
   return (

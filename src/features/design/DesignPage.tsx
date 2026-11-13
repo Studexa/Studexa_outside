@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
@@ -15,6 +16,16 @@ export function DesignPage() {
   const [open, setOpen] = useState(false)
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between p-4 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800">
+        <div>
+          <h2 className="font-extrabold text-sm text-blue-900 dark:text-blue-200">Stageshow Hero Demo</h2>
+          <p className="text-xs text-blue-700 dark:text-blue-300">Interactive flashcard flip & mascot reward mockup.</p>
+        </div>
+        <Link to="/demo" className="px-3.5 py-1.5 rounded-xl bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 transition-colors">
+          View Demo ↗
+        </Link>
+      </div>
+
       <h1 className="text-2xl font-extrabold">{t('design.title')}</h1>
       <p className="text-[var(--color-muted)]">{t('design.components')}</p>
       <Card title={t('design.buttons')}>

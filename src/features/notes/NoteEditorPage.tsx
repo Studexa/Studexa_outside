@@ -200,7 +200,7 @@ function NoteEditor({ note }: { note: Note }) {
       {selectedText.length > 2 && (
         <button
           onClick={openCardModal}
-          className="fixed bottom-24 left-1/2 z-30 flex min-h-12 -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--color-primary)] px-5 py-3 text-sm font-black text-white shadow-[0_14px_30px_rgba(79,70,229,0.4)] transition hover:-translate-y-0.5 active:scale-95 md:bottom-8"
+          className="fixed bottom-24 left-1/2 z-30 flex min-h-12 -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--color-primary)] px-5 py-3 text-sm font-black text-white shadow-[0_14px_30px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 active:scale-95 md:bottom-8"
         >
           <Icon name="cards" size={18} /> {t('notes.makeFlashcard')}
         </button>

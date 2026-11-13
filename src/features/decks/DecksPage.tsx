@@ -4,9 +4,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Button } from '../../components/Button'
 import { DeckTile } from '../../components/DeckTile'
+import { DeckTileSkeleton } from '../../components/Skeleton'
 import { Icon } from '../../components/Icon'
 import { Modal } from '../../components/Modal'
-import { Spinner } from '../../components/Spinner'
 import { decksApi, subjectsApi } from '../../lib/api'
 import { studyKeys, useDecks } from '../../lib/study'
 
@@ -80,7 +80,12 @@ export function DecksPage() {
       </div>
 
       {decksQuery.isLoading ? (
-        <div className="flex justify-center p-10"><Spinner /></div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <DeckTileSkeleton />
+          <DeckTileSkeleton />
+          <DeckTileSkeleton />
+          <DeckTileSkeleton />
+        </div>
       ) : decksQuery.isError ? (
         <div className="rounded-[24px] border border-[var(--color-danger)]/30 bg-[var(--color-danger-soft)] p-5 text-center">
           <p className="font-bold text-[var(--color-danger)]">{decksQuery.error.message}</p>

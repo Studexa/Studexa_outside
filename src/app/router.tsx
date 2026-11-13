@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppShell } from './AppShell'
 import { RequireAuth } from './RequireAuth'
+import { ErrorBoundary } from '../components/ErrorBoundary'
 import { AuthPage } from '../features/auth/AuthPage'
 import { SubjectsPage } from '../features/subjects/SubjectsPage'
 import { OnboardingPage } from '../features/onboarding/OnboardingPage'
@@ -23,13 +24,15 @@ import { SettingsPage } from '../features/settings/SettingsPage'
 import { DesignPage } from '../features/design/DesignPage'
 
 export const router = createBrowserRouter([
-  { path: '/login', element: <AuthPage mode="login" /> },
-  { path: '/register', element: <AuthPage mode="register" /> },
+  { path: '/login', element: (<ErrorBoundary><AuthPage mode="login" /></ErrorBoundary>) },
+  { path: '/register', element: (<ErrorBoundary><AuthPage mode="register" /></ErrorBoundary>) },
   {
     path: '/onboarding',
     element: (
       <RequireAuth>
-        <OnboardingPage />
+        <ErrorBoundary>
+          <OnboardingPage />
+        </ErrorBoundary>
       </RequireAuth>
     ),
   },
@@ -37,7 +40,9 @@ export const router = createBrowserRouter([
     path: '/',
     element: (
       <RequireAuth>
-        <AppShell />
+        <ErrorBoundary>
+          <AppShell />
+        </ErrorBoundary>
       </RequireAuth>
     ),
     children: [

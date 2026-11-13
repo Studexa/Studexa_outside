@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useTranslation } from 'react-i18next'
+import { useTranslation 
+} from 'react-i18next'
 import { Icon } from '../../components/Icon'
 import { Mascot } from '../../components/Mascot'
 import { ProgressBar } from '../../components/ProgressBar'
@@ -77,6 +78,11 @@ export function ReviewPage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: studyKeys.due })
       void queryClient.invalidateQueries({ queryKey: studyKeys.decks })
+    },
+    onError: () => {
+      setRatings((prev) => prev.slice(0, -1))
+      setFlipped(true)
+      setIndex((i) => Math.max(0, i - 1))
     },
   })
 

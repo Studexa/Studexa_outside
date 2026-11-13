@@ -655,6 +655,10 @@
     "empty": "Nothing here yet",
     "emptyHint": "Get started by adding something new."
   },
+  "error": {
+    "title": "Something went wrong",
+    "message": "We encountered an unexpected error. Please refresh the page."
+  },
   "auth": {
     "kicker": "Every small review grows your memory — and your buddy.",
     "loginTitle": "Welcome back",

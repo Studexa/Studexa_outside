@@ -48,6 +48,9 @@ export function OnboardingPage() {
       })
       return true
     } catch (err) {
+      if (typeof window !== 'undefined' && localStorage.getItem('studexa_guest_mode') === 'true') {
+        return true
+      }
       setError(err instanceof ApiError ? err.message : t('onboarding.saveError'))
       return false
     } finally {

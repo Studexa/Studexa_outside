@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Skills and AI harnesses
+.agents/
+.codex/
+skills-lock.json
+

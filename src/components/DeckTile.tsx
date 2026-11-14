@@ -1,9 +1,10 @@
+import { memo } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Icon } from './Icon'
 import type { DeckSummary } from '../lib/api'
 
-export function DeckTile({ deck }: { deck: DeckSummary }) {
+export const DeckTile = memo(function DeckTile({ deck }: { deck: DeckSummary }) {
   const { t } = useTranslation()
   return (
     <Link
@@ -39,4 +40,4 @@ export function DeckTile({ deck }: { deck: DeckSummary }) {
       </div>
     </Link>
   )
-}
+})

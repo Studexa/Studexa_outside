@@ -21,8 +21,8 @@ type RatingLog = { rating: Rating; correct: boolean; xpEarned?: number }
 const ratingStyles: Record<Rating, string> = {
   again: 'bg-[var(--color-danger-soft)] text-[#b91c1c] dark:text-[var(--color-danger)] hover:brightness-95',
   hard: 'bg-[var(--color-accent-soft)] text-[#92610a] dark:text-[var(--color-accent)] hover:brightness-95',
-  good: 'bg-[var(--color-success-soft)] text-[var(--color-success)] hover:brightness-95',
-  easy: 'bg-[var(--color-primary-soft)] text-[var(--color-primary)] hover:brightness-95',
+  good: 'bg-[var(--color-success-soft)] text-[#047857] dark:text-[var(--color-success)] hover:brightness-95',
+  easy: 'bg-[var(--color-primary-soft)] text-[var(--color-primary-strong)] dark:text-[var(--color-primary)] hover:brightness-95',
 }
 
 const typeKey: Record<CardType, string> = {

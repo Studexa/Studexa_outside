@@ -17,6 +17,7 @@ export function AuthPage({ mode }: { mode: Mode }) {
   const bootstrap = useAuth((s) => s.bootstrap)
   const login = useAuth((s) => s.login)
   const register = useAuth((s) => s.register)
+  const loginAsGuest = useAuth((s) => s.loginAsGuest)
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -71,7 +72,7 @@ export function AuthPage({ mode }: { mode: Mode }) {
   return (
     <div className="min-h-dvh bg-[var(--color-bg)] text-[var(--color-text)]">
       <div className="mx-auto grid min-h-dvh w-full max-w-6xl items-center gap-8 px-4 py-6 md:grid-cols-[1fr_1fr] md:px-8">
-        <section className="relative hidden overflow-hidden rounded-[32px] bg-gradient-to-br from-[var(--color-primary)] via-violet-600 to-indigo-500 p-8 text-white md:flex md:flex-col md:justify-between">
+        <section className="relative hidden overflow-hidden rounded-[32px] bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 p-8 text-white md:flex md:flex-col md:justify-between">
           <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10" />
           <div className="pointer-events-none absolute -bottom-20 left-10 h-52 w-52 rounded-full bg-amber-300/20" />
           <div className="relative flex items-center gap-2">
@@ -195,6 +196,29 @@ export function AuthPage({ mode }: { mode: Mode }) {
                 <Icon name="arrowRight" size={19} />
               </Button>
             </form>
+
+            <div className="relative my-4 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-[var(--color-border)]" />
+              </div>
+              <span className="relative bg-[var(--color-surface)] px-3 text-xs font-bold uppercase tracking-wider text-[var(--color-muted)]">
+                {t('common.or', 'or')}
+              </span>
+            </div>
+
+            <Button
+              type="button"
+              variant="secondary"
+              full
+              size="lg"
+              onClick={() => {
+                loginAsGuest()
+                navigate(from, { replace: true })
+              }}
+            >
+              <Icon name="sparkles" size={19} />
+              {t('auth.guestButton', 'Continue in Demo / Offline Mode')}
+            </Button>
 
             <p className="mt-5 text-center text-sm text-[var(--color-muted)]">
               {mode === 'login' ? t('auth.noAccount') : t('auth.haveAccount')}{' '}

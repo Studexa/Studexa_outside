@@ -145,7 +145,7 @@ export function PlanPage() {
         <p className="text-xs font-semibold text-[var(--color-muted)] mb-3">
           {t('plan.goalsSetByYou')}
         </p>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div className="rounded-2xl bg-[var(--color-surface-alt)]/60 p-3">
             <p className="text-[10px] font-bold text-[var(--color-muted)] uppercase">
               {t('plan.cardsPerDay')}

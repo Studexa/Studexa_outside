@@ -1,51 +1,208 @@
-import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Icon, type IconName } from '../../components/Icon'
 import { Badge } from '../../components/Badge'
-import { useApp } from '../../lib/store'
+import { decksApi, gameApi, reviewApi } from '../../lib/api'
 
-const subjectData = [
-  { subject: 'Mathematics', minutes: 95, color: '#6366f1' },
-  { subject: 'Biology', minutes: 70, color: '#10b981' },
-  { subject: 'Khmer', minutes: 60, color: '#f59e0b' },
-  { subject: 'English', minutes: 45, color: '#f87171' },
-  { subject: 'Physics', minutes: 30, color: '#3b82f6' },
+const DEFAULT_COLORS = [
+  '#6366f1',
+  '#10b981',
+  '#f59e0b',
+  '#f87171',
+  '#3b82f6',
+  '#ec4899',
+  '#8b5cf6',
+  '#14b8a6',
 ]
 
-const statsCards: { icon: IconName; value: string; key: string; tone: string }[] = [
-  { icon: 'calendar', value: '5', key: 'stats.studyDays', tone: 'bg-[var(--color-primary-soft)] text-[var(--color-primary)]' },
-  { icon: 'clock', value: '3.5h', key: 'stats.thisWeek', tone: 'bg-[var(--color-success-soft)] text-[var(--color-success)]' },
-  { icon: 'target', value: '92%', key: 'stats.accuracy', tone: 'bg-[var(--color-accent-soft)] text-[var(--color-accent)]' },
-  { icon: 'flame', value: '11', key: 'stats.bestStreak', tone: 'bg-[var(--color-danger-soft)] text-[#b91c1c] dark:text-[var(--color-danger)]' },
-]
-
-function heatLevel(index: number) {
-  const seed = (index * 37 + 11) % 100
-  if (seed < 18) return 0
-  if (seed < 44) return 1
-  if (seed < 68) return 2
-  if (seed < 86) return 3
+function heatLevel(count: number) {
+  if (count <= 0) return 0
+  if (count === 1) return 1
+  if (count === 2) return 2
+  if (count === 3) return 3
   return 4
 }
 
 export function StatsPage() {
   const { t } = useTranslation()
-  const weakCards = useApp((s) => s.weakCards)
+
+  const gameQuery = useQuery({
+    queryKey: ['game', 'state'],
+    queryFn: gameApi.state,
+  })
+  const xpQuery = useQuery({
+    queryKey: ['game', 'xp-history'],
+    queryFn: () => gameApi.xpHistory(100),
+  })
+  const decksQuery = useQuery({
+    queryKey: ['decks'],
+    queryFn: decksApi.list,
+  })
+  const queueQuery = useQuery({
+    queryKey: ['review', 'queue'],
+    queryFn: () => reviewApi.queue(null),
+  })
+
+  const gameState = gameQuery.data
+  const xpEvents = xpQuery.data ?? []
+  const decks = decksQuery.data ?? []
+  const queueCards = queueQuery.data?.cards ?? []
+
+  const isLoading =
+    gameQuery.isLoading || xpQuery.isLoading || decksQuery.isLoading || queueQuery.isLoading
+  const error =
+    gameQuery.error ?? xpQuery.error ?? decksQuery.error ?? queueQuery.error
+
+  // ---- derived stats from real backend data ----
+  const streakCurrent = gameState?.streakCurrent ?? 0
+  const streakBest = gameState?.streakBest ?? 0
+
+  // study sessions recorded in the last 7 days
+  const now = new Date()
+  const weekAgo = new Date(now)
+  weekAgo.setDate(now.getDate() - 7)
+  const sessionsThisWeek = xpEvents.filter((e) => {
+    const d = new Date(e.createdAt)
+    return d >= weekAgo && d <= now
+  }).length
+
+  // total cards due across all decks
+  const cardsDue = decks.reduce((sum, d) => sum + (d.dueCount ?? 0), 0)
+
+  const statsCards: { icon: IconName; value: string; key: string; tone: string }[] = [
+    {
+      icon: 'calendar',
+      value: String(streakCurrent),
+      key: 'stats.studyDays',
+      tone: 'bg-[var(--color-primary-soft)] text-[var(--color-primary)]',
+    },
+    {
+      icon: 'clock',
+      value: String(sessionsThisWeek),
+      key: 'stats.thisWeek',
+      tone: 'bg-[var(--color-success-soft)] text-[var(--color-success)]',
+    },
+    {
+      icon: 'target',
+      value: String(cardsDue),
+      key: 'stats.cardsDue',
+      tone: 'bg-[var(--color-accent-soft)] text-[var(--color-accent)]',
+    },
+    {
+      icon: 'flame',
+      value: String(streakBest),
+      key: 'stats.bestStreak',
+      tone: 'bg-[var(--color-danger-soft)] text-[#b91c1c] dark:text-[var(--color-danger)]',
+    },
+  ]
+
+  // ---- study heatmap (12 weeks) from real XP events ----
+  const dayCounts = new Map<string, number>()
+  for (const e of xpEvents) {
+    const dateKey = new Date(e.createdAt).toISOString().slice(0, 10)
+    dayCounts.set(dateKey, (dayCounts.get(dateKey) ?? 0) + 1)
+  }
 
   const weeks = 12
-  const [columns] = useState(() => {
-    const today = new Date()
-    return Array.from({ length: weeks }, (_, w) =>
-      Array.from({ length: 7 }, (_, d) => {
-        const index = w * 7 + d
-        const date = new Date(today)
-        date.setDate(today.getDate() - (weeks * 7 - 1 - index))
-        return { date, level: heatLevel(index) }
-      }),
+  const todayStart = new Date(now)
+  todayStart.setHours(0, 0, 0, 0)
+
+  const columns = Array.from({ length: weeks }, (_, w) =>
+    Array.from({ length: 7 }, (_, d) => {
+      const index = w * 7 + d
+      const date = new Date(todayStart)
+      date.setDate(todayStart.getDate() - (weeks * 7 - 1 - index))
+      const dateKey = date.toISOString().slice(0, 10)
+      const count = dayCounts.get(dateKey) ?? 0
+      return { date, level: heatLevel(count) }
+    }),
+  )
+
+  // ---- time by subject from real decks ----
+  const subjectMap = new Map<
+    string,
+    { minutes: number; color: string }
+  >()
+  for (const deck of decks) {
+    const subject = deck.subjectName ?? t('stats.uncategorized')
+    const existing = subjectMap.get(subject) ?? {
+      minutes: 0,
+      color: deck.color ?? DEFAULT_COLORS[0],
+    }
+    existing.minutes += deck.cardCount ?? 0
+    subjectMap.set(subject, existing)
+  }
+
+  const subjectData = Array.from(subjectMap.entries())
+    .map(([subject, { minutes, color }]) => ({ subject, minutes, color }))
+    .sort((a, b) => b.minutes - a.minutes)
+    .slice(0, 6)
+
+  // ---- weak cards from real review queue (cards with lapses) ----
+  const weakCards = queueCards
+    .filter((c) => (c.lapses ?? 0) > 0)
+    .sort((a, b) => (b.lapses ?? 0) - (a.lapses ?? 0))
+    .slice(0, 5)
+    .map((c) => ({
+      id: c.id,
+      front: c.front,
+      back: c.back,
+      lapses: c.lapses ?? 0,
+      deck: c.deckTitle ?? c.deckSubject ?? '',
+    }))
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <h1 className="text-2xl font-black">{t('stats.title')}</h1>
+          <p className="text-sm text-[var(--color-muted)]">{t('stats.subtitle')}</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 animate-pulse"
+            />
+          ))}
+        </div>
+        <section className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-extrabold">{t('stats.heatmap')}</h2>
+          </div>
+          <div className="mt-3 h-40 flex items-center justify-center text-[var(--color-muted)]">
+            {t('stats.heatmapTakeaway')}
+          </div>
+        </section>
+        <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <section className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 h-56 flex items-center justify-center text-[var(--color-muted)]">
+            {t('stats.timeBySubject')} …
+          </section>
+          <section className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-extrabold">{t('stats.weakCards')}</h2>
+            </div>
+            <div className="mt-3 h-32 flex items-center justify-center text-[var(--color-muted)]">
+              {t('stats.weakHint')}
+            </div>
+          </section>
+        </div>
+      </div>
     )
-  })
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-[24px] border border-dashed border-[var(--color-border)] p-8 text-center">
+        <p className="font-bold">{t('stats.loadError') ?? 'Failed to load stats.'}</p>
+        <p className="mt-1 text-sm text-[var(--color-muted)]">
+          {error instanceof Error ? error.message : String(error)}
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">
@@ -117,7 +274,10 @@ export function StatsPage() {
           <p className="text-xs font-semibold text-[var(--color-muted)]">{t('stats.timeTakeaway')}</p>
           <div className="mt-2 h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={subjectData} margin={{ top: 8, right: 4, left: -18, bottom: 0 }}>
+              <BarChart
+                data={subjectData}
+                margin={{ top: 8, right: 4, left: -18, bottom: 0 }}
+              >
                 <XAxis
                   dataKey="subject"
                   tick={{ fontSize: 10, fill: 'var(--color-muted)', fontWeight: 700 }}
@@ -135,7 +295,10 @@ export function StatsPage() {
                     fontSize: 12,
                     color: 'var(--color-text)',
                   }}
-                  formatter={(value) => [`${value} ${t('stats.minutes')}`, t('stats.timeBySubject')]}
+                  formatter={(value) => [
+                    `${value} ${t('stats.minutes')}`,
+                    t('stats.timeBySubject'),
+                  ]}
                 />
                 <Bar dataKey="minutes" radius={[8, 8, 0, 0]}>
                   {subjectData.map((entry) => (
@@ -154,7 +317,7 @@ export function StatsPage() {
           </div>
           <p className="text-xs font-semibold text-[var(--color-muted)]">{t('stats.weakHint')}</p>
           <div className="mt-3 space-y-2">
-            {weakCards.slice(0, 5).map((card) => (
+            {weakCards.map((card) => (
               <div key={card.id} className="rounded-2xl bg-[var(--color-surface-alt)]/60 p-3">
                 <p className="text-sm font-extrabold">{card.front}</p>
                 <p className="truncate text-xs text-[var(--color-muted)]">{card.back}</p>
@@ -166,6 +329,11 @@ export function StatsPage() {
                 </div>
               </div>
             ))}
+            {weakCards.length === 0 && (
+              <p className="text-xs text-[var(--color-muted)]">
+                {t('stats.noWeakCards') ?? 'No cards to revisit right now.'}
+              </p>
+            )}
           </div>
           <Link to="/study/review" className="mt-3 flex min-h-11 items-center justify-center gap-1.5 rounded-2xl bg-[var(--color-primary-soft)] text-sm font-bold text-[var(--color-primary)]">
             <Icon name="cards" size={16} /> {t('stats.reviewWeak')}

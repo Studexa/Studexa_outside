@@ -236,19 +236,6 @@ const seedNotes: Note[] = [
   },
 ]
 
-const seedExams: Exam[] = [
-  { id: 'exam-math', title: 'Math final exam', subject: 'Mathematics', date: isoInDays(9), importance: 'high' },
-  { id: 'exam-bio', title: 'Biology quiz', subject: 'Biology', date: isoInDays(16), importance: 'medium' },
-  { id: 'exam-english', title: 'English speaking test', subject: 'English', date: isoInDays(25), importance: 'low' },
-]
-
-const seedTasks: Task[] = [
-  { id: 'task-1', title: 'Review 20 algebra cards', date: todayISO(), done: false },
-  { id: 'task-2', title: 'Read Biology chapter 4', date: todayISO(), done: true },
-  { id: 'task-3', title: 'Practice 10 Khmer vocabulary words', date: todayISO(), done: false },
-  { id: 'task-4', title: 'Finish a 25-minute focus session', date: todayISO(), done: false },
-]
-
 const seedQuests: Quest[] = [
   { id: 'warmup', target: 10, progress: 6, rewardXp: 15, rewardCoins: 5, completed: false },
   { id: 'focus', target: 1, progress: 0, rewardXp: 25, rewardCoins: 8, completed: false },
@@ -348,8 +335,8 @@ const initialState = {
   joinedAt: isoInDays(0),
   decks: seedDecks,
   notes: seedNotes,
-  exams: seedExams,
-  tasks: seedTasks,
+  exams: [],
+  tasks: [],
   quests: freshQuests(),
   badges: freshBadges(),
   owned: [] as string[],

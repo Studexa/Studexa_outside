@@ -1,12 +1,15 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
 import { Button } from '../../components/Button'
 import { Icon } from '../../components/Icon'
 import { Modal } from '../../components/Modal'
 import { Badge } from '../../components/Badge'
 import { ProgressBar } from '../../components/ProgressBar'
 import { daysUntil, todayISO, useApp, type Importance } from '../../lib/store'
+import { useAuth } from '../../lib/auth'
+import { cardsApi, gameApi } from '../../lib/api'
 
 function dateKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
@@ -20,11 +23,26 @@ const importanceTone: Record<Importance, 'danger' | 'accent' | 'primary'> = {
 
 export function PlanPage() {
   const { t, i18n } = useTranslation()
+  const { profile, updateProfile } = useAuth()
   const exams = useApp((s) => s.exams)
   const tasks = useApp((s) => s.tasks)
   const toggleTask = useApp((s) => s.toggleTask)
   const addTask = useApp((s) => s.addTask)
   const addExam = useApp((s) => s.addExam)
+  const dailyGoal = useApp((s) => s.dailyGoal)
+
+  const cardsDueQuery = useQuery({
+    queryKey: ['cards', 'due'],
+    queryFn: () => cardsApi.due(50),
+  })
+  const gameQuery = useQuery({
+    queryKey: ['game', 'state'],
+    queryFn: gameApi.state,
+  })
+
+  const cardsDue = cardsDueQuery.data ?? []
+  const gameState = gameQuery.data
+  const streak = gameState?.streakCurrent ?? 0
 
   const [cursor, setCursor] = useState(() => {
     const now = new Date()
@@ -32,11 +50,14 @@ export function PlanPage() {
   })
   const [examOpen, setExamOpen] = useState(false)
   const [taskOpen, setTaskOpen] = useState(false)
+  const [goalOpen, setGoalOpen] = useState(false)
   const [taskTitle, setTaskTitle] = useState('')
   const [examTitle, setExamTitle] = useState('')
   const [examSubject, setExamSubject] = useState('')
   const [examDate, setExamDate] = useState(todayISO())
   const [importance, setImportance] = useState<Importance>('high')
+  const [goalCards, setGoalCards] = useState(profile?.dailyGoalCards ?? dailyGoal)
+  const [goalMinutes, setGoalMinutes] = useState(profile?.dailyGoalMinutes ?? 30)
 
   const today = todayISO()
   const todaysTasks = tasks.filter((task) => task.date === today)
@@ -80,6 +101,19 @@ export function PlanPage() {
     setExamOpen(false)
   }
 
+  const saveGoals = async () => {
+    const cards = Math.max(1, Math.min(500, goalCards))
+    const minutes = Math.max(1, Math.min(600, goalMinutes))
+    setGoalCards(cards)
+    setGoalMinutes(minutes)
+    try {
+      await updateProfile({ dailyGoalCards: cards, dailyGoalMinutes: minutes })
+    } catch {
+      // updateProfile already falls back to local state on error
+    }
+    setGoalOpen(false)
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -94,8 +128,50 @@ export function PlanPage() {
           <Button onClick={() => setExamOpen(true)}>
             <Icon name="calendar" size={17} /> {t('plan.addExam')}
           </Button>
+          <Button variant="ghost" onClick={() => setGoalOpen(true)}>
+            <Icon name="target" size={17} /> {t('plan.setGoals')}
+          </Button>
         </div>
       </div>
+
+      {/* Daily goals set by the user */}
+      <section className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-extrabold">{t('plan.dailyGoals')}</h2>
+          <Button size="sm" onClick={() => setGoalOpen(true)}>
+            {t('plan.edit')}
+          </Button>
+        </div>
+        <p className="text-xs font-semibold text-[var(--color-muted)] mb-3">
+          {t('plan.goalsSetByYou')}
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="rounded-2xl bg-[var(--color-surface-alt)]/60 p-3">
+            <p className="text-[10px] font-bold text-[var(--color-muted)] uppercase">
+              {t('plan.cardsPerDay')}
+            </p>
+            <p className="text-2xl font-black">{goalCards}</p>
+          </div>
+          <div className="rounded-2xl bg-[var(--color-surface-alt)]/60 p-3">
+            <p className="text-[10px] font-bold text-[var(--color-muted)] uppercase">
+              {t('plan.minutesPerDay')}
+            </p>
+            <p className="text-2xl font-black">{goalMinutes}</p>
+          </div>
+        </div>
+        <div className="mt-3">
+          <ProgressBar
+            value={Math.min(cardsDue.length, goalCards)}
+            max={goalCards}
+            size="sm"
+            tone="primary"
+          />
+          <div className="mt-1 flex justify-between text-[10px] font-bold text-[var(--color-muted)]">
+            <span>{cardsDue.length} {t('plan.cardsDueToday')}</span>
+            <span>{t('plan.ofGoal', { count: goalCards })}</span>
+          </div>
+        </div>
+      </section>
 
       <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
@@ -164,6 +240,12 @@ export function PlanPage() {
             <span className="inline-flex items-center gap-1">
               <span className="h-3 w-3 rounded bg-[var(--color-primary)]" /> {t('plan.today')}
             </span>
+            <span className="inline-flex items-center gap-1">
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-success-soft)] text-[var(--color-success)]">
+                <Icon name="flame" size={9} />
+              </span>
+              {t('plan.streak', { count: streak })}
+            </span>
           </div>
         </section>
 
@@ -211,6 +293,11 @@ export function PlanPage() {
           </Link>
         </div>
         <div className="space-y-3">
+          {sortExams.length === 0 && (
+            <p className="text-sm text-[var(--color-muted)] text-center py-4">
+              {t('plan.noExams')}
+            </p>
+          )}
           {sortExams.map((exam) => {
             const days = daysUntil(exam.date)
             const progress = Math.min(100, Math.max(8, 100 - days * 3))
@@ -296,7 +383,7 @@ export function PlanPage() {
               value={examSubject}
               onChange={(e) => setExamSubject(e.target.value)}
               placeholder={t('plan.subjectPlaceholder')}
-              className="mt-1 w-full rounded-2xl px-4 py-2.5"
+              className="mt-1 w-full rounded-2xl px-2.5"
             />
           </div>
           <div>
@@ -306,7 +393,7 @@ export function PlanPage() {
               type="date"
               value={examDate}
               onChange={(e) => setExamDate(e.target.value)}
-              className="mt-1 w-full rounded-2xl px-4 py-2.5"
+              className="mt-1 w-full rounded-2xl px-2.5"
             />
           </div>
           <div>
@@ -331,6 +418,44 @@ export function PlanPage() {
           <Button full onClick={createExam} disabled={!examTitle.trim() || !examDate}>
             {t('plan.addExam')}
           </Button>
+        </div>
+      </Modal>
+
+      <Modal open={goalOpen} title={t('plan.dailyGoals')} onClose={() => setGoalOpen(false)}>
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--color-muted)]">
+            {t('plan.goalsDescription')}
+          </p>
+          <div>
+            <label className="text-sm font-bold" htmlFor="goal-cards">{t('plan.cardsPerDay')}</label>
+            <input
+              id="goal-cards"
+              type="number"
+              min="1"
+              max="500"
+              value={goalCards}
+              onChange={(e) => setGoalCards(Math.max(1, Math.min(500, Number(e.target.value) || 1)))}
+              className="mt-1 w-full rounded-2xl px-4 py-2.5"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-bold" htmlFor="goal-minutes">{t('plan.minutesPerDay')}</label>
+            <input
+              id="goal-minutes"
+              type="number"
+              min="1"
+              max="600"
+              value={goalMinutes}
+              onChange={(e) => setGoalMinutes(Math.max(1, Math.min(600, Number(e.target.value) || 1)))}
+              className="mt-1 w-full rounded-2xl px-4 py-2.5"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setGoalOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={saveGoals}>{t('plan.save')}</Button>
+          </div>
         </div>
       </Modal>
     </div>

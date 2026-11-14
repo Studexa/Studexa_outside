@@ -55,7 +55,7 @@ export function TimerPage() {
   }, [completed, minutes, recordFocus])
 
   const start = () => {
-    if (remaining <= 0) return
+    if (running || remaining <= 0) return
     setEndAt(Date.now() + remaining * 1000)
     setRunning(true)
     playSound('tap')

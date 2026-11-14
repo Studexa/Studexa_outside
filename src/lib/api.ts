@@ -242,6 +242,94 @@ export type ReviewUndoResponse = {
   now: string
 }
 
+export type PetDto = {
+  userId: string
+  species: string
+  name: string
+  stage: string
+  mood: string
+  accessories: string[]
+  equippedAccessory: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type ShopItemDto = {
+  id: string
+  nameEn: string
+  nameKm: string
+  kind: string
+  price: number
+  accessoryType: string | null
+  active: boolean
+}
+
+export type ShopPurchaseResult = {
+  shopItemId: string
+  price: number
+  remainingCoins: number
+  isFreeze: boolean
+}
+
+export type UserShopItemDto = {
+  id: string
+  shopItemId: string
+  purchasedAt: string
+}
+
+export type QuestDto = {
+  id: string
+  kind: string
+  code: string
+  nameKey: string
+  target: number
+  progress: number
+  rewardXp: number
+  rewardCoins: number
+  questDate: string
+  completed: boolean
+}
+
+export type QuestProgressRequest = {
+  code: string
+  amount: number
+  source: string
+  referenceId: string | null
+}
+
+export type GameState = {
+  userId: string
+  xpTotal: number
+  level: number
+  xpInLevel: number
+  coins: number
+  streakCurrent: number
+  streakBest: number
+  streakFreezes: number
+  lastActiveDate: string
+  dailyXpToday: number
+  dailyXpDate: string
+  xpToNextLevel: number
+}
+
+export type BadgeDto = {
+  code: string
+  nameEn: string
+  nameKm: string
+  descriptionEn: string
+  descriptionKm: string
+  coinsReward: number
+  earned: boolean
+}
+
+export type XpEventDto = {
+  id: string
+  source: string
+  amount: number
+  createdAt: string
+  referenceId: string | null
+}
+
 export type AiTask = 'FLASHCARDS' | 'QUIZ'
 
 export type AiCardItem = {
@@ -327,6 +415,50 @@ export const reviewApi = {
 
   undo: (cardId: string) =>
     call<ReviewUndoResponse>(client.POST('/api/v1/review/undo', { params: { query: { cardId } } })),
+}
+
+export const gameApi = {
+  state: () => call<GameState>(client.GET('/api/v1/game/state')),
+
+  badges: () => call<BadgeDto[]>(client.GET('/api/v1/game/badges')),
+
+  xpHistory: (limit = 20) =>
+    call<XpEventDto[]>(client.GET('/api/v1/game/xp-history', { params: { query: { limit } } })),
+
+  consumeStreakFreeze: () =>
+    call<void>(client.POST('/api/v1/game/streak-freeze/consume', {})),
+}
+
+export const petApi = {
+  get: () => call<PetDto>(client.GET('/api/v1/pet')),
+
+  updateMood: (studiedToday: boolean) =>
+    call<void>(client.POST('/api/v1/pet/mood', { body: { studiedToday } })),
+
+  updateStage: (level: number) =>
+    call<void>(client.POST('/api/v1/pet/stage', { body: { level } })),
+
+  rename: (name: string) =>
+    call<PetDto>(client.PUT('/api/v1/pet/name', { body: { name } })),
+
+  equip: (accessoryType: string | null) =>
+    call<void>(client.POST('/api/v1/pet/equip', { body: { accessoryType } })),
+}
+
+export const shopApi = {
+  items: () => call<ShopItemDto[]>(client.GET('/api/v1/shop')),
+
+  owned: () => call<UserShopItemDto[]>(client.GET('/api/v1/shop/owned')),
+
+  buy: (shopItemId: string) =>
+    call<ShopPurchaseResult>(client.POST('/api/v1/shop/buy', { body: { shopItemId } })),
+}
+
+export const questApi = {
+  today: () => call<QuestDto[]>(client.GET('/api/v1/quests/today')),
+
+  progress: (input: QuestProgressRequest) =>
+    call<void>(client.POST('/api/v1/quests/progress', { body: input })),
 }
 
 export const aiApi = {

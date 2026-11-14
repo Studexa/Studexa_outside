@@ -115,11 +115,16 @@
     "startStudying": "Start studying",
     "cardsDue": "{{count}} due",
     "quests": "Today's quests",
+    "questsLoading": "Loading quests...",
+    "questsCompleted": "{{count}} quest completed today",
     "examBoss": "Exam boss",
     "daysLeft": "days left",
     "examHint": "Answer questions to weaken it before exam day.",
     "prepareBoss": "Prepare for battle",
     "weeklySummary": "This week",
+    "weekXp": "total XP",
+    "weekLevel": "current level",
+    "weekCoins": "your coins",
     "weekCards": "cards reviewed",
     "weekTime": "focus time",
     "weekAccuracy": "accuracy",
@@ -128,7 +133,11 @@
   "quests": {
     "warmup": "Warm up with 10 cards",
     "focus": "Finish one focus session",
-    "builder": "Add 3 new flashcards"
+    "builder": "Add 3 new flashcards",
+    "hotStreak": "Get 5 Good/Easy answers in a row",
+    "noteTaker": "Write 1 note",
+    "consistency": "Study on 5 of 7 days this week",
+    "review150": "Review 150 cards this week"
   },
   "review": {
     "title": "Flashcards",
@@ -166,6 +175,7 @@
     "combo": "{{count}} combo",
     "undo": "Undo last",
     "swipeHint": "Swipe left for again, right for good.",
+    "levelReached": "Level {{level}} reached!",
     "loadError": "Could not load your due cards"
   },
   "decks": {

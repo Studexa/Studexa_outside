@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useTranslation 
-} from 'react-i18next'
+import { useTranslation } from 'react-i18next'
 import { Icon } from '../../components/Icon'
 import { Mascot } from '../../components/Mascot'
 import { ProgressBar } from '../../components/ProgressBar'
@@ -11,14 +10,13 @@ import { EmptyState } from '../../components/EmptyState'
 import { Spinner } from '../../components/Spinner'
 import { celebrate } from '../../lib/confetti'
 import { playSound } from '../../lib/sound'
-import { cardsApi, type CardType, type DueCard, type ReviewRating } from '../../lib/api'
+import { type CardType, type DueCard, type ReviewRating } from '../../lib/api'
+import { gameApi, questApi, reviewApi, type ReviewAnswerResponse } from '../../lib/api'
 import { studyKeys, useDueCards } from '../../lib/study'
 import { useApp } from '../../lib/store'
 
 type Rating = 'again' | 'hard' | 'good' | 'easy'
-type RatingLog = { rating: Rating; correct: boolean }
-
-const ratingXp: Record<Rating, number> = { again: 3, hard: 4, good: 5, easy: 6 }
+type RatingLog = { rating: Rating; correct: boolean; xpEarned?: number }
 
 const ratingStyles: Record<Rating, string> = {
   again: 'bg-[var(--color-danger-soft)] text-[#b91c1c] dark:text-[var(--color-danger)] hover:brightness-95',
@@ -62,6 +60,11 @@ export function ReviewPage() {
   const [float, setFloat] = useState<{ key: number; amount: number } | null>(null)
   const [cheer, setCheer] = useState(false)
   const [lastRating, setLastRating] = useState<RatingLog | null>(null)
+  const [serverXp, setServerXp] = useState(0)
+  const [leveledUp, setLeveledUp] = useState(false)
+  const [newLevel, setNewLevel] = useState(1)
+  const [undoCardId, setUndoCardId] = useState<string | null>(null)
+  const undoTimer = useRef<number | null>(null)
   const initialized = useRef(false)
   const committed = useRef(false)
   const touchStart = useRef<number | null>(null)
@@ -72,12 +75,27 @@ export function ReviewPage() {
     setQueue(shuffle(dueQuery.data))
   }, [dueQuery.data])
 
+  // Clean up undo timer on unmount (BUG-K02: memory leak / stale closure)
+  useEffect(() => {
+    return () => {
+      if (undoTimer.current) window.clearTimeout(undoTimer.current)
+    }
+  }, [])
+
   const review = useMutation({
-    mutationFn: ({ id, rating }: { id: string; rating: ReviewRating }) =>
-      cardsApi.review(id, rating),
-    onSuccess: () => {
+    mutationFn: async ({ id, rating, msTaken }: { id: string; rating: ReviewRating; msTaken: number }) => {
+      const clientReviewId = crypto.randomUUID()
+      return reviewApi.answer({ cardId: id, rating, msTaken, clientReviewId })
+    },
+    onSuccess: async (response: ReviewAnswerResponse) => {
+      setServerXp(response.xpEarned)
+      setLeveledUp(response.leveledUp)
+      setNewLevel(response.newLevel)
       void queryClient.invalidateQueries({ queryKey: studyKeys.due })
       void queryClient.invalidateQueries({ queryKey: studyKeys.decks })
+
+      // Report quest progress: warmup counts reviewed cards toward daily quest
+      void questApi.progress({ code: 'warmup', amount: 1, source: 'review_card', referenceId: null })
     },
     onError: () => {
       setRatings((prev) => prev.slice(0, -1))
@@ -86,10 +104,12 @@ export function ReviewPage() {
     },
   })
 
+  const isRating = review.isPending
+
   const current = queue[index]
   const total = queue.length
   const correct = ratings.filter((r) => r.correct).length
-  const xpEarned = ratings.length * 3 + correct * 2 + (ratings.length >= 5 ? 20 : 0)
+  const xpEarned = serverXp > 0 ? serverXp : ratings.length * 3 + correct * 2 + (ratings.length >= 5 ? 20 : 0)
 
   useEffect(() => {
     if (finished) return
@@ -106,15 +126,20 @@ export function ReviewPage() {
   }, [finished, ratings.length, correct, recordReviewSession])
 
   const rate = (rating: Rating) => {
-    if (!current || finished || !flipped) return
+    if (!current || finished || !flipped || isRating) return
     const isCorrect = rating === 'good' || rating === 'easy'
     const log: RatingLog = { rating, correct: isCorrect }
     setRatings((prev) => [...prev, log])
     setLastRating(log)
     setFlipped(false)
-    setFloat({ key: Date.now(), amount: ratingXp[rating] })
+    const localXp = rating === 'again' ? 3 : rating === 'hard' ? 4 : 5
+    setFloat({ key: Date.now(), amount: localXp })
     playSound(isCorrect ? 'success' : 'error')
-    review.mutate({ id: current.id, rating: rating.toUpperCase() as ReviewRating })
+    review.mutate({
+      id: current.id,
+      rating: rating.toUpperCase() as ReviewRating,
+      msTaken: 0,
+    })
 
     if (isCorrect) {
       const nextCombo = combo + 1
@@ -125,6 +150,11 @@ export function ReviewPage() {
     } else {
       setCombo(0)
     }
+
+    // Set up undo: available for 5 seconds after each rating
+    setUndoCardId(current.id)
+    if (undoTimer.current) window.clearTimeout(undoTimer.current)
+    undoTimer.current = window.setTimeout(() => setUndoCardId(null), 5000)
 
     if (index + 1 >= total) {
       setFinished(true)
@@ -153,6 +183,9 @@ export function ReviewPage() {
     setFloat(null)
     setCheer(false)
     setLastRating(null)
+    setServerXp(0)
+    setLeveledUp(false)
+    setNewLevel(1)
   }
 
   useEffect(() => {
@@ -252,6 +285,12 @@ export function ReviewPage() {
               <p className="text-xs font-bold text-[var(--color-muted)]">{t('review.xpEarned')}</p>
             </div>
           </div>
+
+          {leveledUp && (
+            <div className="mt-3 rounded-full bg-[var(--color-accent-soft)] px-3 py-1 text-xs font-black text-[var(--color-accent)]">
+              {t('shell.levelUp')} {t('review.levelReached', { level: newLevel })}
+            </div>
+          )}
 
           {maxCombo >= 3 && (
             <p className="mt-3 inline-flex items-center gap-1 rounded-full bg-[var(--color-accent-soft)] px-3 py-1 text-xs font-black text-[var(--color-accent)]">
@@ -388,7 +427,7 @@ export function ReviewPage() {
             <button
               key={rating}
               onClick={() => rate(rating)}
-              disabled={!flipped}
+              disabled={!flipped || isRating}
               className={`flex min-h-16 flex-col items-center justify-center rounded-2xl px-1 py-2 font-black transition disabled:cursor-not-allowed disabled:opacity-40 ${ratingStyles[rating]}`}
             >
               <span className="text-sm">{t(`review.ratings.${rating}`)}</span>
@@ -400,6 +439,23 @@ export function ReviewPage() {
 
         <div className="mt-3 flex items-center justify-center gap-3">
           <span className="text-xs text-[var(--color-muted)]">{t('review.swipeHint')}</span>
+          {undoCardId && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={async () => {
+                await reviewApi.undo(undoCardId)
+                setUndoCardId(null)
+                if (undoTimer.current) window.clearTimeout(undoTimer.current)
+                void queryClient.invalidateQueries({ queryKey: studyKeys.due })
+                setIndex((i) => Math.max(0, i - 1))
+                setFlipped(false)
+                setRatings((prev) => prev.slice(0, -1))
+              }}
+            >
+              {t('common.undo')}
+            </Button>
+          )}
         </div>
       </div>
     </div>

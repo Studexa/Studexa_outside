@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
 import { GoalRing } from '../../components/GoalRing'
 import { Mascot } from '../../components/Mascot'
 import { BossArt } from '../../components/BossArt'
@@ -9,24 +10,55 @@ import { ProgressBar } from '../../components/ProgressBar'
 import { Badge } from '../../components/Badge'
 import { daysUntil, useApp } from '../../lib/store'
 import { useDecks } from '../../lib/study'
+import { gameApi, questApi } from '../../lib/api'
 
 const questIcons: Record<string, IconName> = {
   warmup: 'bolt',
   focus: 'timer',
   builder: 'layers',
+  hotStreak: 'flame',
+  noteTaker: 'note',
+  consistency: 'calendar',
+  review150: 'chart',
+}
+
+const questNames: Record<string, string> = {
+  warmup: 'Warm-up',
+  focus: 'Deep Focus',
+  builder: 'Builder',
+  hotStreak: 'Hot Streak',
+  noteTaker: 'Note Taker',
+  consistency: 'Consistency',
+  review150: 'Review 150',
 }
 
 export function HomePage() {
   const { t, i18n } = useTranslation()
   const nickname = useApp((s) => s.nickname)
   const buddy = useApp((s) => s.buddy)
-  const streak = useApp((s) => s.streak)
   const cardsToday = useApp((s) => s.cardsToday)
   const dailyGoal = useApp((s) => s.dailyGoal)
-  const quests = useApp((s) => s.quests)
   const exams = useApp((s) => s.exams)
   const decksQuery = useDecks()
 
+  const gameQuery = useQuery({
+    queryKey: ['game', 'state'],
+    queryFn: gameApi.state,
+    staleTime: 1000 * 60, // 1 minute
+  })
+
+  const questsQuery = useQuery({
+    queryKey: ['quests', 'today'],
+    queryFn: questApi.today,
+    staleTime: 1000 * 60, // 1 minute
+  })
+
+  const streak = gameQuery.data?.streakCurrent ?? 0
+  const level = gameQuery.data?.level ?? 1
+  const xp = gameQuery.data?.xpTotal ?? 0
+  const coins = gameQuery.data?.coins ?? 0
+
+  const quests = questsQuery.data ?? []
   const due = (decksQuery.data ?? []).reduce((sum, deck) => sum + deck.dueCount, 0)
   const nextExam = [...exams].sort((a, b) => a.date.localeCompare(b.date))[0]
   const examDays = nextExam ? daysUntil(nextExam.date) : 0
@@ -38,6 +70,8 @@ export function HomePage() {
       day: 'numeric',
     }).format(new Date()),
   )
+
+  const completedQuests = quests.filter((q) => q.completed).length
 
   return (
     <div className="space-y-4">
@@ -101,11 +135,11 @@ export function HomePage() {
               <div key={quest.id} className="rounded-2xl bg-[var(--color-surface-alt)]/60 p-3">
                 <div className="flex items-center gap-2">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--color-surface)] text-[var(--color-primary)] shadow-[var(--shadow-sm)]">
-                    <Icon name={questIcons[quest.id] ?? 'bolt'} size={18} />
+                    <Icon name={questIcons[quest.code] ?? 'bolt'} size={18} />
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="truncate text-sm font-extrabold">{t(`quests.${quest.id}`)}</p>
+                      <p className="truncate text-sm font-extrabold">{questNames[quest.code] ?? t(`quests.${quest.code}`)}</p>
                       {quest.completed ? (
                         <Badge tone="success">
                           <Icon name="check" size={12} /> {t('common.done')}
@@ -131,7 +165,17 @@ export function HomePage() {
                 </div>
               </div>
             ))}
+            {quests.length === 0 && questsQuery.isLoading === false && (
+              <div className="rounded-2xl bg-[var(--color-surface-alt)]/60 p-3 text-center text-sm text-[var(--color-muted)]">
+                {t('home.questsLoading')}
+              </div>
+            )}
           </div>
+          {completedQuests > 0 && (
+            <div className="mt-3 rounded-full bg-[var(--color-accent-soft)] px-3 py-1 text-xs font-black text-[var(--color-accent)]">
+              {t('home.questsCompleted', { count: completedQuests })}
+            </div>
+          )}
         </section>
 
         {nextExam && (
@@ -167,16 +211,16 @@ export function HomePage() {
         </div>
         <div className="grid grid-cols-3 gap-2">
           <div className="rounded-2xl bg-[var(--color-primary-soft)] p-3 text-center">
-            <p className="text-xl font-black text-[var(--color-primary)]">48</p>
-            <p className="text-[11px] font-bold text-[var(--color-muted)]">{t('home.weekCards')}</p>
+            <p className="text-xl font-black text-[var(--color-primary)]">{xp}</p>
+            <p className="text-[11px] font-bold text-[var(--color-muted)]">{t('home.weekXp')}</p>
           </div>
           <div className="rounded-2xl bg-[var(--color-success-soft)] p-3 text-center">
-            <p className="text-xl font-black text-[var(--color-success)]">3.5h</p>
-            <p className="text-[11px] font-bold text-[var(--color-muted)]">{t('home.weekTime')}</p>
+            <p className="text-xl font-black text-[var(--color-success)]">{level}</p>
+            <p className="text-[11px] font-bold text-[var(--color-muted)]">{t('home.weekLevel')}</p>
           </div>
           <div className="rounded-2xl bg-[var(--color-accent-soft)] p-3 text-center">
-            <p className="text-xl font-black text-[var(--color-accent)]">92%</p>
-            <p className="text-[11px] font-bold text-[var(--color-muted)]">{t('home.weekAccuracy')}</p>
+            <p className="text-xl font-black text-[var(--color-accent)]">{coins}</p>
+            <p className="text-[11px] font-bold text-[var(--color-muted)]">{t('home.weekCoins')}</p>
           </div>
         </div>
         <Link to="/stats" className="mt-3 flex items-center justify-center gap-1 text-xs font-bold text-[var(--color-primary)]">

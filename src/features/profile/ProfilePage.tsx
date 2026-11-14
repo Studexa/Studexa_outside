@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { Badge } from '../../components/Badge'
 import { Button } from '../../components/Button'
 import { Icon, type IconName } from '../../components/Icon'
@@ -9,7 +10,6 @@ import { Modal } from '../../components/Modal'
 import { ProgressBar } from '../../components/ProgressBar'
 import { celebrate } from '../../lib/confetti'
 import {
-  BADGES,
   SHOP_ITEMS,
   buddyStageKey,
   levelTitleKey,
@@ -17,6 +17,7 @@ import {
   xpForNext,
   type ShopItem,
 } from '../../lib/store'
+import { gameApi, type BadgeDto } from '../../lib/api'
 
 const badgeIcons: Record<string, IconName> = {
   firstFlip: 'cards',
@@ -49,30 +50,45 @@ export function ProfilePage() {
   const { t, i18n } = useTranslation()
   const nickname = useApp((s) => s.nickname)
   const buddy = useApp((s) => s.buddy)
-  const level = useApp((s) => s.level)
-  const xp = useApp((s) => s.xp)
-  const coins = useApp((s) => s.coins)
-  const streak = useApp((s) => s.streak)
-  const bestStreak = useApp((s) => s.bestStreak)
-  const joinedAt = useApp((s) => s.joinedAt)
-  const badges = useApp((s) => s.badges)
+  const setNickname = useApp((s) => s.setNickname)
   const owned = useApp((s) => s.owned)
   const equipped = useApp((s) => s.equipped)
   const buyItem = useApp((s) => s.buyItem)
   const equipItem = useApp((s) => s.equipItem)
-  const setNickname = useApp((s) => s.setNickname)
+
+  const gameQuery = useQuery({
+    queryKey: ['game', 'state'],
+    queryFn: gameApi.state,
+    staleTime: 1000 * 60,
+  })
+
+  const badgesQuery = useQuery({
+    queryKey: ['game', 'badges'],
+    queryFn: gameApi.badges,
+    staleTime: 1000 * 60,
+  })
+
+  const state = gameQuery.data
+  const level = state?.level ?? 1
+  const xp = state?.xpTotal ?? 0
+  const coins = state?.coins ?? 0
+  const streak = state?.streakCurrent ?? 0
+  const bestStreak = state?.streakBest ?? 0
+
+  const badgeDtos = badgesQuery.data ?? []
+  const earnedBadges = badgeDtos.filter((b) => b.earned).map((b) => b.code)
+  const ownedCount = earnedBadges.length
+
+  const nextXp = xpForNext(level)
+  const joined = new Intl.DateTimeFormat(i18n.language === 'km' ? 'km-KH' : 'en-US', {
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date())
 
   const [preview, setPreview] = useState<ShopItem | null>(null)
   const [nameOpen, setNameOpen] = useState(false)
   const [nameValue, setNameValue] = useState(nickname)
   const [message, setMessage] = useState<string | null>(null)
-
-  const nextXp = xpForNext(level)
-  const ownedCount = BADGES.filter((badge) => badges[badge.code]).length
-  const joined = new Intl.DateTimeFormat(i18n.language === 'km' ? 'km-KH' : 'en-US', {
-    month: 'long',
-    year: 'numeric',
-  }).format(new Date(`${joinedAt}T12:00:00`))
 
   const previewAccessory = preview?.accessory ?? null
 
@@ -151,17 +167,17 @@ export function ProfilePage() {
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-extrabold">{t('profile.badges')}</h2>
             <Badge tone="accent">
-              {ownedCount}/{BADGES.length}
+              {ownedCount}/{badgeDtos.length}
             </Badge>
           </div>
           <p className="text-xs font-semibold text-[var(--color-muted)]">{t('profile.joined', { date: joined })}</p>
           <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
-            {BADGES.map((badge) => {
-              const earned = !!badges[badge.code]
+            {badgeDtos.map((badge) => {
+              const earned = badge.earned
               return (
                 <div
                   key={badge.code}
-                  title={t(`badges.${badge.code}.desc`)}
+                  title={badge.descriptionEn}
                   className={`flex flex-col items-center gap-1 rounded-2xl border p-2 text-center ${
                     earned
                       ? 'border-[var(--color-accent)]/40 bg-[var(--color-accent-soft)]'
@@ -177,9 +193,9 @@ export function ProfilePage() {
                   >
                     <Icon name={earned ? badgeIcons[badge.code] ?? 'trophy' : 'lock'} size={19} />
                   </span>
-                  <p className="text-[10px] font-black leading-tight">{t(`badges.${badge.code}.name`)}</p>
+                  <p className="text-[10px] font-black leading-tight">{badge.nameEn}</p>
                   <p className="text-[9px] font-bold text-[var(--color-muted)]">
-                    {earned ? `+${badge.coins}` : t('profile.locked')}
+                    {earned ? `+${badge.coinsReward}` : t('profile.locked')}
                   </p>
                 </div>
               )

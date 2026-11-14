@@ -76,7 +76,7 @@ export function HomePage() {
   return (
     <div className="space-y-4">
       {/* Hero Banner: Today's Goal & Main Action */}
-      <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 p-5 text-white shadow-[var(--shadow-lift)] sm:p-7">
+      <section className="relative overflow-hidden rounded-[28px] bg-linear-to-br from-blue-600 via-blue-700 to-indigo-900 p-5 text-white shadow-(--shadow-lift) sm:p-7">
         <div className="pointer-events-none absolute -right-10 -top-12 h-44 w-44 rounded-full bg-white/10" />
         <div className="pointer-events-none absolute -bottom-16 left-16 h-40 w-40 rounded-full bg-amber-300/15" />
 
@@ -131,7 +131,7 @@ export function HomePage() {
       {/* Operational 2-Column Grid: Daily Quests & Upcoming Exam Boss */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Section 1: Daily Quests */}
-        <section className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
+        <section className="rounded-3xl border border-(--color-border) bg-(--color-surface) p-4 shadow-(--shadow-sm)">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-extrabold">{t('home.quests')}</h2>
@@ -139,15 +139,15 @@ export function HomePage() {
                 {t('home.dailyCadence')}
               </Badge>
             </div>
-            <Link to="/study" className="inline-flex items-center gap-1 text-xs font-bold text-[var(--color-primary)] hover:underline">
+            <Link to="/study" className="inline-flex items-center gap-1 text-xs font-bold text-(--color-primary) hover:underline">
               {t('common.seeAll')} <Icon name="chevronRight" size={14} />
             </Link>
           </div>
           <div className="space-y-2.5">
             {quests.map((quest) => (
-              <div key={quest.id} className="rounded-2xl bg-[var(--color-surface-alt)]/60 p-3">
+              <div key={quest.id} className="rounded-2xl bg-(--color-surface-alt)/60 p-3">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--color-surface)] text-[var(--color-primary)] shadow-[var(--shadow-sm)]">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-(--color-surface) text-(--color-primary) shadow-(--shadow-sm)">
                     <Icon name={questIcons[quest.code] ?? 'bolt'} size={18} />
                   </span>
                   <div className="min-w-0 flex-1">
@@ -158,7 +158,7 @@ export function HomePage() {
                           <Icon name="check" size={12} /> {t('common.done')}
                         </Badge>
                       ) : (
-                        <span className="shrink-0 text-[11px] font-bold text-[var(--color-muted)]">
+                        <span className="shrink-0 text-[11px] font-bold text-(--color-muted)">
                           {quest.progress}/{quest.target}
                         </span>
                       )}
@@ -168,24 +168,24 @@ export function HomePage() {
                     </div>
                   </div>
                 </div>
-                <div className="mt-2 flex items-center gap-3 pl-11 text-[11px] font-bold text-[var(--color-muted)]">
-                  <span className="inline-flex items-center gap-1 text-[var(--color-accent)]">
+                <div className="mt-2 flex items-center gap-3 pl-11 text-[11px] font-bold text-(--color-muted)">
+                  <span className="inline-flex items-center gap-1 text-(--color-accent)">
                     <Icon name="bolt" size={12} /> +{quest.rewardXp} XP
                   </span>
-                  <span className="inline-flex items-center gap-1 text-[var(--color-accent)]">
+                  <span className="inline-flex items-center gap-1 text-(--color-accent)">
                     <Icon name="coin" size={12} /> +{quest.rewardCoins}
                   </span>
                 </div>
               </div>
             ))}
             {quests.length === 0 && questsQuery.isLoading === false && (
-              <div className="rounded-2xl bg-[var(--color-surface-alt)]/60 p-3 text-center text-sm text-[var(--color-muted)]">
+              <div className="rounded-2xl bg-(--color-surface-alt)/60 p-3 text-center text-sm text-(--color-muted)">
                 {t('home.questsLoading')}
               </div>
             )}
           </div>
           {completedQuests > 0 && (
-            <div className="mt-3 rounded-full bg-[var(--color-accent-soft)] px-3 py-1 text-xs font-black text-[var(--color-accent)]">
+            <div className="mt-3 rounded-full bg-(--color-accent-soft) px-3 py-1 text-xs font-black text-(--color-accent)">
               {t('home.questsCompleted', { count: completedQuests })}
             </div>
           )}
@@ -193,7 +193,7 @@ export function HomePage() {
 
         {/* Section 2: Next Exam Milestone (Upcoming Event Cadence) */}
         {nextExam && (
-          <section className="relative overflow-hidden rounded-[24px] bg-[var(--color-navy)] p-5 text-white shadow-[var(--shadow-md)]">
+          <section className="relative overflow-hidden rounded-3xl bg-(--color-navy) p-5 text-white shadow-(--shadow-md)">
             <div className="pointer-events-none absolute -right-6 -top-8 h-36 w-36 rounded-full bg-blue-500/20 blur-xl" />
             <div className="relative flex items-start justify-between gap-2">
               <div>
@@ -224,10 +224,10 @@ export function HomePage() {
       </div>
 
       {/* Section 3: Weekly Retrospective Cadence */}
-      <section className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
+      <section className="rounded-3xl border border-(--color-border) bg-(--color-surface) p-4 shadow-(--shadow-sm)">
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Icon name="chart" size={18} className="text-[var(--color-primary)]" />
+            <Icon name="chart" size={18} className="text-(--color-primary)" />
             <h2 className="text-base font-extrabold">{t('home.weeklySummary')}</h2>
             <Badge tone="neutral" className="text-[10px] font-black uppercase tracking-wider">
               {t('home.weeklyCadence')}
@@ -235,20 +235,20 @@ export function HomePage() {
           </div>
         </div>
         <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-2xl bg-[var(--color-primary-soft)] p-3 text-center">
-            <p className="text-xl font-black text-[var(--color-primary)]">{xp}</p>
-            <p className="text-[11px] font-bold text-[var(--color-muted)]">{t('home.weekXp')}</p>
+          <div className="rounded-2xl bg-(--color-primary-soft) p-3 text-center">
+            <p className="text-xl font-black text-(--color-primary)">{xp}</p>
+            <p className="text-[11px] font-bold text-(--color-muted)">{t('home.weekXp')}</p>
           </div>
-          <div className="rounded-2xl bg-[var(--color-success-soft)] p-3 text-center">
-            <p className="text-xl font-black text-[var(--color-success)]">{level}</p>
-            <p className="text-[11px] font-bold text-[var(--color-muted)]">{t('home.weekLevel')}</p>
+          <div className="rounded-2xl bg-(--color-success-soft) p-3 text-center">
+            <p className="text-xl font-black text-(--color-success)">{level}</p>
+            <p className="text-[11px] font-bold text-(--color-muted)">{t('home.weekLevel')}</p>
           </div>
-          <div className="rounded-2xl bg-[var(--color-accent-soft)] p-3 text-center">
-            <p className="text-xl font-black text-[var(--color-accent)]">{coins}</p>
-            <p className="text-[11px] font-bold text-[var(--color-muted)]">{t('home.weekCoins')}</p>
+          <div className="rounded-2xl bg-(--color-accent-soft) p-3 text-center">
+            <p className="text-xl font-black text-(--color-accent)">{coins}</p>
+            <p className="text-[11px] font-bold text-(--color-muted)">{t('home.weekCoins')}</p>
           </div>
         </div>
-        <Link to="/stats" className="mt-3 flex items-center justify-center gap-1 text-xs font-bold text-[var(--color-primary)] hover:underline">
+        <Link to="/stats" className="mt-3 flex items-center justify-center gap-1 text-xs font-bold text-(--color-primary) hover:underline">
           {t('home.seeStats')} <Icon name="arrowRight" size={13} />
         </Link>
       </section>

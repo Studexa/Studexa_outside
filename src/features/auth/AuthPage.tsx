@@ -71,7 +71,7 @@ export function AuthPage({ mode }: { mode: Mode }) {
 
   return (
     <div className="min-h-dvh bg-[var(--color-bg)] text-[var(--color-text)]">
-      <div className="mx-auto grid min-h-dvh w-full max-w-6xl items-center gap-8 px-4 py-6 md:grid-cols-[1fr_1fr] md:px-8">
+      <div className="mx-auto grid h-dvh w-full max-w-6xl items-center gap-6 px-3 py-3 md:grid-cols-[1fr_1fr] md:px-8">
         <section className="relative hidden overflow-hidden rounded-[32px] bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 p-8 text-white md:flex md:flex-col md:justify-between">
           <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10" />
           <div className="pointer-events-none absolute -bottom-20 left-10 h-52 w-52 rounded-full bg-amber-300/20" />
@@ -116,7 +116,7 @@ export function AuthPage({ mode }: { mode: Mode }) {
             </button>
           </div>
 
-          <div className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-md)] sm:p-7">
+          <div className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-6 shadow-[var(--shadow-md)]">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-primary)]">
               {mode === 'login' ? t('auth.welcomeBack') : t('auth.start')}
             </p>
@@ -127,7 +127,7 @@ export function AuthPage({ mode }: { mode: Mode }) {
               {mode === 'login' ? t('auth.loginSubtitle') : t('auth.registerSubtitle')}
             </p>
 
-            <form className="mt-6 space-y-4" onSubmit={onSubmit}>
+            <form className="mt-4 space-y-3" onSubmit={onSubmit}>
               {mode === 'register' && (
                 <div>
                   <label className="block text-sm font-bold" htmlFor="nickname">
@@ -197,7 +197,7 @@ export function AuthPage({ mode }: { mode: Mode }) {
               </Button>
             </form>
 
-            <div className="relative my-4 flex items-center justify-center">
+            <div className="relative my-3 flex items-center justify-center">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-[var(--color-border)]" />
               </div>
@@ -220,7 +220,7 @@ export function AuthPage({ mode }: { mode: Mode }) {
               {t('auth.guestButton', 'Continue in Demo / Offline Mode')}
             </Button>
 
-            <p className="mt-5 text-center text-sm text-[var(--color-muted)]">
+            <p className="mt-4 text-center text-sm text-[var(--color-muted)]">
               {mode === 'login' ? t('auth.noAccount') : t('auth.haveAccount')}{' '}
               <Link
                 to={mode === 'login' ? '/register' : '/login'}

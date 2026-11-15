@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { sessionApi } from '../../lib/api/quiz'
+import { sessionApi, answerApi } from '../../lib/api/quiz'
 import { Button } from '../../components/Button'
 
 export function PlayPage() {
   const { sessionId } = useParams()
   const navigate = useNavigate()
-  const [question, setQuestion] = useState<any>(null)
+  const [question, _setQuestion] = useState<any>(null)
   const [stage, setStage] = useState<'waiting' | 'question' | 'result' | 'finished'>('waiting')
   const [error, setError] = useState<string | null>(null)
 
@@ -27,7 +27,7 @@ export function PlayPage() {
     const responseTimeMs = 1000
 
     try {
-      await sessionApi.answerApi.submitAnswer({
+      await answerApi.submitAnswer({
         sessionPlayerId: 'current-player-id',
         questionId: question.id,
         selectedAnswer,
@@ -71,7 +71,7 @@ export function PlayPage() {
               {['A', 'B', 'C', 'D'].map((letter) => (
                 <Button
                   key={letter}
-                  variant="outline"
+                  variant="secondary"
                   className="w-full text-left"
                   onClick={() => handleAnswer(letter)}
                 >

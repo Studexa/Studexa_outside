@@ -643,6 +643,22 @@
       "doneHint": "You scored {{score}} out of {{total}}."
     }
   },
+  "quizRoom": {
+    "title": "Join Quiz Room",
+    "subtitle": "Enter the room code from the host.",
+    "roomCodeLabel": "Room Code (6 characters)",
+    "roomCodePlaceholder": "e.g. K7P2QX",
+    "nicknameLabel": "Your Nickname",
+    "nicknamePlaceholder": "e.g. Sokha",
+    "joinButton": "Join Room",
+    "shareTitle": "Share this room",
+    "shareSubtitle": "Scan or copy the link to invite players.",
+    "copyLink": "Copy link",
+    "linkCopied": "Link copied!",
+    "scanQR": "Scan to join",
+    "roomLink": "Room link",
+    "back": "Back"
+  },
   "settings": {
     "subtitle": "Make Studexa comfortable for you.",
     "textSize": "Text size",

@@ -22,7 +22,7 @@ export function LandingPage() {
             🎯 Create Room
           </Button>
           <Button
-            variant="outline"
+            variant="secondary"
             className="w-full py-4 text-xl"
             onClick={() => setMode('join')}
           >

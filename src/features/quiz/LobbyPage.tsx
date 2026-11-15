@@ -128,7 +128,7 @@ export function LobbyPage() {
               type="text"
               placeholder="Your nickname"
               className="w-full px-3 py-2 rounded border border-[var(--border)] bg-[var(--bg)]"
-              onChange={(e) => {
+              onChange={(_e) => {
                 // handled via URL param
               }}
             />

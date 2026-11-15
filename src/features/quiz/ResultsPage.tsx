@@ -7,7 +7,6 @@ export function ResultsPage() {
   const { sessionId } = useParams()
   const navigate = useNavigate()
   const [leaderboard, setLeaderboard] = useState<any[]>([])
-  [error]
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -57,7 +56,7 @@ export function ResultsPage() {
         <div className="p-6 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
           <h2 className="font-semibold mb-4">Leaderboard</h2>
           <ol className="space-y-3">
-            {leaderboard.map((entry, idx) => (
+            {leaderboard.map((entry: any, idx: number) => (
               <li
                 key={idx}
                 className={`flex items-center justify-between p-3 rounded ${
@@ -81,7 +80,7 @@ export function ResultsPage() {
 
         <div className="mt-6 flex gap-3">
           <Button onClick={() => navigate('/')}>Back to Home</Button>
-          <Button variant="outline" onClick={() => navigate(`/quiz/lobby/${sessionId}`)}>
+          <Button variant="secondary" onClick={() => navigate(`/quiz/lobby/${sessionId}`)}>
             Play Again
           </Button>
         </div>

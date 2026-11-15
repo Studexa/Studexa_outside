@@ -1,9 +1,12 @@
 import { Client } from '@stomp/stompjs'
+import type { IMessage } from '@stomp/stompjs'
 
 let stompClient: Client | null = null
 
+type MessageHandler = (destination: string, body: any) => void
+
 export function connectWebSocket(
-  onMessage: (destination: string, body: any) => void,
+  _onMessage: MessageHandler,
   onConnect?: () => void,
   onDisconnect?: () => void,
 ) {
@@ -29,41 +32,25 @@ export function connectWebSocket(
     },
   })
 
-  client.publish = (destination: string, body: any) => {
-    client.publish({ destination, body: JSON.stringify(body) })
-  }
-
-  client.subscribe = (destination: string, callback: (body: any) => void) => {
-    client.subscribe(destination, (msg) => {
-      try {
-        callback(JSON.parse(msg.body))
-      } catch {
-        callback(msg.body)
-      }
-    })
-  }
-
-  // Wrap subscribe and publish on the client object
-  const originalPublish = client.publish.bind(client)
-  const originalSubscribe = client.subscribe.bind(client)
-  ;(client as any).publish = (destination: string, body: any) =>
-    originalPublish(destination, body)
-  ;(client as any).subscribe = (destination: string, callback: (body: any) => void) =>
-    originalSubscribe(destination, (msg) => {
-      try {
-        callback(JSON.parse(msg.body))
-      } catch {
-        callback(msg.body)
-      }
-    })
-
-  // Set up a catch-all for /topic/room/* destinations
-  client.onMessage = (msg) => {
-    onMessage(msg.destination, msg.body)
-  }
-
   client.activate()
   return client
+}
+
+export function publishMessage(destination: string, body: any) {
+  stompClient?.publish({ destination, body: JSON.stringify(body) })
+}
+
+export function subscribeMessage(
+  destination: string,
+  callback: (body: any) => void,
+) {
+  stompClient?.subscribe(destination, (msg: IMessage) => {
+    try {
+      callback(JSON.parse(msg.body))
+    } catch {
+      callback(msg.body)
+    }
+  })
 }
 
 export function disconnectWebSocket() {

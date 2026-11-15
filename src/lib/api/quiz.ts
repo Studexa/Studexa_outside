@@ -1,9 +1,4 @@
-import type {
-  QuizDto,
-  CreateSessionRequest,
-  JoinRoomRequest,
-  AnswerRequest,
-} from '../../types/quiz'
+import type { QuizDto } from '../../types/quiz'
 
 const API_BASE = '/api/v1'
 
@@ -47,7 +42,7 @@ export const quizApi = {
 
 /** Session (room) endpoints */
 export const sessionApi = {
-  createSession: (body: CreateSessionRequest) =>
+  createSession: (body: QuizDto.CreateSessionRequest) =>
     request<QuizDto.SessionResponse>('/sessions', {
       method: 'POST',
       body: JSON.stringify(body),
@@ -57,7 +52,7 @@ export const sessionApi = {
   startSession: (id: string) =>
     request<QuizDto.SessionResponse>(`/sessions/${id}/start`, { method: 'POST' }),
   getPlayers: (id: string) => request<QuizDto.SessionPlayerResponse[]>(`/sessions/${id}/players`),
-  joinSession: (id: string, body: JoinRoomRequest) =>
+  joinSession: (id: string, body: QuizDto.JoinRoomRequest) =>
     request<QuizDto.SessionPlayerResponse>(`/sessions/${id}/players`, {
       method: 'POST',
       body: JSON.stringify(body),
@@ -67,7 +62,7 @@ export const sessionApi = {
 
 /** Answer endpoints */
 export const answerApi = {
-  submitAnswer: (body: AnswerRequest) =>
+  submitAnswer: (body: QuizDto.AnswerRequest) =>
     request<QuizDto.AnswerResponse>('/answers', {
       method: 'POST',
       body: JSON.stringify(body),

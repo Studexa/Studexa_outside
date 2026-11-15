@@ -13,6 +13,7 @@ import { PlayPage } from '../features/quiz/PlayPage'
 import { ResultsPage } from '../features/quiz/ResultsPage'
 
 const AuthPage = lazy(() => import('../features/auth/AuthPage').then((m) => ({ default: m.AuthPage })))
+const AuthCallbackPage = lazy(() => import('../features/auth/AuthCallbackPage').then((m) => ({ default: m.AuthCallbackPage })))
 const SubjectsPage = lazy(() => import('../features/subjects/SubjectsPage').then((m) => ({ default: m.SubjectsPage })))
 const OnboardingPage = lazy(() => import('../features/onboarding/OnboardingPage').then((m) => ({ default: m.OnboardingPage })))
 const StudyPage = lazy(() => import('../features/study/StudyPage').then((m) => ({ default: m.StudyPage })))
@@ -54,6 +55,16 @@ export const router = createBrowserRouter([
       <ErrorBoundary>
         <LazyRoute>
           <AuthPage mode="register" />
+        </LazyRoute>
+      </ErrorBoundary>
+    ),
+  },
+  {
+    path: '/auth/callback',
+    element: (
+      <ErrorBoundary>
+        <LazyRoute>
+          <AuthCallbackPage />
         </LazyRoute>
       </ErrorBoundary>
     ),

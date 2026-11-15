@@ -643,6 +643,22 @@
       "doneHint": "អ្នកទទួលបាន {{score}} ក្នុង {{total}} ។"
     }
   },
+  "quizRoom": {
+    "title": "ចូលបន្ទាប់ពិសេស",
+    "subtitle": "បញ្ជាក់កូដបន្ទាប់ដោយស្រុក។",
+    "roomCodeLabel": "កូដបន្ទាប់ (៦ អក្សរ)",
+    "roomCodePlaceholder": "ᧇ K7P2QX",
+    "nicknameLabel": "នាមរបស់អ្នក",
+    "nicknamePlaceholder": "ᧇ សុខា",
+    "joinButton": "ចូលបន្ទាប់",
+    "shareTitle": "ចែករាល់បន្ទាប់នេះ",
+    "shareSubtitle": "ស្តំរាមឬចម្លងតំណទៀតដើម្បីអិនាមជួយ។",
+    "copyLink": "ចម្លងតំណទៀត",
+    "linkCopied": "Ꮟចម្លងតំណទៀតរួចរាល់!",
+    "scanQR": "ស្តំរាមដើម្បីចូល",
+    "roomLink": "តំណទៀតបន្ទាប់",
+    "back": "ត្រឡប់"
+  },
   "settings": {
     "subtitle": "ធ្វើឱ្យ Studexa ស្រួលសម្រាប់អ្នក។",
     "textSize": "ទំហំអត្ថបទ",

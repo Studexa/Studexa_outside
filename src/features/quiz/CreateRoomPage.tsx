@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '../../components/Button'
-import { quizApi } from '../../lib/api/quiz'
+import { sessionApi } from '../../lib/api/quiz'
 
 export function CreateRoomPage() {
   const [loading, setLoading] = useState(false)
@@ -13,9 +13,7 @@ export function CreateRoomPage() {
     setLoading(true)
     setError(null)
     try {
-      const form = e.currentTarget
-      const title = (form.elements.namedItem('title') as HTMLInputElement).value
-      const subject = (form.elements.namedItem('subject') as HTMLInputElement).value || 'General'
+      const form = e.currentTarget as HTMLFormElement
       const numQuestions = parseInt(
         (form.elements.namedItem('numQuestions') as HTMLInputElement).value || '10',
       )
@@ -23,7 +21,7 @@ export function CreateRoomPage() {
         (form.elements.namedItem('timePerQuestion') as HTMLInputElement).value || '30',
       )
 
-      const session = await quizApi.sessionApi.createSession({
+      const session = await sessionApi.createSession({
         quizId: '00000000-0000-0000-0000-000000000000', // placeholder - will be replaced with actual quiz
         mode: 'live_race',
         numQuestions,

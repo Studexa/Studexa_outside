@@ -122,7 +122,7 @@ export function ExplorePage() {
     },
     onSuccess: (created, deck) => {
       setCopied((prev) => [...prev, deck.id])
-      void queryClient.invalidateQueries({ queryKey: studyKeys.decks })
+      void queryClient.invalidateQueries({ queryKey: studyKeys.decks() })
       void queryClient.invalidateQueries({ queryKey: studyKeys.deck(created.id) })
       celebrate()
     },

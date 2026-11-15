@@ -294,7 +294,7 @@ export type QuestProgressRequest = {
   code: string
   amount: number
   source: string
-  referenceId: string | null
+  referenceId?: string
 }
 
 export type GameState = {
@@ -327,7 +327,7 @@ export type XpEventDto = {
   source: string
   amount: number
   createdAt: string
-  referenceId: string | null
+  referenceId?: string
 }
 
 export type AiTask = 'FLASHCARDS' | 'QUIZ'
@@ -398,10 +398,6 @@ export const cardsApi = {
   due: (limit = 50) =>
     call<DueCard[]>(client.GET('/api/v1/cards/due', { params: { query: { limit } } })),
 
-  review: (id: string, rating: ReviewRating) =>
-    call<StudyCard>(
-      client.POST('/api/v1/cards/{id}/review', { params: { path: { id } }, body: { rating } }),
-    ),
 }
 
 export const reviewApi = {
@@ -441,7 +437,7 @@ export const petApi = {
   rename: (name: string) =>
     call<PetDto>(client.PUT('/api/v1/pet/name', { body: { name } })),
 
-  equip: (accessoryType: string | null) =>
+  equip: (accessoryType: string | undefined) =>
     call<void>(client.POST('/api/v1/pet/equip', { body: { accessoryType } })),
 }
 

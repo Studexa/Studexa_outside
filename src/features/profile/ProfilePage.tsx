@@ -17,7 +17,9 @@ import {
   xpForNext,
   type ShopItem,
 } from '../../lib/store'
-import { gameApi, type BadgeDto } from '../../lib/api'
+import { gameApi } from '../../lib/api'
+import { useAuth } from '../../lib/auth'
+import { studyKeys, useGameState } from '../../lib/study'
 
 const badgeIcons: Record<string, IconName> = {
   firstFlip: 'cards',
@@ -56,14 +58,11 @@ export function ProfilePage() {
   const buyItem = useApp((s) => s.buyItem)
   const equipItem = useApp((s) => s.equipItem)
 
-  const gameQuery = useQuery({
-    queryKey: ['game', 'state'],
-    queryFn: gameApi.state,
-    staleTime: 1000 * 60,
-  })
+  const user = useAuth((s) => s.user)
+  const gameQuery = useGameState()
 
   const badgesQuery = useQuery({
-    queryKey: ['game', 'badges'],
+    queryKey: studyKeys.gameBadges(user?.id),
     queryFn: gameApi.badges,
     staleTime: 1000 * 60,
   })

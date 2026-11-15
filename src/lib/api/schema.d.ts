@@ -20,6 +20,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/pet/name": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["renamePet"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -84,6 +100,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/shop/buy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["buy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/review/undo": {
         parameters: {
             query?: never;
@@ -110,6 +142,86 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["answer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quests/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["addProgress"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pet/stage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["updateStage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pet/mood": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["updateMood"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pet/equip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["equipAccessory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/game/streak-freeze/consume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["consumeStreakFreeze"];
         delete?: never;
         options?: never;
         head?: never;
@@ -163,23 +275,7 @@ export interface paths {
         head?: never;
         patch?: never;
         trace?: never;
-    };
-    "/api/v1/cards/{id}/review": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["review"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
+    },
     "/api/v1/auth/reset-password": {
         parameters: {
             query?: never;
@@ -308,6 +404,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/shop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["items"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shop/owned": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["owned"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/review/queue": {
         parameters: {
             query?: never;
@@ -324,6 +452,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/quests/today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["today"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["pet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -332,6 +492,54 @@ export interface paths {
             cookie?: never;
         };
         get: operations["health"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/game/xp-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["xpHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/game/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["state"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/game/badges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["badges"];
         put?: never;
         post?: never;
         delete?: never;
@@ -373,6 +581,23 @@ export interface components {
             color?: string;
             icon?: string;
             archived?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        RenamePetRequest: {
+            name?: string;
+        };
+        PetDto: {
+            /** Format: uuid */
+            userId?: string;
+            species?: string;
+            name?: string;
+            stage?: string;
+            mood?: string;
+            accessories?: string[];
+            equippedAccessory?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -486,6 +711,17 @@ export interface components {
             color?: string;
             icon?: string;
         };
+        BuyItemRequest: {
+            shopItemId: string;
+        };
+        ShopPurchaseResult: {
+            shopItemId?: string;
+            /** Format: int32 */
+            price?: number;
+            /** Format: int64 */
+            remainingCoins?: number;
+            isFreeze?: boolean;
+        };
         ReviewUndoResponse: {
             /** Format: uuid */
             cardId?: string;
@@ -560,6 +796,23 @@ export interface components {
             /** Format: date-time */
             nextCardDueAt?: string;
         };
+        QuestProgressRequest: {
+            code: string;
+            /** Format: int32 */
+            amount?: number;
+            source: string;
+            referenceId?: string;
+        };
+        UpdateStageRequest: {
+            /** Format: int32 */
+            level: number;
+        };
+        UpdateMoodRequest: {
+            studiedToday: boolean;
+        };
+        EquipAccessoryRequest: {
+            accessoryType?: string;
+        };
         CreateDeckRequest: {
             title?: string;
             description?: string;
@@ -582,11 +835,7 @@ export interface components {
         };
         BulkCreateCardsRequest: {
             cards: components["schemas"]["CreateCardRequest"][];
-        };
-        ReviewCardRequest: {
-            /** @enum {string} */
-            rating: "AGAIN" | "HARD" | "GOOD" | "EASY";
-        };
+        },
         ResetPasswordRequest: {
             token: string;
             newPassword: string;
@@ -655,6 +904,23 @@ export interface components {
         AiGenerateResponse: {
             items?: components["schemas"]["AiCardItem"][];
         };
+        ShopItemDto: {
+            id?: string;
+            nameEn?: string;
+            nameKm?: string;
+            kind?: string;
+            /** Format: int32 */
+            price?: number;
+            accessoryType?: string;
+            active?: boolean;
+        };
+        UserShopItemDto: {
+            /** Format: uuid */
+            id?: string;
+            shopItemId?: string;
+            /** Format: date-time */
+            purchasedAt?: string;
+        };
         ReviewQueueCard: {
             /** Format: uuid */
             id?: string;
@@ -699,9 +965,74 @@ export interface components {
             /** Format: date-time */
             now?: string;
         };
+        QuestDto: {
+            /** Format: uuid */
+            id?: string;
+            kind?: string;
+            code?: string;
+            nameKey?: string;
+            /** Format: int32 */
+            target?: number;
+            /** Format: int32 */
+            progress?: number;
+            /** Format: int32 */
+            rewardXp?: number;
+            /** Format: int32 */
+            rewardCoins?: number;
+            /** Format: date */
+            questDate?: string;
+            completed?: boolean;
+        };
         HealthResponse: {
             status?: string;
             db?: string;
+        };
+        XpEventDto: {
+            /** Format: uuid */
+            id?: string;
+            source?: string;
+            /** Format: int32 */
+            amount?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: uuid */
+            referenceId?: string;
+        };
+        GameStateDto: {
+            /** Format: uuid */
+            userId?: string;
+            /** Format: int64 */
+            xpTotal?: number;
+            /** Format: int32 */
+            level?: number;
+            /** Format: int64 */
+            xpInLevel?: number;
+            /** Format: int64 */
+            coins?: number;
+            /** Format: int32 */
+            streakCurrent?: number;
+            /** Format: int32 */
+            streakBest?: number;
+            /** Format: int32 */
+            streakFreezes?: number;
+            /** Format: date */
+            lastActiveDate?: string;
+            /** Format: int64 */
+            dailyXpToday?: number;
+            /** Format: date */
+            dailyXpDate?: string;
+            /** Format: int32 */
+            xpToNextLevel?: number;
+        };
+        BadgeDto: {
+            code?: string;
+            nameEn?: string;
+            nameKm?: string;
+            descriptionEn?: string;
+            descriptionKm?: string;
+            /** Format: int32 */
+            coinsReward?: number;
+            earned?: boolean;
         };
         DueCardResponse: {
             /** Format: uuid */
@@ -775,6 +1106,30 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    renamePet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenamePetRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PetDto"];
+                };
             };
         };
     };
@@ -982,6 +1337,30 @@ export interface operations {
             };
         };
     };
+    buy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BuyItemRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ShopPurchaseResult"];
+                };
+            };
+        };
+    };
     undo: {
         parameters: {
             query: {
@@ -1025,6 +1404,112 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["ReviewAnswerResponse"];
                 };
+            };
+        };
+    };
+    addProgress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuestProgressRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateStage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateStageRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateMood: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateMoodRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    equipAccessory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EquipAccessoryRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    consumeStreakFreeze: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -1362,6 +1847,46 @@ export interface operations {
             };
         };
     };
+    items: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ShopItemDto"][];
+                };
+            };
+        };
+    };
+    owned: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserShopItemDto"][];
+                };
+            };
+        };
+    };
     queue: {
         parameters: {
             query?: {
@@ -1384,6 +1909,46 @@ export interface operations {
             };
         };
     };
+    today: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestDto"][];
+                };
+            };
+        };
+    };
+    pet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PetDto"];
+                };
+            };
+        };
+    };
     health: {
         parameters: {
             query?: never;
@@ -1400,6 +1965,68 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    xpHistory: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["XpEventDto"][];
+                };
+            };
+        };
+    };
+    state: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GameStateDto"];
+                };
+            };
+        };
+    };
+    badges: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BadgeDto"][];
                 };
             };
         };

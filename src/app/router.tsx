@@ -5,6 +5,12 @@ import { RequireAuth } from './RequireAuth'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { PageSkeleton } from '../components/Skeleton'
 import { HomePage } from '../features/home/HomePage'
+import { LandingPage } from '../features/quiz/LandingPage'
+import { CreateRoomPage } from '../features/quiz/CreateRoomPage'
+import { JoinRoomPage } from '../features/quiz/JoinRoomPage'
+import { LobbyPage } from '../features/quiz/LobbyPage'
+import { PlayPage } from '../features/quiz/PlayPage'
+import { ResultsPage } from '../features/quiz/ResultsPage'
 
 const AuthPage = lazy(() => import('../features/auth/AuthPage').then((m) => ({ default: m.AuthPage })))
 const SubjectsPage = lazy(() => import('../features/subjects/SubjectsPage').then((m) => ({ default: m.SubjectsPage })))
@@ -61,6 +67,30 @@ export const router = createBrowserRouter([
         </LazyRoute>
       </ErrorBoundary>
     ),
+  },
+  {
+    path: '/quiz',
+    element: <LandingPage />,
+  },
+  {
+    path: '/quiz/create',
+    element: <CreateRoomPage />,
+  },
+  {
+    path: '/quiz/join',
+    element: <JoinRoomPage />,
+  },
+  {
+    path: '/quiz/lobby/:code',
+    element: <LobbyPage />,
+  },
+  {
+    path: '/quiz/play/:sessionId',
+    element: <PlayPage />,
+  },
+  {
+    path: '/quiz/results/:sessionId',
+    element: <ResultsPage />,
   },
   {
     path: '/onboarding',

@@ -90,7 +90,6 @@ export function StudexaHeroDemoPage() {
 
     return () => {
       cancelled = true
-      clearTimeout(timer)
     }
   }, [mode])
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -11,7 +11,7 @@ import { Spinner } from '../../components/Spinner'
 import { celebrate } from '../../lib/confetti'
 import { playSound } from '../../lib/sound'
 import { type CardType, type DueCard, type ReviewRating } from '../../lib/api'
-import { gameApi, questApi, reviewApi, type ReviewAnswerResponse } from '../../lib/api'
+import { questApi, reviewApi, type ReviewAnswerResponse } from '../../lib/api'
 import { studyKeys, useDueCards } from '../../lib/study'
 import { useApp } from '../../lib/store'
 
@@ -91,11 +91,11 @@ export function ReviewPage() {
       setServerXp(response.xpEarned)
       setLeveledUp(response.leveledUp)
       setNewLevel(response.newLevel)
-      void queryClient.invalidateQueries({ queryKey: studyKeys.due })
-      void queryClient.invalidateQueries({ queryKey: studyKeys.decks })
+      void queryClient.invalidateQueries({ queryKey: studyKeys.due() })
+      void queryClient.invalidateQueries({ queryKey: studyKeys.decks() })
 
       // Report quest progress: warmup counts reviewed cards toward daily quest
-      void questApi.progress({ code: 'warmup', amount: 1, source: 'review_card', referenceId: null })
+      void questApi.progress({ code: 'warmup', amount: 1, source: 'review_card', referenceId: undefined })
     },
     onError: () => {
       setRatings((prev) => prev.slice(0, -1))
@@ -125,7 +125,7 @@ export function ReviewPage() {
     playSound('success')
   }, [finished, ratings.length, correct, recordReviewSession])
 
-  const rate = (rating: Rating) => {
+  const rate = useCallback((rating: Rating) => {
     if (!current || finished || !flipped || isRating) return
     const isCorrect = rating === 'good' || rating === 'easy'
     const log: RatingLog = { rating, correct: isCorrect }
@@ -156,13 +156,21 @@ export function ReviewPage() {
     if (undoTimer.current) window.clearTimeout(undoTimer.current)
     undoTimer.current = window.setTimeout(() => setUndoCardId(null), 5000)
 
-    if (index + 1 >= total) {
+    let isLast = index + 1 >= queue.length
+    if (rating === 'again') {
+      // Re-insert "Again" card so it reappears before the session ends (BUG-C09)
+      setQueue((prev) => [...prev, current])
+      isLast = false
+    }
+
+    if (isLast) {
       setFinished(true)
       setIndex(index + 1)
     } else {
       setIndex(index + 1)
     }
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current, finished, flipped, isRating, combo, index, queue.length, review])
 
   const restart = async () => {
     const result = await dueQuery.refetch()
@@ -191,6 +199,15 @@ export function ReviewPage() {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.repeat) return
+      // BUG-C02: Ignore shortcuts when typing in an input/textarea/select/contenteditable, or during IME composition.
+      const target = event.target as HTMLElement
+      if (
+        event.isComposing ||
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        target.isContentEditable
+      ) return
       if (event.code === 'Space') {
         event.preventDefault()
         if (!finished) setFlipped((f) => !f)
@@ -206,7 +223,8 @@ export function ReviewPage() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finished, flipped, rate])
 
   const onTouchStart = (event: React.TouchEvent) => {
     touchStart.current = event.touches[0]?.clientX ?? null
@@ -447,7 +465,7 @@ export function ReviewPage() {
                 await reviewApi.undo(undoCardId)
                 setUndoCardId(null)
                 if (undoTimer.current) window.clearTimeout(undoTimer.current)
-                void queryClient.invalidateQueries({ queryKey: studyKeys.due })
+                void queryClient.invalidateQueries({ queryKey: studyKeys.due() })
                 setIndex((i) => Math.max(0, i - 1))
                 setFlipped(false)
                 setRatings((prev) => prev.slice(0, -1))

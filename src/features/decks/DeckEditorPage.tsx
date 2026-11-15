@@ -55,8 +55,8 @@ export function DeckEditorPage() {
     if (!deckId) return
     void queryClient.invalidateQueries({ queryKey: studyKeys.deck(deckId) })
     void queryClient.invalidateQueries({ queryKey: studyKeys.cards(deckId) })
-    void queryClient.invalidateQueries({ queryKey: studyKeys.decks })
-    void queryClient.invalidateQueries({ queryKey: studyKeys.due })
+    void queryClient.invalidateQueries({ queryKey: studyKeys.decks() })
+    void queryClient.invalidateQueries({ queryKey: studyKeys.due() })
   }
 
   const flash = (message: string) => {

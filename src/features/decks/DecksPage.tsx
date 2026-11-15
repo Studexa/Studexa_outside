@@ -38,7 +38,7 @@ export function DecksPage() {
         icon,
       }),
     onSuccess: (deck) => {
-      void queryClient.invalidateQueries({ queryKey: studyKeys.decks })
+      void queryClient.invalidateQueries({ queryKey: studyKeys.decks() })
       setOpen(false)
       setTitle('')
       setSubjectId('')

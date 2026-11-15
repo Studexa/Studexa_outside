@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
 import { GoalRing } from '../../components/GoalRing'
 import { Mascot } from '../../components/Mascot'
 import { BossArt } from '../../components/BossArt'
@@ -9,8 +8,7 @@ import { Icon, type IconName } from '../../components/Icon'
 import { ProgressBar } from '../../components/ProgressBar'
 import { Badge } from '../../components/Badge'
 import { daysUntil, useApp } from '../../lib/store'
-import { useDecks } from '../../lib/study'
-import { gameApi, questApi } from '../../lib/api'
+import { useDecks, useGameState, useTodayQuests } from '../../lib/study'
 
 const questIcons: Record<string, IconName> = {
   warmup: 'bolt',
@@ -40,18 +38,8 @@ export function HomePage() {
   const dailyGoal = useApp((s) => s.dailyGoal)
   const exams = useApp((s) => s.exams)
   const decksQuery = useDecks()
-
-  const gameQuery = useQuery({
-    queryKey: ['game', 'state'],
-    queryFn: gameApi.state,
-    staleTime: 1000 * 60, // 1 minute
-  })
-
-  const questsQuery = useQuery({
-    queryKey: ['quests', 'today'],
-    queryFn: questApi.today,
-    staleTime: 1000 * 60, // 1 minute
-  })
+  const gameQuery = useGameState()
+  const questsQuery = useTodayQuests()
 
   const streak = gameQuery.data?.streakCurrent ?? 0
   const level = gameQuery.data?.level ?? 1

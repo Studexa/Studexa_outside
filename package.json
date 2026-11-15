@@ -13,6 +13,7 @@
     "api:generate": "npm --prefix tools/openapi-gen install --no-audit --no-fund && node tools/openapi-gen/node_modules/openapi-typescript/bin/cli.js http://localhost:8080/v3/api-docs -o src/lib/api/schema.d.ts"
   },
   "dependencies": {
+    "@stomp/stompjs": "^7.5.0",
     "@tanstack/react-query": "^5.107.1",
     "@tiptap/react": "^3.33.1",
     "@tiptap/starter-kit": "^3.33.1",
@@ -28,6 +29,7 @@
     "react-is": "^19.3.1",
     "react-router-dom": "^7.18.5",
     "recharts": "^3.10.1",
+    "sockjs-client": "^1.6.1",
     "zustand": "^5.1.0"
   },
   "devDependencies": {

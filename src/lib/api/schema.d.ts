@@ -1436,11 +1436,6 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateStageRequest"];
-            };
-        };
         responses: {
             /** @description OK */
             200: {
@@ -1457,11 +1452,6 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateMoodRequest"];
-            };
         };
         responses: {
             /** @description OK */

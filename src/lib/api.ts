@@ -292,7 +292,6 @@ export type QuestDto = {
 
 export type QuestProgressRequest = {
   code: string
-  amount: number
   source: string
   referenceId?: string
 }
@@ -428,11 +427,11 @@ export const gameApi = {
 export const petApi = {
   get: () => call<PetDto>(client.GET('/api/v1/pet')),
 
-  updateMood: (studiedToday: boolean) =>
-    call<void>(client.POST('/api/v1/pet/mood', { body: { studiedToday } })),
+  updateMood: () =>
+    call<void>(client.POST('/api/v1/pet/mood', {})),
 
-  updateStage: (level: number) =>
-    call<void>(client.POST('/api/v1/pet/stage', { body: { level } })),
+  updateStage: () =>
+    call<void>(client.POST('/api/v1/pet/stage', {})),
 
   rename: (name: string) =>
     call<PetDto>(client.PUT('/api/v1/pet/name', { body: { name } })),

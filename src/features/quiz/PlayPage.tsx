@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { sessionApi, answerApi } from '../../lib/api/quiz'
 import { Button } from '../../components/Button'
@@ -10,17 +10,17 @@ export function PlayPage() {
   const [stage, setStage] = useState<'waiting' | 'question' | 'result' | 'finished'>('waiting')
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadSession()
-  }, [sessionId])
-
-  const loadSession = async () => {
+  const loadSession = useCallback(async () => {
     try {
       await sessionApi.getPlayers(sessionId as string)
     } catch (err: any) {
       setError(err.message || 'Failed to load session')
     }
-  }
+  }, [sessionId]);
+
+  useEffect(() => {
+    loadSession();
+  }, [loadSession]);
 
   const handleAnswer = async (selectedAnswer: string) => {
     if (!question) return

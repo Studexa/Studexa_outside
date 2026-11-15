@@ -14,11 +14,7 @@ export function LobbyPage() {
   const roomCode = searchParams.get('code') || ''
   const nickname = searchParams.get('nickname') || ''
 
-  useEffect(() => {
-    loadRoom()
-  }, [roomCode])
-
-  const loadRoom = async () => {
+  const loadRoom = useCallback(async () => {
     try {
       const room = await sessionApi.getRoom(roomCode)
       setSession(room.session)
@@ -28,7 +24,11 @@ export function LobbyPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [roomCode]);
+
+  useEffect(() => {
+    loadRoom();
+  }, [loadRoom]);
 
   const handleStart = async () => {
     try {

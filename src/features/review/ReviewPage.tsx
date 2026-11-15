@@ -95,7 +95,7 @@ export function ReviewPage() {
       void queryClient.invalidateQueries({ queryKey: studyKeys.decks() })
 
       // Report quest progress: warmup counts reviewed cards toward daily quest
-      void questApi.progress({ code: 'warmup', amount: 1, source: 'review_card', referenceId: undefined })
+      void questApi.progress({ code: 'warmup', source: 'review_card', referenceId: undefined })
     },
     onError: () => {
       setRatings((prev) => prev.slice(0, -1))

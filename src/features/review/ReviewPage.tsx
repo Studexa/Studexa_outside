@@ -14,6 +14,7 @@ import { type CardType, type DueCard, type ReviewRating } from '../../lib/api'
 import { questApi, reviewApi, type ReviewAnswerResponse } from '../../lib/api'
 import { studyKeys, useDueCards } from '../../lib/study'
 import { useApp } from '../../lib/store'
+import { useSettings } from '../../lib/useSettings'
 
 type Rating = 'again' | 'hard' | 'good' | 'easy'
 type RatingLog = { rating: Rating; correct: boolean; xpEarned?: number }
@@ -47,6 +48,7 @@ export function ReviewPage() {
   const queryClient = useQueryClient()
   const recordReviewSession = useApp((s) => s.recordReviewSession)
   const buddy = useApp((s) => s.buddy)
+  const settings = useSettings()
   const dueQuery = useDueCards()
 
   const [queue, setQueue] = useState<DueCard[]>([])
@@ -381,7 +383,7 @@ export function ReviewPage() {
             className="block w-full text-left"
             aria-label={t('review.flipLabel')}
           >
-            <div className={`flip-card h-[330px] w-full sm:h-[400px] ${flipped ? 'is-flipped' : ''}`}>
+            <div className={`flip-card h-[330px] w-full sm:h-[400px] ${flipped ? 'is-flipped' : ''} ${settings.theme === 'antigravity' ? 'animate-antigravity-float' : ''}`}>
               <div className="flip-face flex h-full w-full flex-col items-center justify-center rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-center shadow-[var(--shadow-md)] sm:p-10">
                 <span className="mb-4 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-muted)]">
                   {t('review.front')}
@@ -427,7 +429,7 @@ export function ReviewPage() {
             </span>
           )}
 
-          <div className={`pointer-events-none absolute -top-16 right-2 transition-opacity ${cheer ? 'animate-cheer opacity-100' : 'opacity-70'}`}>
+          <div className={`pointer-events-none absolute -top-16 right-2 transition-opacity ${cheer ? 'animate-cheer opacity-100' : 'opacity-70'} ${settings.theme === 'antigravity' ? 'animate-antigravity-drift' : ''}`}>
             <Mascot species={buddy} mood={cheer ? 'sparkle' : 'happy'} size={72} />
           </div>
         </div>

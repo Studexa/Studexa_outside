@@ -1,4 +1,4 @@
-export type Theme = 'light' | 'dark'
+export type Theme = 'light' | 'dark' | 'antigravity'
 export type FontSize = 'sm' | 'md' | 'lg'
 type Settings = { theme: Theme; sound: boolean; reducedMotion: boolean; fontSize: FontSize }
 const KEY = 'studexa_settings'
@@ -44,5 +44,6 @@ export function subscribeSettings(fn: () => void) {
 export function applySettings(s = getSettings()) {
   if (typeof document === 'undefined') return
   document.documentElement.classList.toggle('dark', s.theme === 'dark')
+  document.documentElement.classList.toggle('antigravity', s.theme === 'antigravity')
   document.documentElement.dataset.fontSize = s.fontSize
 }

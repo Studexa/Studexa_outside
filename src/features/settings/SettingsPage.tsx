@@ -111,7 +111,7 @@ export function SettingsPage() {
             </div>
 
             {/* Segmented selector with high contrast in both themes */}
-            <div className="grid w-full grid-cols-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-1 sm:w-auto sm:flex">
+            <div className="grid w-full grid-cols-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-1 sm:w-auto sm:flex">
               <button
                 onClick={() => i18n.changeLanguage('en')}
                 aria-pressed={i18n.language === 'en'}
@@ -213,7 +213,7 @@ export function SettingsPage() {
           <div className="flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:justify-between sm:p-4">
             <div className="flex items-center gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-accent-soft)] text-[var(--color-accent)] shadow-xs">
-                <Icon name={settings.theme === 'dark' ? 'moon' : 'sun'} size={20} />
+                <Icon name={settings.theme === 'antigravity' ? 'sparkles' : settings.theme === 'dark' ? 'moon' : 'sun'} size={20} />
               </span>
               <div className="min-w-0">
                 <p className="text-sm font-extrabold text-[var(--color-text)]">{t('common.theme')}</p>
@@ -222,7 +222,7 @@ export function SettingsPage() {
             </div>
 
             {/* Segmented Theme Control */}
-            <div className="grid w-full grid-cols-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-1 sm:w-auto sm:flex">
+            <div className="grid w-full grid-cols-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-1 sm:w-auto sm:flex">
               <button
                 onClick={() => updateSettings({ theme: 'light' })}
                 aria-pressed={settings.theme === 'light'}
@@ -244,6 +244,17 @@ export function SettingsPage() {
                 }`}
               >
                 <Icon name="moon" size={14} /> {t('common.dark')}
+              </button>
+              <button
+                onClick={() => updateSettings({ theme: 'antigravity' })}
+                aria-pressed={settings.theme === 'antigravity'}
+                className={`flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-3.5 text-xs transition-all sm:min-h-9 ${
+                  settings.theme === 'antigravity'
+                    ? 'bg-[var(--color-primary)] text-white font-black shadow-xs'
+                    : 'text-[var(--color-muted)] hover:text-[var(--color-text)] font-extrabold'
+                }`}
+              >
+                <Icon name="sparkles" size={14} /> {t('common.themeAntigravity')}
               </button>
             </div>
           </div>

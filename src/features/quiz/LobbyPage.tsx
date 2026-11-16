@@ -14,21 +14,20 @@ export function LobbyPage() {
   const roomCode = searchParams.get('code') || ''
   const nickname = searchParams.get('nickname') || ''
 
-  const loadRoom = useCallback(async () => {
-    try {
-      const room = await sessionApi.getRoom(roomCode)
-      setSession(room.session)
-      setPlayers(room.players)
-    } catch (err: any) {
-      setError(err.message || 'Failed to load room')
-    } finally {
-      setLoading(false)
-    }
-  }, [roomCode]);
-
   useEffect(() => {
-    loadRoom();
-  }, [loadRoom]);
+    const loadRoom = async () => {
+      try {
+        const room = await sessionApi.getRoom(roomCode)
+        setSession(room.session)
+        setPlayers(room.players)
+      } catch (err: any) {
+        setError(err.message || 'Failed to load room')
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadRoom()
+  }, [roomCode])
 
   const handleStart = async () => {
     try {

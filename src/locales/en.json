@@ -62,6 +62,7 @@
     "mute": "Mute sounds",
     "unmute": "Unmute sounds",
     "offline": "You are offline — your progress is saved on this device.",
+    "offlineQueued": "{{count}} answer(s) waiting to sync.",
     "streakDays": "days in a row",
     "bestStreak": "Best streak",
     "freezes": "Streak freezes",

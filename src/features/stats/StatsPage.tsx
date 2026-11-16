@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -59,14 +60,17 @@ export function StatsPage() {
   const streakCurrent = gameState?.streakCurrent ?? 0
   const streakBest = gameState?.streakBest ?? 0
 
-  // study sessions recorded in the last 7 days
-  const now = new Date()
-  const weekAgo = new Date(now)
-  weekAgo.setDate(now.getDate() - 7)
-  const sessionsThisWeek = xpEvents.filter((e) => {
-    const d = new Date(e.createdAt)
-    return d >= weekAgo && d <= now
-  }).length
+  // study sessions recorded in the last 7 days (window fixed at mount;
+  // backend timestamps are ISO-8601 UTC so strings compare chronologically)
+  const [weekWindow] = useState(() => {
+    const now = new Date()
+    const weekAgo = new Date(now)
+    weekAgo.setDate(now.getDate() - 7)
+    return { start: weekAgo.toISOString(), end: now.toISOString(), nowDate: now }
+  })
+  const sessionsThisWeek = xpEvents.filter(
+    (e) => e.createdAt >= weekWindow.start && e.createdAt <= weekWindow.end,
+  ).length
 
   // total cards due across all decks
   const cardsDue = decks.reduce((sum, d) => sum + (d.dueCount ?? 0), 0)
@@ -106,7 +110,7 @@ export function StatsPage() {
   }
 
   const weeks = 12
-  const todayStart = new Date(now)
+  const todayStart = new Date(weekWindow.nowDate)
   todayStart.setHours(0, 0, 0, 0)
 
   const columns = Array.from({ length: weeks }, (_, w) =>

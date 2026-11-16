@@ -11,19 +11,18 @@ export function ResultsPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const loadResults = async () => {
+      try {
+        const board = await sessionApi.getLeaderboard(sessionId as string)
+        setLeaderboard(board)
+      } catch (err: any) {
+        setError(err.message || 'Failed to load results')
+      } finally {
+        setLoading(false)
+      }
+    }
     loadResults()
   }, [sessionId])
-
-  const loadResults = async () => {
-    try {
-      const board = await sessionApi.getLeaderboard(sessionId as string)
-      setLeaderboard(board)
-    } catch (err: any) {
-      setError(err.message || 'Failed to load results')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   if (loading) {
     return (

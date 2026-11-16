@@ -307,7 +307,7 @@ type State = {
   addTask: (title: string, date: string) => void
   addExam: (exam: Omit<Exam, 'id'>) => void
   removeExam: (id: string) => void
-  buyItem: (item: ShopItem) => boolean
+  buyItem: (item: Pick<ShopItem, 'id' | 'price'> & { accessory?: ShopItem['accessory'] }) => boolean
   equipItem: (accessory: string | null) => void
   resetAll: () => void
 }

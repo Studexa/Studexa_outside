@@ -9,6 +9,7 @@ import {
   type StudyCard,
 } from './api'
 import { useAuth } from './auth'
+import { cacheDueCards, getCachedDueCards } from './offlineDb'
 
 export const studyKeys = {
   decks: (userId?: string) => ['decks', userId ?? 'current'] as const,
@@ -21,6 +22,9 @@ export const studyKeys = {
   questsToday: (userId?: string) => ['quests', 'today', userId ?? 'current'] as const,
   reviewQueue: (userId?: string) => ['review', 'queue', userId ?? 'current'] as const,
   subjects: (userId?: string) => ['subjects', userId ?? 'current'] as const,
+  shopItems: (userId?: string) => ['shop', 'items', userId ?? 'current'] as const,
+  shopOwned: (userId?: string) => ['shop', 'owned', userId ?? 'current'] as const,
+  pet: (userId?: string) => ['pet', userId ?? 'current'] as const,
 }
 
 export function useDecks() {
@@ -50,8 +54,25 @@ export function useDueCards(enabled = true) {
   const user = useAuth((s) => s.user)
   return useQuery({
     queryKey: studyKeys.due(user?.id),
-    queryFn: () => cardsApi.due(50),
+    queryFn: async () => {
+      try {
+        const cards = await cardsApi.due(50)
+        if (user?.id) {
+          void cacheDueCards(user.id, cards)
+        }
+        return cards
+      } catch {
+        // Offline: serve the last-cached due queue from IndexedDB so study never stops
+        if (user?.id) {
+          const cached = await getCachedDueCards(user.id)
+          if (cached.length > 0) return cached
+        }
+        throw new Error('You are offline and have no cached cards.')
+      }
+    },
     enabled,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
   })
 }
 

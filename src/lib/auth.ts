@@ -42,6 +42,11 @@ function resetClientState() {
   useApp.getState().resetAll()
 }
 
+/** True when the app is running in isolated guest/demo mode (no backend calls). */
+export function isGuestMode(): boolean {
+  return typeof window !== 'undefined' && localStorage.getItem('studexa_guest_mode') === 'true'
+}
+
 export const useAuth = create<AuthState>()((set, get) => ({
   status: 'idle',
   user: null,
@@ -51,7 +56,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
     const status = get().status
     if (status === 'loading' || status === 'authenticated') return
 
-    if (typeof window !== 'undefined' && localStorage.getItem('studexa_guest_mode') === 'true') {
+    if (isGuestMode()) {
       get().loginAsGuest()
       return
     }
@@ -125,7 +130,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
   },
 
   updateProfile: async (input) => {
-    if (typeof window !== 'undefined' && localStorage.getItem('studexa_guest_mode') === 'true') {
+    if (isGuestMode()) {
       const current = get().profile
       const guestProfile: Profile = {
         userId: current?.userId ?? 'demo-guest-user',

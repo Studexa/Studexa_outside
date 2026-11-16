@@ -14,7 +14,9 @@ import { type CardType, type DueCard, type ReviewRating } from '../../lib/api'
 import { questApi, reviewApi, type ReviewAnswerResponse } from '../../lib/api'
 import { studyKeys, useDueCards } from '../../lib/study'
 import { useApp } from '../../lib/store'
+import { useAuth } from '../../lib/auth'
 import { useSettings } from '../../lib/useSettings'
+import { queuePendingAnswer, getPendingAnswers, removePendingAnswer } from '../../lib/offlineDb'
 
 type Rating = 'again' | 'hard' | 'good' | 'easy'
 type RatingLog = { rating: Rating; correct: boolean; xpEarned?: number }
@@ -48,6 +50,7 @@ export function ReviewPage() {
   const queryClient = useQueryClient()
   const recordReviewSession = useApp((s) => s.recordReviewSession)
   const buddy = useApp((s) => s.buddy)
+  const userId = useAuth((s) => s.user?.id)
   const settings = useSettings()
   const dueQuery = useDueCards()
 
@@ -84,10 +87,50 @@ export function ReviewPage() {
     }
   }, [])
 
+  // Replay pending offline answers when the component mounts or comes back online
+  useEffect(() => {
+    if (!userId) return
+    let synced = false
+    const syncPending = async () => {
+      if (synced) return
+      synced = true
+      const pending = await getPendingAnswers(userId)
+      for (const p of pending) {
+        try {
+          await reviewApi.answer({
+            cardId: p.cardId,
+            rating: p.rating.toUpperCase() as ReviewRating,
+            msTaken: 0,
+            clientReviewId: p.clientReviewId,
+          })
+          await removePendingAnswer(p.id!)
+        } catch {
+          // Still offline or server error — keep queued, stop retrying for now
+          break
+        }
+      }
+      synced = false
+    }
+
+    syncPending()
+    window.addEventListener('online', syncPending)
+    return () => window.removeEventListener('online', syncPending)
+  }, [userId])
+
   const review = useMutation({
     mutationFn: async ({ id, rating, msTaken }: { id: string; rating: ReviewRating; msTaken: number }) => {
       const clientReviewId = crypto.randomUUID()
-      return reviewApi.answer({ cardId: id, rating, msTaken, clientReviewId })
+      try {
+        return await reviewApi.answer({ cardId: id, rating, msTaken, clientReviewId })
+      } catch {
+        // Offline: queue the answer to replay when reconnected.
+        // The backend's idempotency key (clientReviewId) makes replay safe.
+        if (userId) {
+          await queuePendingAnswer(userId, id, rating.toLowerCase() as 'again' | 'hard' | 'good' | 'easy', clientReviewId)
+        }
+        // Return a synthetic response so the UI stays responsive offline
+        return { xpEarned: 0, leveledUp: false, newLevel: 1 } as ReviewAnswerResponse
+      }
     },
     onSuccess: async (response: ReviewAnswerResponse) => {
       setServerXp(response.xpEarned)

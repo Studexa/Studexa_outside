@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Badge } from '../../components/Badge'
 import { Button } from '../../components/Button'
 import { Icon, type IconName } from '../../components/Icon'
@@ -17,9 +17,31 @@ import {
   xpForNext,
   type ShopItem,
 } from '../../lib/store'
-import { gameApi } from '../../lib/api'
-import { useAuth } from '../../lib/auth'
+import { gameApi, petApi, shopApi, type ShopItemDto } from '../../lib/api'
+import { isGuestMode, useAuth } from '../../lib/auth'
 import { studyKeys, useGameState } from '../../lib/study'
+
+/** Server item ids that differ from the i18n/UI ids. */
+const SERVER_ITEM_ID_TO_UI: Record<string, string> = { theme_ocean: 'themeOcean' }
+
+/** Shop item as used by the UI: mock items carry an i18n key, unknown server items carry a raw name. */
+type UiShopItem = Omit<ShopItem, 'nameKey'> & { nameKey?: string; name?: string }
+
+function mapServerShopItem(dto: ShopItemDto, language: string): UiShopItem {
+  const uiId = SERVER_ITEM_ID_TO_UI[dto.id] ?? dto.id
+  const known = SHOP_ITEMS.find((item) => item.id === uiId)
+  if (known) {
+    return { ...known, price: dto.price, kind: dto.kind as ShopItem['kind'] }
+  }
+  // Unknown server item: fall back to the server-provided localized name.
+  return {
+    id: uiId,
+    name: language === 'km' ? dto.nameKm : dto.nameEn,
+    price: dto.price,
+    kind: dto.kind as ShopItem['kind'],
+    accessory: (dto.accessoryType ?? undefined) as ShopItem['accessory'],
+  }
+}
 
 const badgeIcons: Record<string, IconName> = {
   firstFlip: 'cards',
@@ -53,17 +75,39 @@ export function ProfilePage() {
   const nickname = useApp((s) => s.nickname)
   const buddy = useApp((s) => s.buddy)
   const setNickname = useApp((s) => s.setNickname)
-  const owned = useApp((s) => s.owned)
-  const equipped = useApp((s) => s.equipped)
+  const mockOwned = useApp((s) => s.owned)
+  const mockEquipped = useApp((s) => s.equipped)
   const buyItem = useApp((s) => s.buyItem)
   const equipItem = useApp((s) => s.equipItem)
 
   const user = useAuth((s) => s.user)
   const gameQuery = useGameState()
+  const queryClient = useQueryClient()
+  const isGuest = isGuestMode()
 
   const badgesQuery = useQuery({
     queryKey: studyKeys.gameBadges(user?.id),
     queryFn: gameApi.badges,
+    staleTime: 1000 * 60,
+  })
+
+  // Registered users buy from the server-validated shop; guests keep the
+  // isolated local store.
+  const shopItemsQuery = useQuery({
+    queryKey: studyKeys.shopItems(user?.id),
+    queryFn: shopApi.items,
+    enabled: !isGuest,
+    staleTime: 1000 * 60,
+  })
+  const shopOwnedQuery = useQuery({
+    queryKey: studyKeys.shopOwned(user?.id),
+    queryFn: shopApi.owned,
+    enabled: !isGuest,
+  })
+  const petQuery = useQuery({
+    queryKey: studyKeys.pet(user?.id),
+    queryFn: petApi.get,
+    enabled: !isGuest,
     staleTime: 1000 * 60,
   })
 
@@ -74,17 +118,56 @@ export function ProfilePage() {
   const streak = state?.streakCurrent ?? 0
   const bestStreak = state?.streakBest ?? 0
 
+  const shopItems: UiShopItem[] = isGuest
+    ? SHOP_ITEMS
+    : (shopItemsQuery.data ?? []).map((dto) => mapServerShopItem(dto, i18n.language))
+  const owned: string[] = isGuest
+    ? mockOwned
+    : (shopOwnedQuery.data ?? []).map((o) => SERVER_ITEM_ID_TO_UI[o.shopItemId] ?? o.shopItemId)
+  const equipped: string | null = isGuest
+    ? mockEquipped
+    : (petQuery.data?.equippedAccessory ?? null)
+
+  const buyMutation = useMutation({
+    mutationFn: (item: UiShopItem) => shopApi.buy(item.id),
+    onSuccess: (_result, item) => {
+      setMessage(t('profile.bought', { name: item.name ?? t(`profile.items.${item.id}`) }))
+      celebrate()
+      queryClient.invalidateQueries({ queryKey: studyKeys.gameState(user?.id) })
+      queryClient.invalidateQueries({ queryKey: studyKeys.shopOwned(user?.id) })
+      window.setTimeout(() => setMessage(null), 2600)
+    },
+    onError: (err: Error) => {
+      setMessage(err.message || t('profile.notEnoughCoins'))
+      window.setTimeout(() => setMessage(null), 2600)
+    },
+  })
+
+  const equipMutation = useMutation({
+    mutationFn: (accessory: string | null) => petApi.equip(accessory ?? undefined),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: studyKeys.pet(user?.id) })
+      setPreview(null)
+    },
+    onError: (err: Error) => {
+      setMessage(err.message || t('common.error'))
+      window.setTimeout(() => setMessage(null), 2600)
+    },
+  })
+
   const badgeDtos = badgesQuery.data ?? []
   const earnedBadges = badgeDtos.filter((b) => b.earned).map((b) => b.code)
   const ownedCount = earnedBadges.length
 
   const nextXp = xpForNext(level)
-  const joined = new Intl.DateTimeFormat(i18n.language === 'km' ? 'km-KH' : 'en-US', {
-    month: 'long',
-    year: 'numeric',
-  }).format(new Date())
+  const [joined] = useState(() =>
+    new Intl.DateTimeFormat(i18n.language === 'km' ? 'km-KH' : 'en-US', {
+      month: 'long',
+      year: 'numeric',
+    }).format(new Date()),
+  )
 
-  const [preview, setPreview] = useState<ShopItem | null>(null)
+  const [preview, setPreview] = useState<UiShopItem | null>(null)
   const [nameOpen, setNameOpen] = useState(false)
   const [nameValue, setNameValue] = useState(nickname)
   const [message, setMessage] = useState<string | null>(null)
@@ -93,14 +176,28 @@ export function ProfilePage() {
 
   const purchase = () => {
     if (!preview) return
-    const ok = buyItem(preview)
-    if (ok) {
-      setMessage(t('profile.bought', { name: t(preview.nameKey) }))
-      celebrate()
+    if (isGuest) {
+      const ok = buyItem(preview)
+      if (ok) {
+        setMessage(t('profile.bought', { name: preview.name ?? (preview.nameKey ? t(preview.nameKey) : preview.id) }))
+        celebrate()
+      } else {
+        setMessage(t('profile.notEnoughCoins'))
+      }
+      window.setTimeout(() => setMessage(null), 2600)
     } else {
-      setMessage(t('profile.notEnoughCoins'))
+      buyMutation.mutate(preview)
     }
-    window.setTimeout(() => setMessage(null), 2600)
+  }
+
+  const toggleEquip = (item: UiShopItem) => {
+    const accessory = item.accessory ?? null
+    if (isGuest) {
+      equipItem(equipped === accessory ? null : accessory)
+      setPreview(null)
+    } else {
+      equipMutation.mutate(equipped === accessory ? null : accessory)
+    }
   }
 
   const saveName = () => {
@@ -211,7 +308,7 @@ export function ProfilePage() {
           </div>
           <p className="text-xs font-semibold text-[var(--color-muted)]">{t('profile.shopHint')}</p>
           <div className="mt-3 grid grid-cols-2 gap-2">
-            {SHOP_ITEMS.map((item) => {
+            {shopItems.map((item) => {
               const isOwned = owned.includes(item.id)
               const isEquipped = item.accessory && equipped === item.accessory
               return (
@@ -228,7 +325,7 @@ export function ProfilePage() {
                     <Icon name={shopIcons[item.id] ?? 'gift'} size={18} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-extrabold">{t(item.nameKey)}</span>
+                    <span className="block truncate text-xs font-extrabold">{item.name ?? (item.nameKey ? t(item.nameKey) : item.id)}</span>
                     <span className="mt-0.5 flex items-center gap-1 text-[10px] font-black text-[var(--color-accent)]">
                       {isEquipped ? (
                         <span className="text-[var(--color-primary)]">{t('profile.equipped')}</span>
@@ -273,8 +370,10 @@ export function ProfilePage() {
             <div className="flex justify-center rounded-[24px] bg-[var(--color-surface-alt)] py-3">
               <Mascot species={buddy} mood="sparkle" size={150} accessory={previewAccessory as Accessory} />
             </div>
-            <h3 className="mt-3 text-lg font-black">{t(preview.nameKey)}</h3>
-            <p className="text-sm text-[var(--color-muted)]">{t(`profile.itemDesc.${preview.id}`)}</p>
+            <h3 className="mt-3 text-lg font-black">{preview.name ?? (preview.nameKey ? t(preview.nameKey) : preview.id)}</h3>
+            <p className="text-sm text-[var(--color-muted)]">
+              {preview.name ? '' : t(`profile.itemDesc.${preview.id}`)}
+            </p>
             <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--color-accent-soft)] px-3 py-1 text-sm font-black text-[var(--color-accent)]">
               <Icon name="coin" size={14} /> {preview.price}
             </p>
@@ -284,10 +383,8 @@ export function ProfilePage() {
                   <Button
                     full
                     variant={equipped === preview.accessory ? 'secondary' : 'primary'}
-                    onClick={() => {
-                      equipItem(equipped === preview.accessory ? null : preview.accessory ?? null)
-                      setPreview(null)
-                    }}
+                    onClick={() => toggleEquip(preview)}
+                    disabled={equipMutation.isPending}
                   >
                     {equipped === preview.accessory ? t('profile.unequip') : t('profile.equip')}
                   </Button>
@@ -297,7 +394,7 @@ export function ProfilePage() {
                   </Button>
                 )
               ) : (
-                <Button full onClick={purchase} disabled={coins < preview.price}>
+                <Button full onClick={purchase} disabled={coins < preview.price || buyMutation.isPending}>
                   <Icon name="coin" size={17} /> {t('profile.buy')}
                 </Button>
               )}

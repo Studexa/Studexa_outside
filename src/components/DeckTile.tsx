@@ -9,7 +9,7 @@ export const DeckTile = memo(function DeckTile({ deck }: { deck: DeckSummary }) 
   return (
     <Link
       to={`/study/decks/${deck.id}`}
-      className="pressable block rounded-[22px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]"
+      className="pressable surface-card block p-5 sm:p-6"
     >
       <div className="flex items-start gap-3">
         <span

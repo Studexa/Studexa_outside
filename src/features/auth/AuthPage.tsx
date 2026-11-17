@@ -71,19 +71,17 @@ export function AuthPage({ mode }: { mode: Mode }) {
 
   return (
     <div className="min-h-dvh bg-[var(--color-bg)] text-[var(--color-text)]">
-      <div className="mx-auto grid h-dvh w-full max-w-6xl items-center gap-6 px-3 py-3 md:grid-cols-[1fr_1fr] md:px-8">
-        <section className="relative hidden overflow-hidden rounded-[32px] bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 p-8 text-white md:flex md:flex-col md:justify-between">
-          <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10" />
-          <div className="pointer-events-none absolute -bottom-20 left-10 h-52 w-52 rounded-full bg-amber-300/20" />
+      <div className="mx-auto grid min-h-dvh w-full max-w-6xl items-center gap-8 px-4 py-8 md:grid-cols-[1fr_1fr] md:px-8 lg:gap-16">
+        <section className="premium-hero relative hidden min-h-[620px] overflow-hidden rounded-[28px] p-10 text-white md:flex md:flex-col md:justify-between">
           <div className="relative flex items-center gap-2">
             <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25">
               <Icon name="sparkles" size={24} />
             </span>
             <span className="text-xl font-black">{t('app.name')}</span>
           </div>
-          <div className="relative my-8 flex flex-col items-center">
-            <Mascot species="owl" mood="sparkle" size={230} />
-            <p className="mt-4 max-w-sm text-center text-lg font-bold leading-relaxed text-white/90">
+          <div className="relative my-12 flex flex-col items-start">
+            <div className="mb-6 rounded-[28px] border border-white/10 bg-white/5 p-6"><Mascot species="owl" mood="happy" size={120} /></div>
+            <p className="max-w-sm text-4xl font-semibold leading-tight tracking-tight text-white">
               {t('auth.kicker')}
             </p>
           </div>
@@ -101,7 +99,7 @@ export function AuthPage({ mode }: { mode: Mode }) {
         </section>
 
         <section className="mx-auto w-full max-w-md">
-          <div className="mb-5 flex items-center justify-between md:hidden">
+          <div className="mb-6 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] text-white">
                 <Icon name="sparkles" size={22} />
@@ -110,9 +108,10 @@ export function AuthPage({ mode }: { mode: Mode }) {
             </div>
             <button
               onClick={() => i18n.changeLanguage(i18n.language === 'km' ? 'en' : 'km')}
+              aria-label={t('shell.switchLanguage')}
               className="min-h-11 rounded-full border border-[var(--color-border)] px-3 text-sm font-bold"
             >
-              {i18n.language === 'km' ? 'EN' : 'ខ្មែរ'}
+              {t('shell.languageToggle')}
             </button>
           </div>
 

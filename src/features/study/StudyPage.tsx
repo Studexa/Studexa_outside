@@ -89,7 +89,7 @@ export function StudyPage() {
 
   return (
     <div className="space-y-5">
-      <section className="rounded-[26px] bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 p-5 text-white shadow-[var(--shadow-lift)]">
+      <section className="premium-hero rounded-[24px] p-6 text-white sm:p-8">
         <p className="text-xs font-black uppercase tracking-[0.18em] text-white/70">{t('study.kicker')}</p>
         <h1 className="mt-1 text-2xl font-black sm:text-3xl">{t('study.title')}</h1>
         <p className="mt-1 max-w-md text-sm text-white/80">{t('study.subtitle')}</p>
@@ -114,7 +114,7 @@ export function StudyPage() {
             <Link
               key={mode.to}
               to={mode.to}
-              className={`pressable group relative flex items-start gap-3 rounded-[22px] border border-[var(--color-border)] bg-gradient-to-br ${mode.tone} bg-[var(--color-surface)] p-4 text-[var(--color-text)]`}
+              className="pressable surface-card group relative flex items-start gap-4 p-5 text-[var(--color-text)]"
             >
               <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${mode.iconTone}`}>
                 <Icon name={mode.icon} size={23} />

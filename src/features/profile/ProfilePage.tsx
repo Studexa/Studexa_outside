@@ -226,7 +226,7 @@ export function ProfilePage() {
 
   return (
     <div className="space-y-4">
-      <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 p-5 text-white shadow-[var(--shadow-lift)]">
+      <section className="premium-hero relative overflow-hidden rounded-[24px] p-6 text-white sm:p-8">
         <div className="pointer-events-none absolute -right-10 -top-12 h-44 w-44 rounded-full bg-white/10" />
         <div className="relative flex flex-col items-center gap-4 sm:flex-row sm:items-end">
           <div className="rounded-[28px] bg-white/10 p-3 ring-1 ring-white/20">

@@ -21,16 +21,6 @@ const questIcons: Record<string, IconName> = {
   review150: 'chart',
 }
 
-const questNames: Record<string, string> = {
-  warmup: 'Warm-up',
-  focus: 'Deep Focus',
-  builder: 'Builder',
-  hotStreak: 'Hot Streak',
-  noteTaker: 'Note Taker',
-  consistency: 'Consistency',
-  review150: 'Review 150',
-}
-
 export function HomePage() {
   const { t, i18n } = useTranslation()
   const nickname = useApp((s) => s.nickname)
@@ -74,11 +64,9 @@ export function HomePage() {
   const completedQuests = quests.filter((q) => q.completed).length
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 lg:space-y-8">
       {/* Hero Banner: Today's Goal & Main Action */}
-      <section className="relative overflow-hidden rounded-[28px] bg-linear-to-br from-blue-600 via-blue-700 to-indigo-900 p-5 text-white shadow-(--shadow-lift) sm:p-7">
-        <div className="pointer-events-none absolute -right-10 -top-12 h-44 w-44 rounded-full bg-white/10" />
-        <div className="pointer-events-none absolute -bottom-16 left-16 h-40 w-40 rounded-full bg-amber-300/15" />
+      <section className="premium-hero relative overflow-hidden rounded-[24px] p-6 text-white sm:p-8 lg:p-10">
 
         <div className="relative flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -88,10 +76,10 @@ export function HomePage() {
                 {t('home.dailyCadence')}
               </span>
             </div>
-            <h1 className="mt-1 text-2xl font-black leading-tight sm:text-4xl">
+            <h1 className="mt-4 text-3xl font-semibold leading-tight sm:text-4xl lg:text-5xl">
               {t('home.greeting', { name: nickname })}
             </h1>
-            <p className="mt-1 max-w-sm text-sm text-white/80 sm:text-base">
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/70 sm:text-base">
               {remaining > 0 ? t('home.sublineLeft', { count: remaining }) : t('home.sublineDone')}
             </p>
             <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-sm font-bold ring-1 ring-white/20">
@@ -111,14 +99,9 @@ export function HomePage() {
           </div>
         </div>
 
-        <div className="relative mt-4 flex items-center gap-3 rounded-2xl bg-white/10 p-3 ring-1 ring-white/15 backdrop-blur-sm">
-          <Mascot species={buddy} mood="happy" size={44} />
-          <p className="text-sm font-semibold text-white/90">{t('home.buddyLine')}</p>
-        </div>
-
         <Link
           to="/study/review"
-          className="relative mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-lg font-black text-[#0f172a] shadow-[0_12px_30px_rgba(15,23,42,0.18)] transition hover:-translate-y-0.5 hover:bg-slate-100 active:scale-[0.99]"
+          className="relative mt-8 flex min-h-14 w-full flex-wrap items-center justify-center gap-3 rounded-xl bg-white px-5 py-3 text-base font-semibold text-[#1d1d1f] transition hover:bg-slate-100 active:scale-[0.99] sm:w-fit"
         >
           <Icon name="play" size={22} className="text-[#2563eb]" />
           <span className="text-[#0f172a] font-black">{t('home.startStudying')}</span>
@@ -152,7 +135,7 @@ export function HomePage() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="truncate text-sm font-extrabold">{questNames[quest.code] ?? t(`quests.${quest.code}`)}</p>
+                      <p className="text-sm font-semibold">{t(`quests.${quest.code}`, { defaultValue: quest.code })}</p>
                       {quest.completed ? (
                         <Badge tone="success">
                           <Icon name="check" size={12} /> {t('common.done')}

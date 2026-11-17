@@ -36,7 +36,7 @@ const immersiveRoutes = ['/study/review', '/study/boss', '/study/timer']
 
 function Logo() {
   return (
-    <span className="relative inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] text-white shadow-[0_8px_18px_rgba(37,99,235,0.28)]">
+    <span className="relative inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-text)] text-[var(--color-surface)]">
       <svg viewBox="0 0 32 32" width="24" height="24" fill="none" aria-hidden="true">
         <path d="M7 8h18a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3h-8l-5 4v-4H7a3 3 0 0 1-3-3v-9a3 3 0 0 1 3-3Z" fill="currentColor" opacity="0.22" />
         <path d="M7 8h18a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3h-8l-5 4v-4H7a3 3 0 0 1-3-3v-9a3 3 0 0 1 3-3Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
@@ -69,6 +69,7 @@ export function AppShell() {
   const [summary, setSummary] = useState<'streak' | 'level' | 'coins' | null>(null)
   const [levelUp, setLevelUp] = useState<number | null>(null)
   const prevLevel = useRef(level)
+  const mobileMore = useRef<HTMLDetailsElement>(null)
   const nextXp = xpForNext(level)
 
   const immersive = immersiveRoutes.some((p) => location.pathname === p || location.pathname.startsWith(`${p}/`))
@@ -76,6 +77,7 @@ export function AppShell() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' })
+    if (mobileMore.current) mobileMore.current.open = false
   }, [location.pathname])
 
   useEffect(() => {
@@ -111,9 +113,10 @@ export function AppShell() {
     : (gameState?.streakFreezes ?? 0)
 
   return (
-    <div className="min-h-dvh text-[var(--color-text)]">
-      <header className="sticky top-0 z-40 border-b border-[var(--color-border)] bg-[var(--color-surface)]/85 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-2 px-3 sm:px-5">
+    <div className="app-shell min-h-dvh text-[var(--color-text)]">
+      <a href="#main-content" className="skip-link">{t('shell.skipContent')}</a>
+      <header className="app-header sticky top-0 z-40 border-b border-[var(--color-border)] bg-[var(--color-surface)]/85 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-[1440px] items-center gap-2 px-3 sm:px-6 lg:px-8">
           <Link to="/" className="flex min-h-11 items-center gap-2 rounded-2xl pr-1" aria-label={t('app.name')}>
             <Logo />
             <span className="hidden leading-tight sm:block">
@@ -179,7 +182,7 @@ export function AppShell() {
             </NavLink>
           </div>
         </div>
-        <div className="h-0.5 w-full bg-transparent">
+        <div className="sr-only" aria-hidden="true">
           <div
             className="h-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] transition-all duration-500"
             style={{ width: `${Math.min(100, (xp / nextXp) * 100)}%` }}
@@ -196,8 +199,9 @@ export function AppShell() {
         </div>
       )}
 
-      <div className="mx-auto flex w-full max-w-7xl">
-        <aside className="sticky top-16 hidden h-[calc(100dvh-4rem)] w-56 shrink-0 flex-col p-4 md:flex">
+      <div className="mx-auto flex w-full max-w-[1440px]">
+        <aside className="app-sidebar sticky top-16 hidden h-[calc(100dvh-4rem)] w-56 shrink-0 flex-col border-r border-[var(--color-border)] px-4 py-8 md:flex lg:w-60 lg:px-5">
+          <p className="mb-4 px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)]">{t('shell.workspace')}</p>
           <nav className="space-y-1" aria-label={t('nav.main')}>
             {sideNav.map((item) => (
               <NavLink
@@ -205,9 +209,9 @@ export function AppShell() {
                 to={item.to}
                 end={item.to === '/'}
                 className={({ isActive }) =>
-                  `flex min-h-11 items-center gap-3 rounded-2xl px-3 text-sm font-bold transition ${
+                  `sidebar-link flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition ${
                     isActive
-                      ? 'bg-[var(--color-primary-soft)] text-[var(--color-primary)]'
+                      ? 'bg-[var(--color-surface)] text-[var(--color-text)] shadow-[var(--shadow-sm)]'
                       : 'text-[var(--color-muted)] hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)]'
                   }`
                 }
@@ -218,9 +222,9 @@ export function AppShell() {
             ))}
           </nav>
 
-          <div className="mt-auto rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-[var(--shadow-sm)]">
+          <div className="mt-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
             <div className="flex items-center gap-2">
-              <Mascot species={buddy} mood="happy" size={54} />
+              <Mascot species={buddy} mood="happy" size={40} />
               <div className="min-w-0">
                 <p className="truncate text-sm font-extrabold">{nickname}</p>
                 <p className="truncate text-xs text-[var(--color-muted)]">{t(`profile.titles.${levelTitleKey(level)}`)}</p>
@@ -238,7 +242,7 @@ export function AppShell() {
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 px-3 pb-28 pt-4 sm:px-5 md:pb-10">
+        <main id="main-content" tabIndex={-1} className="app-content min-w-0 flex-1 px-4 pb-36 pt-6 outline-none sm:px-6 md:pb-24 md:pt-8 lg:px-10">
           <div className="mx-auto w-full max-w-5xl">
             <Outlet />
           </div>
@@ -250,7 +254,7 @@ export function AppShell() {
         aria-label={t('nav.main')}
       >
         <div className="mx-auto grid max-w-md grid-cols-5 pb-[env(safe-area-inset-bottom)]">
-          {mobileNav.map((item) => (
+          {mobileNav.slice(0, 4).map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -265,6 +269,12 @@ export function AppShell() {
               <span>{t(item.label)}</span>
             </NavLink>
           ))}
+          <details ref={mobileMore} className="mobile-more relative" onKeyDown={(event) => { if (event.key === 'Escape' && mobileMore.current) mobileMore.current.open = false }}>
+            <summary className="flex min-h-14 cursor-pointer list-none flex-col items-center justify-center gap-0.5 text-[11px] font-semibold text-[var(--color-muted)]"><Icon name="layers" size={21} /><span>{t('shell.more')}</span></summary>
+            <div className="absolute bottom-full right-2 mb-3 w-56 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-[var(--shadow-lift)]">
+              {[...sideNav.slice(4), { to: '/settings', label: 'shell.settings', icon: 'settings' as IconName }].map((item) => <NavLink key={item.to} to={item.to} className={({ isActive }) => `flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm ${isActive ? 'bg-[var(--color-primary-soft)] text-[var(--color-primary-text)]' : 'hover:bg-[var(--color-surface-alt)]'}`}><Icon name={item.icon} size={18} />{t(item.label)}</NavLink>)}
+            </div>
+          </details>
         </div>
       </nav>
 

@@ -8,6 +8,7 @@ import { EmptyState } from '../../components/EmptyState'
 import { Icon } from '../../components/Icon'
 import { Modal } from '../../components/Modal'
 import { useApp, type Note } from '../../lib/store'
+import { openStudyBuddy } from '../../lib/aiStudy'
 
 export function NoteEditorPage() {
   const { t } = useTranslation()
@@ -144,6 +145,10 @@ function NoteEditor({ note }: { note: Note }) {
             {status === 'saved' ? t('notes.saved') : t('notes.saving')}
           </span>
         </div>
+        <Button variant="secondary" size="sm" disabled={!editor?.getText().trim()}
+          onClick={() => openStudyBuddy({ title, text: selectedText || editor?.getText({ blockSeparator: '\n' }) || '' })}>
+          <Icon name="sparkles" size={16} /> {t('pet.studyNote')}
+        </Button>
         <button
           onClick={() => setDeleteOpen(true)}
           className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--color-muted)] hover:bg-[var(--color-danger-soft)] hover:text-[var(--color-danger)]"

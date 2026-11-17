@@ -1,26 +1,36 @@
-import { useEffect } from 'react'
-import type { PropsWithChildren } from 'react'
+import { useEffect, useId, useRef, type PropsWithChildren } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from './Button'
+import { Icon } from './Icon'
 
 export function Modal({ open, title, onClose, children }: PropsWithChildren<{ open: boolean; title: string; onClose: () => void }>) {
   const { t } = useTranslation()
+  const dialog = useRef<HTMLDialogElement>(null)
+  const titleId = useId()
   useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [open, onClose])
-  if (!open) return null
+    const element = dialog.current
+    if (!element || !open) return
+    const previousFocus = document.activeElement as HTMLElement | null
+    element.showModal()
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      element.close()
+      document.body.style.overflow = previousOverflow
+      previousFocus?.focus()
+    }
+  }, [open])
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-label={title} onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl bg-[var(--color-surface)] p-4 shadow-[var(--shadow-md)]" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-lg font-bold">{title}</h3>
-          <Button variant="ghost" onClick={onClose} aria-label={t('common.close')}>✕</Button>
+    <dialog ref={dialog} aria-labelledby={titleId} className="app-dialog"
+      onCancel={(event) => { event.preventDefault(); onClose() }}
+      onClick={(event) => { if (event.target === event.currentTarget) onClose() }}>
+      {open && <div className="p-5 sm:p-7">
+        <div className="mb-5 flex items-center justify-between gap-4">
+          <h3 id={titleId} className="text-xl font-semibold">{title}</h3>
+          <Button variant="ghost" onClick={onClose} aria-label={t('common.close')}><Icon name="close" size={18} /></Button>
         </div>
         {children}
-      </div>
-    </div>
+      </div>}
+    </dialog>
   )
 }

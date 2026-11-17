@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { sessionApi, answerApi } from '../../lib/api/quiz'
 import { Button } from '../../components/Button'
 
 export function PlayPage() {
   const { sessionId } = useParams()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  // The player id comes from the lobby (join response or the host's own row).
+  const playerId = searchParams.get('playerId') ?? ''
   const [question, _setQuestion] = useState<any>(null)
   const [stage, setStage] = useState<'waiting' | 'question' | 'result' | 'finished'>('waiting')
   const [error, setError] = useState<string | null>(null)
@@ -22,12 +25,12 @@ export function PlayPage() {
   }, [sessionId])
 
   const handleAnswer = async (selectedAnswer: string) => {
-    if (!question) return
+    if (!question || !playerId) return
     const responseTimeMs = 1000
 
     try {
       await answerApi.submitAnswer({
-        sessionPlayerId: 'current-player-id',
+        sessionPlayerId: playerId,
         questionId: question.id,
         selectedAnswer,
         responseTimeMs,

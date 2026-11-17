@@ -13,7 +13,12 @@ export function NoteEditorPage() {
   const { t } = useTranslation()
   const { noteId } = useParams()
   const notes = useApp((s) => s.notes)
+  const loadNotes = useApp((s) => s.loadNotes)
   const note = notes.find((n) => n.id === noteId)
+
+  useEffect(() => {
+    loadNotes()
+  }, [loadNotes])
 
   if (!note) {
     return (
@@ -47,12 +52,12 @@ function NoteEditor({ note }: { note: Note }) {
   const saveTimer = useRef<number | null>(null)
   const latest = useRef({ title: note.title, content: note.content })
 
-  const queueSave = (patch: { title?: string; content?: string }) => {
+  const queueSave = async (patch: { title?: string; content?: string }) => {
     latest.current = { ...latest.current, ...patch }
     setStatus('saving')
     if (saveTimer.current) window.clearTimeout(saveTimer.current)
-    saveTimer.current = window.setTimeout(() => {
-      updateNote(note.id, latest.current)
+    saveTimer.current = window.setTimeout(async () => {
+      await updateNote(note.id, latest.current)
       setStatus('saved')
     }, 600)
   }
@@ -79,9 +84,9 @@ function NoteEditor({ note }: { note: Note }) {
     }
   }, [])
 
-  const flush = () => {
+  const flush = async () => {
     if (saveTimer.current) window.clearTimeout(saveTimer.current)
-    updateNote(note.id, latest.current)
+    await updateNote(note.id, latest.current)
   }
 
   const openCardModal = () => {
@@ -100,9 +105,9 @@ function NoteEditor({ note }: { note: Note }) {
     window.setTimeout(() => setFlash(null), 2600)
   }
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (saveTimer.current) window.clearTimeout(saveTimer.current)
-    deleteNote(note.id)
+    await deleteNote(note.id)
     navigate('/notes')
   }
 

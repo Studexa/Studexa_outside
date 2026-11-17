@@ -54,6 +54,12 @@ export default defineConfig({
         target: 'http://localhost:8081',
         changeOrigin: true,
       },
+      // STOMP endpoint (handshake + WebSocket upgrade) for live quiz rooms.
+      '/quiz': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+        ws: true,
+      },
     },
   },
   build: {

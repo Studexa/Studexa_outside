@@ -1,54 +1,95 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Button } from '../../components/Button'
-import { sessionApi } from '../../lib/api/quiz'
+import { quizApi, sessionApi } from '../../lib/api/quiz'
+import { useAuth } from '../../lib/auth'
 
 export function LobbyPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const params = useParams()
+  const { user } = useAuth()
+
+  // The route is /quiz/lobby/:code — the code comes from the path, not the query.
+  const roomCode = (params.code ?? '').toUpperCase()
+
   const [session, setSession] = useState<any>(null)
   const [players, setPlayers] = useState<any[]>([])
+  const [playerId, setPlayerId] = useState<string | null>(null)
+  const [nickname, setNickname] = useState(searchParams.get('nickname') ?? '')
+  const [questionCount, setQuestionCount] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const roomCode = searchParams.get('code') || ''
-  const nickname = searchParams.get('nickname') || ''
-
   useEffect(() => {
+    if (!roomCode) {
+      setError('Missing room code')
+      setLoading(false)
+      return
+    }
+
+    let cancelled = false
     const loadRoom = async () => {
       try {
         const room = await sessionApi.getRoom(roomCode)
+        if (cancelled) return
         setSession(room.session)
         setPlayers(room.players)
+
+        const mine = room.players.find((p) => p.userId && p.userId === user?.id)
+        if (mine) {
+          setPlayerId(mine.id)
+        }
+
+        try {
+          const quiz = await quizApi.getQuiz(room.session.quizId)
+          if (!cancelled) setQuestionCount(quiz.questions.length)
+        } catch {
+          // Non-fatal: the room is still usable, the start button stays guarded.
+          if (!cancelled) setQuestionCount(null)
+        }
       } catch (err: any) {
-        setError(err.message || 'Failed to load room')
+        if (!cancelled) setError(err.message || 'Failed to load room')
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
     loadRoom()
-  }, [roomCode])
+    return () => {
+      cancelled = true
+    }
+  }, [roomCode, user?.id])
 
   const handleStart = async () => {
+    if (questionCount === 0) {
+      setError('This quiz has no questions yet. Add questions before starting.')
+      return
+    }
     try {
       await sessionApi.startSession(session.id)
-      navigate(`/quiz/play/${session.id}`)
+      const query = playerId ? `?playerId=${encodeURIComponent(playerId)}` : ''
+      navigate(`/quiz/play/${session.id}${query}`)
     } catch (err: any) {
       setError(err.message || 'Failed to start session')
     }
   }
 
   const handleJoin = async () => {
-    if (!nickname) {
+    const trimmed = nickname.trim()
+    if (!trimmed) {
       setError('Please enter a nickname')
       return
     }
     try {
-      await sessionApi.joinSession(session.id, {
+      const player = await sessionApi.joinSession(session.id, {
         roomCode,
-        nickname,
+        nickname: trimmed,
       })
-      navigate(`/quiz/lobby/${roomCode}?nickname=${encodeURIComponent(nickname)}`)
+      setPlayerId(player.id)
+      setPlayers((current) =>
+        current.some((p) => p.id === player.id) ? current : [...current, player],
+      )
+      navigate(`/quiz/lobby/${roomCode}?nickname=${encodeURIComponent(trimmed)}`, { replace: true })
     } catch (err: any) {
       setError(err.message || 'Failed to join room')
     }
@@ -93,9 +134,12 @@ export function LobbyPage() {
                   key={p.id}
                   className="flex items-center justify-between p-3 rounded border border-[var(--border)]/50"
                 >
-                  <span className="font-medium">{p.nickname}</span>
+                  <span className="font-medium">
+                    {p.nickname}
+                    {p.id === playerId ? ' (you)' : ''}
+                  </span>
                   <span className="text-xs text-[var(--text-muted)]">
-                    {p.isReady ? '✓ Ready' : 'Waiting'}
+                    {p.isHost ? 'Host' : p.isReady ? '✓ Ready' : 'Waiting'}
                   </span>
                 </li>
               ))}
@@ -105,33 +149,41 @@ export function LobbyPage() {
           <div className="p-6 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
             <h2 className="font-semibold mb-4">Room Settings</h2>
             <p className="text-sm text-[var(--text-muted)] mb-2">Mode: Live Race</p>
-            <p className="text-sm text-[var(--text-muted)] mb-4">Questions: 10</p>
+            <p className="text-sm text-[var(--text-muted)] mb-2">
+              Questions: {questionCount ?? '…'}
+            </p>
             <p className="text-sm text-[var(--text-muted)] mb-4">Time per question: 30s</p>
+
+            {questionCount === 0 && (
+              <p className="text-sm text-[var(--warning-text)] mb-3">
+                This quiz has no questions yet, so it cannot start.
+              </p>
+            )}
 
             <Button
               className="w-full"
               onClick={handleStart}
-              disabled={players.length === 0}
+              disabled={players.length === 0 || questionCount === 0}
             >
               Start Quiz
             </Button>
           </div>
         </div>
 
-        {!nickname && (
+        {!playerId && (
           <div className="mt-6 p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
             <p className="text-sm text-[var(--text-muted)] mb-3">
               Enter your nickname to join the room:
             </p>
             <input
               type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              maxLength={50}
               placeholder="Your nickname"
               className="w-full px-3 py-2 rounded border border-[var(--border)] bg-[var(--bg)]"
-              onChange={(_e) => {
-                // handled via URL param
-              }}
             />
-            <Button className="w-full mt-3" onClick={handleJoin}>
+            <Button className="w-full mt-3" onClick={handleJoin} disabled={!nickname.trim()}>
               Join Room
             </Button>
           </div>

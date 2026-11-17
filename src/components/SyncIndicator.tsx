@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Icon } from './Icon'
-import { countPendingAnswers, offlineDb } from '../lib/offlineDb'
+import { countPendingAnswers } from '../lib/offlineDb'
 import { useAuth } from '../lib/auth'
 
 export function SyncIndicator() {
@@ -26,7 +26,7 @@ export function SyncIndicator() {
 
   return (
     <div className="fixed bottom-4 left-4 z-50 flex items-center gap-2 rounded-full bg-[var(--color-accent-soft)] border border-[var(--color-accent)] px-3 py-1.5 text-xs font-black text-[var(--color-accent-text)] shadow-[var(--shadow-md)] animate-pulse">
-      <Icon name="cloud" size={12} />
+      <Icon name="wifiOff" size={12} />
       {t('shell.offlineQueued', { count: pending })}
     </div>
-  )
+  )}

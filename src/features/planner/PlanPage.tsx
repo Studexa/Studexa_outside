@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
@@ -9,7 +9,7 @@ import { Badge } from '../../components/Badge'
 import { ProgressBar } from '../../components/ProgressBar'
 import { daysUntil, todayISO, useApp, type Importance } from '../../lib/store'
 import { useAuth } from '../../lib/auth'
-import { cardsApi, gameApi } from '../../lib/api'
+import { cardsApi, gameApi, examsApi, tasksApi } from '../../lib/api'
 
 function dateKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
@@ -29,6 +29,8 @@ export function PlanPage() {
   const toggleTask = useApp((s) => s.toggleTask)
   const addTask = useApp((s) => s.addTask)
   const addExam = useApp((s) => s.addExam)
+  const loadExams = useApp((s) => s.loadExams)
+  const loadTasks = useApp((s) => s.loadTasks)
   const dailyGoal = useApp((s) => s.dailyGoal)
 
   const cardsDueQuery = useQuery({
@@ -43,6 +45,11 @@ export function PlanPage() {
   const cardsDue = cardsDueQuery.data ?? []
   const gameState = gameQuery.data
   const streak = gameState?.streakCurrent ?? 0
+
+  useEffect(() => {
+    loadExams()
+    loadTasks(todayISO())
+  }, [loadExams, loadTasks])
 
   const [cursor, setCursor] = useState(() => {
     const now = new Date()
@@ -81,16 +88,16 @@ export function PlanPage() {
   const monthLabel = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(cursor)
   const sortExams = [...exams].sort((a, b) => a.date.localeCompare(b.date))
 
-  const createTask = () => {
+  const createTask = async () => {
     if (!taskTitle.trim()) return
-    addTask(taskTitle.trim(), today)
+    await addTask(taskTitle.trim(), today)
     setTaskTitle('')
     setTaskOpen(false)
   }
 
-  const createExam = () => {
+  const createExam = async () => {
     if (!examTitle.trim() || !examDate) return
-    addExam({
+    await addExam({
       title: examTitle.trim(),
       subject: examSubject.trim() || examTitle.trim(),
       date: examDate,

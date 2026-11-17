@@ -463,3 +463,7 @@ export const aiApi = {
   tutor: (input: AiTutorInput) =>
     call<AiTutorResponse>(client.POST('/api/v1/ai/tutor', { body: input })),
 }
+
+export { notesApi, examsApi, tasksApi } from './api/plan'
+export { focusSessionsApi } from './api/focus'
+export { bossFightsApi } from './api/boss'

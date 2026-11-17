@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '../../components/Button'
@@ -15,14 +15,19 @@ export function NotesPage() {
   const navigate = useNavigate()
   const notes = useApp((s) => s.notes)
   const addNote = useApp((s) => s.addNote)
+  const loadNotes = useApp((s) => s.loadNotes)
   const [query, setQuery] = useState('')
+
+  useEffect(() => {
+    loadNotes()
+  }, [loadNotes])
 
   const filtered = notes.filter((note) =>
     `${note.title} ${plainText(note.content)} ${note.subject}`.toLowerCase().includes(query.toLowerCase()),
   )
 
-  const create = () => {
-    const id = addNote({ title: t('notes.untitled'), content: '', subject: t('notes.general') })
+  const create = async () => {
+    const id = await addNote({ title: t('notes.untitled'), content: '', subject: t('notes.general') })
     navigate(`/notes/${id}`)
   }
 

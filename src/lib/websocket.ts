@@ -1,9 +1,25 @@
 import { Client } from '@stomp/stompjs'
 import type { IMessage } from '@stomp/stompjs'
+import { getAccessToken } from './api/client'
 
 let stompClient: Client | null = null
 
 type MessageHandler = (destination: string, body: any) => void
+
+/**
+ * Resolve the STOMP endpoint. In development the Vite dev server proxies
+ * `/quiz` (including the WebSocket upgrade) to the backend, so using the page
+ * origin works both locally and in production. `VITE_WS_URL` overrides it for
+ * split-origin deployments.
+ */
+function brokerUrl(): string {
+  const override = import.meta.env.VITE_WS_URL as string | undefined
+  if (override) {
+    return override
+  }
+  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${proto}//${window.location.host}/quiz`
+}
 
 export function connectWebSocket(
   _onMessage: MessageHandler,
@@ -15,9 +31,11 @@ export function connectWebSocket(
     return stompClient
   }
 
+  const token = getAccessToken()
   const client = new Client({
-    brokerURL: 'http://localhost:8081/quiz',
-    connectHeaders: {},
+    brokerURL: brokerUrl(),
+    connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
+    reconnectDelay: 4000,
     debug: (msg) => console.log('[STOMP]', msg),
     onConnect: () => {
       stompClient = client
@@ -44,7 +62,7 @@ export function subscribeMessage(
   destination: string,
   callback: (body: any) => void,
 ) {
-  stompClient?.subscribe(destination, (msg: IMessage) => {
+  return stompClient?.subscribe(destination, (msg: IMessage) => {
     try {
       callback(JSON.parse(msg.body))
     } catch {

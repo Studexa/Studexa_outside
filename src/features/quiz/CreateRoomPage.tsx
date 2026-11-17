@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '../../components/Button'
-import { sessionApi } from '../../lib/api/quiz'
+import { quizApi, sessionApi } from '../../lib/api/quiz'
 
 export function CreateRoomPage() {
   const [loading, setLoading] = useState(false)
@@ -14,6 +14,8 @@ export function CreateRoomPage() {
     setError(null)
     try {
       const form = e.currentTarget as HTMLFormElement
+      const title = (form.elements.namedItem('title') as HTMLInputElement).value.trim() || 'My Quiz'
+      const subject = (form.elements.namedItem('subject') as HTMLInputElement).value.trim()
       const numQuestions = parseInt(
         (form.elements.namedItem('numQuestions') as HTMLInputElement).value || '10',
       )
@@ -21,15 +23,21 @@ export function CreateRoomPage() {
         (form.elements.namedItem('timePerQuestion') as HTMLInputElement).value || '30',
       )
 
+      // A live session must reference a real quiz, so create the quiz first.
+      const quiz = await quizApi.createQuiz({
+        title,
+        subject: subject || undefined,
+        visibility: 'PRIVATE',
+      })
+
       const session = await sessionApi.createSession({
-        quizId: '00000000-0000-0000-0000-000000000000', // placeholder - will be replaced with actual quiz
-        mode: 'live_race',
+        quizId: quiz.id,
+        mode: 'LIVE_RACE',
         numQuestions,
         timePerQuestion,
         difficulty: 'medium',
       })
 
-      // In a real flow, we'd create a quiz first. For now, navigate to lobby
       navigate(`/quiz/lobby/${session.roomCode}`)
     } catch (err: any) {
       setError(err.message || 'Failed to create room')

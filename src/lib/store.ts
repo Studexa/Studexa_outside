@@ -1,5 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { notesApi, examsApi, tasksApi } from './api/plan'
+import { focusSessionsApi } from './api/focus'
+import { bossFightsApi } from './api/boss'
 
 export type BuddySpecies = 'owl' | 'cat' | 'fox' | 'elephant'
 export type LevelOfStudy = 'middle' | 'highschool' | 'university' | 'self'
@@ -46,6 +49,20 @@ export type Task = {
   title: string
   date: string
   done: boolean
+}
+
+export type FocusSession = {
+  id: string
+  minutes: number
+  completedAt: string
+}
+
+export type BossFight = {
+  id: string
+  won: boolean
+  questionsCount: number
+  heartsRemaining: number
+  completedAt: string
 }
 
 export type Quest = {
@@ -277,6 +294,15 @@ type State = {
   notes: Note[]
   exams: Exam[]
   tasks: Task[]
+  focusSessions: FocusSession[]
+  bossFights: BossFight[]
+  loading: {
+    notes: boolean
+    exams: boolean
+    tasks: boolean
+    focus: boolean
+    boss: boolean
+  }
   quests: Quest[]
   badges: Record<string, boolean>
   owned: string[]
@@ -303,10 +329,20 @@ type State = {
   addNote: (note: Omit<Note, 'id' | 'updatedAt'>) => string
   updateNote: (id: string, patch: Partial<Pick<Note, 'title' | 'content' | 'subject'>>) => void
   deleteNote: (id: string) => void
-  toggleTask: (id: string) => void
-  addTask: (title: string, date: string) => void
-  addExam: (exam: Omit<Exam, 'id'>) => void
-  removeExam: (id: string) => void
+  loadNotes: () => Promise<void>
+  addNote: (note: Omit<Note, 'id' | 'updatedAt'>) => Promise<string>
+  updateNote: (id: string, patch: Partial<Pick<Note, 'title' | 'content' | 'subject'>>) => Promise<void>
+  deleteNote: (id: string) => Promise<void>
+  loadExams: () => Promise<void>
+  addExam: (exam: Omit<Exam, 'id'>) => Promise<string>
+  removeExam: (id: string) => Promise<void>
+  loadTasks: (date?: string) => Promise<void>
+  toggleTask: (id: string) => Promise<void>
+  addTask: (title: string, date: string) => Promise<string>
+  loadFocusSessions: () => Promise<void>
+  recordFocus: (minutes: number) => Promise<void>
+  loadBossFights: () => Promise<void>
+  recordBoss: () => Promise<void>
   buyItem: (item: Pick<ShopItem, 'id' | 'price'> & { accessory?: ShopItem['accessory'] }) => boolean
   equipItem: (accessory: string | null) => void
   resetAll: () => void
@@ -337,6 +373,9 @@ const initialState = {
   notes: seedNotes,
   exams: [],
   tasks: [],
+  focusSessions: [],
+  bossFights: [],
+  loading: { notes: false, exams: false, tasks: false, focus: false, boss: false },
   quests: freshQuests(),
   badges: freshBadges(),
   owned: [] as string[],
@@ -435,35 +474,120 @@ export const useApp = create<State>()(
           ),
         }),
 
-      addNote: (note) => {
-        const id = uid('note')
-        set({
-          notes: [{ ...note, id, updatedAt: new Date().toISOString() }, ...get().notes],
-        })
-        get().addXp(5)
-        return id
+      loadNotes: async () => {
+        set({ loading: { ...get().loading, notes: true } })
+        try {
+          const dtos = await notesApi.list()
+          set({ notes: dtos.map((d) => ({ id: d.id, title: d.title, content: d.content, subject: d.subject ?? '', updatedAt: d.updatedAt })) })
+        } finally {
+          set({ loading: { ...get().loading, notes: false } })
+        }
       },
 
-      updateNote: (id, patch) =>
+      addNote: async (note) => {
+        const dto = await notesApi.create({ title: note.title, content: note.content, subject: note.subject })
+        const stored = { id: dto.id, title: dto.title, content: dto.content, subject: dto.subject ?? '', updatedAt: dto.updatedAt }
+        set({ notes: [stored, ...get().notes] })
+        get().addXp(5)
+        return stored.id
+      },
+
+      updateNote: async (id, patch) => {
+        await notesApi.update(id, { title: patch.title, content: patch.content, subject: patch.subject })
         set({
           notes: get().notes.map((n) =>
             n.id === id ? { ...n, ...patch, updatedAt: new Date().toISOString() } : n,
           ),
-        }),
+        })
+      },
 
-      deleteNote: (id) => set({ notes: get().notes.filter((n) => n.id !== id) }),
+      deleteNote: async (id) => {
+        await notesApi.remove(id)
+        set({ notes: get().notes.filter((n) => n.id !== id) })
+      },
 
-      toggleTask: (id) =>
+      loadExams: async () => {
+        set({ loading: { ...get().loading, exams: true } })
+        try {
+          const dtos = await examsApi.list()
+          set({ exams: dtos.map((d) => ({ id: d.id, title: d.title, subject: d.subject ?? '', date: d.date, importance: d.importance })) })
+        } finally {
+          set({ loading: { ...get().loading, exams: false } })
+        }
+      },
+
+      addExam: async (exam) => {
+        const dto = await examsApi.create({ title: exam.title, subject: exam.subject, date: exam.date, importance: exam.importance })
+        const stored = { id: dto.id, title: dto.title, subject: dto.subject ?? '', date: dto.date, importance: dto.importance }
+        set({ exams: [stored, ...get().exams] })
+        return stored.id
+      },
+
+      removeExam: async (id) => {
+        await examsApi.remove(id)
+        set({ exams: get().exams.filter((e) => e.id !== id) })
+      },
+
+      loadTasks: async (date?: string) => {
+        set({ loading: { ...get().loading, tasks: true } })
+        try {
+          const dtos = await tasksApi.list(date)
+          set({ tasks: dtos.map((d) => ({ id: d.id, title: d.title, date: d.date, done: d.done })) })
+        } finally {
+          set({ loading: { ...get().loading, tasks: false } })
+        }
+      },
+
+      toggleTask: async (id) => {
+        const dto = await tasksApi.toggle(id)
         set({
-          tasks: get().tasks.map((t) => (t.id === id ? { ...t, done: !t.done } : t)),
-        }),
+          tasks: get().tasks.map((t) => (t.id === id ? { ...t, done: dto.done } : t)),
+        })
+      },
 
-      addTask: (title, date) =>
-        set({ tasks: [...get().tasks, { id: uid('task'), title, date, done: false }] }),
+      addTask: async (title, date) => {
+        const dto = await tasksApi.create({ title, date })
+        const stored = { id: dto.id, title: dto.title, date: dto.date, done: dto.done }
+        set({ tasks: [stored, ...get().tasks] })
+        return stored.id
+      },
 
-      addExam: (exam) => set({ exams: [...get().exams, { ...exam, id: uid('exam') }] }),
+      loadFocusSessions: async () => {
+        set({ loading: { ...get().loading, focus: true } })
+        try {
+          const dtos = await focusSessionsApi.list()
+          set({ focusSessions: dtos.map((d) => ({ id: d.id, minutes: d.minutes, completedAt: d.completedAt })) })
+        } finally {
+          set({ loading: { ...get().loading, focus: false } })
+        }
+      },
 
-      removeExam: (id) => set({ exams: get().exams.filter((e) => e.id !== id) }),
+      recordFocus: async (minutes) => {
+        const now = new Date().toISOString()
+        const dto = await focusSessionsApi.create({ minutes, completedAt: now })
+        const stored = { id: dto.id, minutes: dto.minutes, completedAt: dto.completedAt }
+        set({ focusSessions: [stored, ...get().focusSessions] })
+        get().addXp(Math.round(25 * Math.min(1, minutes / 25)))
+        get().addQuestProgress('focus', 1)
+      },
+
+      loadBossFights: async () => {
+        set({ loading: { ...get().loading, boss: true } })
+        try {
+          const dtos = await bossFightsApi.list()
+          set({ bossFights: dtos.map((d) => ({ id: d.id, won: d.won, questionsCount: d.questionsCount, heartsRemaining: d.heartsRemaining, completedAt: d.completedAt })) })
+        } finally {
+          set({ loading: { ...get().loading, boss: false } })
+        }
+      },
+
+      recordBoss: async () => {
+        const dto = await bossFightsApi.create({ won: true, questionsCount: 5, heartsRemaining: 3, completedAt: new Date().toISOString() })
+        const stored = { id: dto.id, won: dto.won, questionsCount: dto.questionsCount, heartsRemaining: dto.heartsRemaining, completedAt: dto.completedAt }
+        set({ bossFights: [stored, ...get().bossFights] })
+        get().addXp(100)
+        set({ badges: { ...get().badges, bossSlayer: true } })
+      },
 
       buyItem: (item) => {
         const { coins, owned } = get()

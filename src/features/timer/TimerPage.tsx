@@ -49,7 +49,7 @@ export function TimerPage() {
   useEffect(() => {
     if (!completed || recorded.current) return
     recorded.current = true
-    recordFocus(minutes)
+    recordFocus(minutes).catch(() => {})
     celebrate()
     playSound('success')
   }, [completed, minutes, recordFocus])

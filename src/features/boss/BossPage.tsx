@@ -66,7 +66,7 @@ function BossGame({ items }: { items: StudyCardWithDeck[] }) {
   useEffect(() => {
     if (status === 'victory' && !recorded.current) {
       recorded.current = true
-      recordBoss()
+      recordBoss().catch(() => {})
       celebrate()
       playSound('success')
     }

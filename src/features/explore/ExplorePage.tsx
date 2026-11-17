@@ -7,6 +7,8 @@ import { Icon } from '../../components/Icon'
 import { celebrate } from '../../lib/confetti'
 import { cardsApi, decksApi } from '../../lib/api'
 import { studyKeys } from '../../lib/study'
+import { isGuestMode } from '../../lib/auth'
+import { useApp } from '../../lib/store'
 
 const publicDecks = [
   {
@@ -103,12 +105,18 @@ const subjects = ['Mathematics', 'Biology', 'Khmer', 'English', 'Physics', 'Hist
 export function ExplorePage() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const guestMode = isGuestMode()
   const [query, setQuery] = useState('')
   const [subject, setSubject] = useState('all')
   const [copied, setCopied] = useState<string[]>([])
 
   const copyMutation = useMutation({
     mutationFn: async (deck: (typeof publicDecks)[number]) => {
+      if (guestMode) {
+        const id = useApp.getState().addDeck({ title: deck.title, subject: deck.subject, color: deck.color, icon: deck.icon })
+        deck.cards.forEach((card) => useApp.getState().addCard(id, card.front, card.back))
+        return { id }
+      }
       const created = await decksApi.create({
         title: deck.title,
         color: deck.color,

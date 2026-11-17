@@ -151,6 +151,10 @@ function uid(prefix: string) {
   return `${prefix}_${Date.now().toString(36)}_${seq}`
 }
 
+function isGuestStore(): boolean {
+  return typeof window !== 'undefined' && localStorage.getItem('studexa_guest_mode') === 'true'
+}
+
 function card(front: string, back: string, type: CardType = 'basic', due = true, lapses = 0): Card {
   return { id: uid('card'), front, back, type, due, lapses }
 }
@@ -319,16 +323,12 @@ type State = {
   replayOnboarding: () => void
   addXp: (amount: number) => { leveledUp: boolean; level: number }
   recordReviewSession: (cards: number, correct: number) => void
-  recordFocus: (minutes: number) => void
-  recordBoss: () => void
   recordQuiz: (correct: number, total: number) => void
   addQuestProgress: (code: QuestCode, amount: number) => void
   addDeck: (deck: Omit<Deck, 'id' | 'cards'>) => string
   addCard: (deckId: string, front: string, back: string, type?: CardType) => void
   deleteCard: (deckId: string, cardId: string) => void
-  addNote: (note: Omit<Note, 'id' | 'updatedAt'>) => string
-  updateNote: (id: string, patch: Partial<Pick<Note, 'title' | 'content' | 'subject'>>) => void
-  deleteNote: (id: string) => void
+  reviewGuestCard: (cardId: string, again: boolean) => void
   loadNotes: () => Promise<void>
   addNote: (note: Omit<Note, 'id' | 'updatedAt'>) => Promise<string>
   updateNote: (id: string, patch: Partial<Pick<Note, 'title' | 'content' | 'subject'>>) => Promise<void>
@@ -419,19 +419,13 @@ export const useApp = create<State>()(
         get().addQuestProgress('warmup', cards)
       },
 
-      recordFocus: (minutes) => {
-        get().addXp(Math.round(25 * Math.min(1, minutes / 25)))
-        get().addQuestProgress('focus', 1)
-      },
-
-      recordBoss: () => {
-        get().addXp(100)
-        set({ badges: { ...get().badges, bossSlayer: true } })
-      },
-
       recordQuiz: (correct, total) => {
-        get().addXp(10 + correct * 2 + (total > 0 && correct === total ? 20 : 0))
-        get().addQuestProgress('builder', 1)
+        const questionCount = Number.isFinite(total) ? Math.max(0, Math.trunc(total)) : 0
+        if (questionCount === 0) return
+        const correctCount = Number.isFinite(correct)
+          ? Math.min(questionCount, Math.max(0, Math.trunc(correct)))
+          : 0
+        get().addXp(10 + correctCount * 2 + (correctCount === questionCount ? 20 : 0))
       },
 
       addQuestProgress: (code, amount) => {
@@ -474,7 +468,17 @@ export const useApp = create<State>()(
           ),
         }),
 
+      reviewGuestCard: (cardId, again) => set({
+        decks: get().decks.map((deck) => ({
+          ...deck,
+          cards: deck.cards.map((item) => item.id === cardId
+            ? { ...item, due: again, lapses: item.lapses + (again ? 1 : 0) }
+            : item),
+        })),
+      }),
+
       loadNotes: async () => {
+        if (isGuestStore()) return
         set({ loading: { ...get().loading, notes: true } })
         try {
           const dtos = await notesApi.list()
@@ -485,6 +489,12 @@ export const useApp = create<State>()(
       },
 
       addNote: async (note) => {
+        if (isGuestStore()) {
+          const stored = { ...note, id: uid('note'), updatedAt: new Date().toISOString() }
+          set({ notes: [stored, ...get().notes] })
+          get().addXp(5)
+          return stored.id
+        }
         const dto = await notesApi.create({ title: note.title, content: note.content, subject: note.subject })
         const stored = { id: dto.id, title: dto.title, content: dto.content, subject: dto.subject ?? '', updatedAt: dto.updatedAt }
         set({ notes: [stored, ...get().notes] })
@@ -493,20 +503,28 @@ export const useApp = create<State>()(
       },
 
       updateNote: async (id, patch) => {
-        await notesApi.update(id, { title: patch.title, content: patch.content, subject: patch.subject })
+        const current = get().notes.find((note) => note.id === id)
+        if (!current) return
+        const updated = { ...current, ...patch, updatedAt: new Date().toISOString() }
+        if (!isGuestStore()) await notesApi.update(id, {
+          title: updated.title,
+          content: updated.content,
+          subject: updated.subject,
+        })
         set({
           notes: get().notes.map((n) =>
-            n.id === id ? { ...n, ...patch, updatedAt: new Date().toISOString() } : n,
+            n.id === id ? updated : n,
           ),
         })
       },
 
       deleteNote: async (id) => {
-        await notesApi.remove(id)
+        if (!isGuestStore()) await notesApi.remove(id)
         set({ notes: get().notes.filter((n) => n.id !== id) })
       },
 
       loadExams: async () => {
+        if (isGuestStore()) return
         set({ loading: { ...get().loading, exams: true } })
         try {
           const dtos = await examsApi.list()
@@ -517,6 +535,11 @@ export const useApp = create<State>()(
       },
 
       addExam: async (exam) => {
+        if (isGuestStore()) {
+          const stored = { ...exam, id: uid('exam') }
+          set({ exams: [stored, ...get().exams] })
+          return stored.id
+        }
         const dto = await examsApi.create({ title: exam.title, subject: exam.subject, date: exam.date, importance: exam.importance })
         const stored = { id: dto.id, title: dto.title, subject: dto.subject ?? '', date: dto.date, importance: dto.importance }
         set({ exams: [stored, ...get().exams] })
@@ -524,11 +547,12 @@ export const useApp = create<State>()(
       },
 
       removeExam: async (id) => {
-        await examsApi.remove(id)
+        if (!isGuestStore()) await examsApi.remove(id)
         set({ exams: get().exams.filter((e) => e.id !== id) })
       },
 
       loadTasks: async (date?: string) => {
+        if (isGuestStore()) return
         set({ loading: { ...get().loading, tasks: true } })
         try {
           const dtos = await tasksApi.list(date)
@@ -539,6 +563,10 @@ export const useApp = create<State>()(
       },
 
       toggleTask: async (id) => {
+        if (isGuestStore()) {
+          set({ tasks: get().tasks.map((task) => task.id === id ? { ...task, done: !task.done } : task) })
+          return
+        }
         const dto = await tasksApi.toggle(id)
         set({
           tasks: get().tasks.map((t) => (t.id === id ? { ...t, done: dto.done } : t)),
@@ -546,6 +574,11 @@ export const useApp = create<State>()(
       },
 
       addTask: async (title, date) => {
+        if (isGuestStore()) {
+          const stored = { id: uid('task'), title, date, done: false }
+          set({ tasks: [stored, ...get().tasks] })
+          return stored.id
+        }
         const dto = await tasksApi.create({ title, date })
         const stored = { id: dto.id, title: dto.title, date: dto.date, done: dto.done }
         set({ tasks: [stored, ...get().tasks] })
@@ -553,6 +586,7 @@ export const useApp = create<State>()(
       },
 
       loadFocusSessions: async () => {
+        if (isGuestStore()) return
         set({ loading: { ...get().loading, focus: true } })
         try {
           const dtos = await focusSessionsApi.list()
@@ -564,6 +598,12 @@ export const useApp = create<State>()(
 
       recordFocus: async (minutes) => {
         const now = new Date().toISOString()
+        if (isGuestStore()) {
+          set({ focusSessions: [{ id: uid('focus'), minutes, completedAt: now }, ...get().focusSessions] })
+          get().addXp(Math.round(25 * Math.min(1, minutes / 25)))
+          get().addQuestProgress('focus', 1)
+          return
+        }
         const dto = await focusSessionsApi.create({ minutes, completedAt: now })
         const stored = { id: dto.id, minutes: dto.minutes, completedAt: dto.completedAt }
         set({ focusSessions: [stored, ...get().focusSessions] })
@@ -572,6 +612,7 @@ export const useApp = create<State>()(
       },
 
       loadBossFights: async () => {
+        if (isGuestStore()) return
         set({ loading: { ...get().loading, boss: true } })
         try {
           const dtos = await bossFightsApi.list()
@@ -582,6 +623,12 @@ export const useApp = create<State>()(
       },
 
       recordBoss: async () => {
+        if (isGuestStore()) {
+          set({ bossFights: [{ id: uid('boss'), won: true, questionsCount: 5, heartsRemaining: 3, completedAt: new Date().toISOString() }, ...get().bossFights] })
+          get().addXp(100)
+          set({ badges: { ...get().badges, bossSlayer: true } })
+          return
+        }
         const dto = await bossFightsApi.create({ won: true, questionsCount: 5, heartsRemaining: 3, completedAt: new Date().toISOString() })
         const stored = { id: dto.id, won: dto.won, questionsCount: dto.questionsCount, heartsRemaining: dto.heartsRemaining, completedAt: dto.completedAt }
         set({ bossFights: [stored, ...get().bossFights] })
@@ -591,7 +638,8 @@ export const useApp = create<State>()(
 
       buyItem: (item) => {
         const { coins, owned } = get()
-        if (owned.includes(item.id) || coins < item.price) return false
+        const alreadyOwnedCount = owned.filter((id) => id === item.id).length
+        if ((item.id === 'freeze' ? alreadyOwnedCount >= 2 : alreadyOwnedCount > 0) || coins < item.price) return false
         set({
           coins: coins - item.price,
           owned: [...owned, item.id],

@@ -9,6 +9,7 @@ import { ProgressBar } from '../../components/ProgressBar'
 import { Badge } from '../../components/Badge'
 import { daysUntil, useApp } from '../../lib/store'
 import { useDecks, useGameState, useTodayQuests } from '../../lib/study'
+import { isGuestMode } from '../../lib/auth'
 
 const questIcons: Record<string, IconName> = {
   warmup: 'bolt',
@@ -37,17 +38,28 @@ export function HomePage() {
   const cardsToday = useApp((s) => s.cardsToday)
   const dailyGoal = useApp((s) => s.dailyGoal)
   const exams = useApp((s) => s.exams)
-  const decksQuery = useDecks()
-  const gameQuery = useGameState()
-  const questsQuery = useTodayQuests()
+  const localDecks = useApp((s) => s.decks)
+  const localQuests = useApp((s) => s.quests)
+  const localLevel = useApp((s) => s.level)
+  const localXp = useApp((s) => s.xp)
+  const localCoins = useApp((s) => s.coins)
+  const localStreak = useApp((s) => s.streak)
+  const guestMode = isGuestMode()
+  const decksQuery = useDecks(!guestMode)
+  const gameQuery = useGameState(!guestMode)
+  const questsQuery = useTodayQuests(!guestMode)
 
-  const streak = gameQuery.data?.streakCurrent ?? 0
-  const level = gameQuery.data?.level ?? 1
-  const xp = gameQuery.data?.xpTotal ?? 0
-  const coins = gameQuery.data?.coins ?? 0
+  const streak = guestMode ? localStreak : (gameQuery.data?.streakCurrent ?? 0)
+  const level = guestMode ? localLevel : (gameQuery.data?.level ?? 1)
+  const xp = guestMode ? localXp : (gameQuery.data?.xpTotal ?? 0)
+  const coins = guestMode ? localCoins : (gameQuery.data?.coins ?? 0)
 
-  const quests = questsQuery.data ?? []
-  const due = (decksQuery.data ?? []).reduce((sum, deck) => sum + deck.dueCount, 0)
+  const quests = guestMode
+    ? localQuests.map((quest) => ({ code: quest.id, target: quest.target, progress: quest.progress, rewardXp: quest.rewardXp, rewardCoins: quest.rewardCoins, completed: quest.completed }))
+    : (questsQuery.data ?? []).map((quest) => ({ code: quest.code, target: quest.target, progress: quest.progress, rewardXp: quest.rewardXp, rewardCoins: quest.rewardCoins, completed: quest.completed }))
+  const due = guestMode
+    ? localDecks.reduce((sum, deck) => sum + deck.cards.filter((card) => card.due).length, 0)
+    : (decksQuery.data ?? []).reduce((sum, deck) => sum + deck.dueCount, 0)
   const nextExam = [...exams].sort((a, b) => a.date.localeCompare(b.date))[0]
   const examDays = nextExam ? daysUntil(nextExam.date) : 0
   const remaining = Math.max(0, dailyGoal - cardsToday)
@@ -133,7 +145,7 @@ export function HomePage() {
           </div>
           <div className="space-y-2.5">
             {quests.map((quest) => (
-              <div key={quest.id} className="rounded-2xl bg-(--color-surface-alt)/60 p-3">
+              <div key={quest.code} className="rounded-2xl bg-(--color-surface-alt)/60 p-3">
                 <div className="flex items-center gap-2">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-(--color-surface) text-(--color-primary) shadow-(--shadow-sm)">
                     <Icon name={questIcons[quest.code] ?? 'bolt'} size={18} />

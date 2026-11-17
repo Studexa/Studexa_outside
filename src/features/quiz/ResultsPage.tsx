@@ -38,7 +38,7 @@ export function ResultsPage() {
         <div className="text-center p-6 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
           <h2 className="text-lg font-medium mb-2">Error</h2>
           <p className="text-[var(--danger-text)] mb-4">{error}</p>
-          <Button onClick={() => navigate('/')}>Back to Home</Button>
+          <Button onClick={() => navigate('/quiz')}>Back to Quiz</Button>
         </div>
       </div>
     )
@@ -79,8 +79,8 @@ export function ResultsPage() {
 
         <div className="mt-6 flex gap-3">
           <Button onClick={() => navigate('/')}>Back to Home</Button>
-          <Button variant="secondary" onClick={() => navigate(`/quiz/lobby/${sessionId}`)}>
-            Play Again
+          <Button variant="secondary" onClick={() => navigate('/quiz')}>
+            Create or join another room
           </Button>
         </div>
       </div>

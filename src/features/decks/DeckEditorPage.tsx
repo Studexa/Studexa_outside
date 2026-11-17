@@ -11,6 +11,8 @@ import { Spinner } from '../../components/Spinner'
 import { celebrate } from '../../lib/confetti'
 import { aiApi, cardsApi, type AiCardItem, type CardInput, type CardType } from '../../lib/api'
 import { studyKeys, useDeck, useDeckCards } from '../../lib/study'
+import { isGuestMode } from '../../lib/auth'
+import { useApp } from '../../lib/store'
 
 type EditorType = 'basic' | 'reverse' | 'cloze' | 'choice'
 
@@ -36,6 +38,7 @@ export function DeckEditorPage() {
   const cardsQuery = useDeckCards(deckId)
   const deck = deckQuery.data
   const cards = cardsQuery.data ?? []
+  const guestMode = isGuestMode()
 
   const [front, setFront] = useState('')
   const [back, setBack] = useState('')
@@ -65,7 +68,13 @@ export function DeckEditorPage() {
   }
 
   const createCard = useMutation({
-    mutationFn: (input: CardInput) => cardsApi.create(deckId as string, input),
+    mutationFn: (input: CardInput) => {
+      if (guestMode) {
+        useApp.getState().addCard(deckId as string, input.front, input.back, toEditorType[input.type])
+        return Promise.resolve(null)
+      }
+      return cardsApi.create(deckId as string, input)
+    },
     onSuccess: () => {
       refresh()
       setFront('')
@@ -77,12 +86,25 @@ export function DeckEditorPage() {
   })
 
   const removeCard = useMutation({
-    mutationFn: (id: string) => cardsApi.remove(id),
+    mutationFn: (id: string) => {
+      if (guestMode) {
+        useApp.getState().deleteCard(deckId as string, id)
+        return Promise.resolve()
+      }
+      return cardsApi.remove(id)
+    },
     onSuccess: refresh,
   })
 
   const bulkCreate = useMutation({
-    mutationFn: (items: CardInput[]) => cardsApi.bulk(deckId as string, items),
+    mutationFn: async (items: CardInput[]) => {
+      if (guestMode) {
+        items.forEach((item) => useApp.getState().addCard(deckId as string, item.front, item.back, toEditorType[item.type]))
+        return items
+      }
+      await cardsApi.bulk(deckId as string, items)
+      return items
+    },
     onSuccess: (saved) => {
       refresh()
       setBulkOpen(false)
@@ -108,9 +130,14 @@ export function DeckEditorPage() {
   })
 
   const addGenerated = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       const selected = aiItems.filter((_, index) => aiPicked.includes(index))
-      return cardsApi.bulk(deckId as string, selected.map(aiItemToInput))
+      if (guestMode) {
+        selected.forEach((item) => useApp.getState().addCard(deckId as string, item.front, item.back, toEditorType[item.type]))
+        return selected
+      }
+      await cardsApi.bulk(deckId as string, selected.map(aiItemToInput))
+      return selected
     },
     onSuccess: (saved) => {
       refresh()

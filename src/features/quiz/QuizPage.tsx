@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -74,6 +74,7 @@ export function QuizPage() {
   const [selected, setSelected] = useState<string | null>(null)
   const [correct, setCorrect] = useState(0)
   const [finished, setFinished] = useState(false)
+  const resultRecorded = useRef(false)
 
   const effectiveDeckId = selectedDeckId || decks[0]?.id || ''
   const selectedDeck = decks.find((deck) => deck.id === effectiveDeckId)
@@ -113,6 +114,7 @@ export function QuizPage() {
       setSelected(null)
       setCorrect(0)
       setFinished(false)
+      resultRecorded.current = false
       setSetupError(null)
     },
   })
@@ -132,6 +134,7 @@ export function QuizPage() {
     setSelected(null)
     setCorrect(0)
     setFinished(false)
+    resultRecorded.current = false
     setSetupError(null)
   }
 
@@ -145,6 +148,7 @@ export function QuizPage() {
     setSelected(null)
     setCorrect(0)
     setFinished(false)
+    resultRecorded.current = false
     setSetupError(null)
   }
 
@@ -158,6 +162,8 @@ export function QuizPage() {
 
   const next = () => {
     if (index + 1 >= total) {
+      if (resultRecorded.current) return
+      resultRecorded.current = true
       const score = correct
       recordQuiz(score, total)
       setFinished(true)

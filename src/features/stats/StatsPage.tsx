@@ -5,7 +5,10 @@ import { useTranslation } from 'react-i18next'
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Icon, type IconName } from '../../components/Icon'
 import { Badge } from '../../components/Badge'
-import { decksApi, gameApi, reviewApi } from '../../lib/api'
+import { gameApi, reviewApi } from '../../lib/api'
+import { isGuestMode } from '../../lib/auth'
+import { useApp } from '../../lib/store'
+import { useDecks, useGameState } from '../../lib/study'
 
 const DEFAULT_COLORS = [
   '#6366f1',
@@ -28,27 +31,37 @@ function heatLevel(count: number) {
 
 export function StatsPage() {
   const { t } = useTranslation()
+  const guestMode = isGuestMode()
+  const localDecks = useApp((s) => s.decks)
+  const localStreak = useApp((s) => s.streak)
+  const localBestStreak = useApp((s) => s.bestStreak)
+  const localFocus = useApp((s) => s.focusSessions)
 
-  const gameQuery = useQuery({
-    queryKey: ['game', 'state'],
-    queryFn: gameApi.state,
-  })
+  const gameQuery = useGameState(!guestMode)
   const xpQuery = useQuery({
     queryKey: ['game', 'xp-history'],
     queryFn: () => gameApi.xpHistory(100),
+    enabled: !guestMode,
   })
-  const decksQuery = useQuery({
-    queryKey: ['decks'],
-    queryFn: decksApi.list,
-  })
+  const decksQuery = useDecks(!guestMode)
   const queueQuery = useQuery({
     queryKey: ['review', 'queue'],
     queryFn: () => reviewApi.queue(null),
+    enabled: !guestMode,
   })
 
   const gameState = gameQuery.data
   const xpEvents = xpQuery.data ?? []
-  const decks = decksQuery.data ?? []
+  const decks = guestMode
+    ? localDecks.map((deck) => ({
+        id: deck.id,
+        title: deck.title,
+        subjectName: deck.subject,
+        color: deck.color,
+        cardCount: deck.cards.length,
+        dueCount: deck.cards.filter((card) => card.due).length,
+      }))
+    : (decksQuery.data ?? [])
   const queueCards = queueQuery.data?.cards ?? []
 
   const isLoading =
@@ -57,8 +70,8 @@ export function StatsPage() {
     gameQuery.error ?? xpQuery.error ?? decksQuery.error ?? queueQuery.error
 
   // ---- derived stats from real backend data ----
-  const streakCurrent = gameState?.streakCurrent ?? 0
-  const streakBest = gameState?.streakBest ?? 0
+  const streakCurrent = guestMode ? localStreak : (gameState?.streakCurrent ?? 0)
+  const streakBest = guestMode ? localBestStreak : (gameState?.streakBest ?? 0)
 
   // study sessions recorded in the last 7 days (window fixed at mount;
   // backend timestamps are ISO-8601 UTC so strings compare chronologically)
@@ -68,7 +81,9 @@ export function StatsPage() {
     weekAgo.setDate(now.getDate() - 7)
     return { start: weekAgo.toISOString(), end: now.toISOString(), nowDate: now }
   })
-  const sessionsThisWeek = xpEvents.filter(
+  const sessionsThisWeek = guestMode
+    ? localFocus.filter((session) => session.completedAt >= weekWindow.start && session.completedAt <= weekWindow.end).length
+    : xpEvents.filter(
     (e) => e.createdAt >= weekWindow.start && e.createdAt <= weekWindow.end,
   ).length
 
@@ -145,7 +160,9 @@ export function StatsPage() {
     .slice(0, 6)
 
   // ---- weak cards from real review queue (cards with lapses) ----
-  const weakCards = queueCards
+  const weakCards = (guestMode
+    ? localDecks.flatMap((deck) => deck.cards.filter((card) => card.lapses > 0).map((card) => ({ ...card, deckTitle: deck.title, deckSubject: deck.subject, deck: deck.title })))
+    : queueCards)
     .filter((c) => (c.lapses ?? 0) > 0)
     .sort((a, b) => (b.lapses ?? 0) - (a.lapses ?? 0))
     .slice(0, 5)

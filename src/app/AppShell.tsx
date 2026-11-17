@@ -12,6 +12,8 @@ import { playSound } from '../lib/sound'
 import { useOnline, useSettings } from '../lib/useSettings'
 import { updateSettings } from '../lib/settings'
 import { levelTitleKey, useApp, xpForNext } from '../lib/store'
+import { useGameState } from '../lib/study'
+import { isGuestMode } from '../lib/auth'
 
 type NavItem = { to: string; label: string; icon: IconName }
 
@@ -47,17 +49,21 @@ function Logo() {
 export function AppShell() {
   const { t } = useTranslation()
   const location = useLocation()
+  const guestMode = isGuestMode()
+  const gameQuery = useGameState(!guestMode)
+  const gameState = gameQuery.data
   const onboarded = useApp((s) => s.onboarded)
   const nickname = useApp((s) => s.nickname)
   const buddy = useApp((s) => s.buddy)
-  const streak = useApp((s) => s.streak)
-  const bestStreak = useApp((s) => s.bestStreak)
-  const coins = useApp((s) => s.coins)
-  const level = useApp((s) => s.level)
-  const xp = useApp((s) => s.xp)
+  const localStreak = useApp((s) => s.streak)
+  const localBestStreak = useApp((s) => s.bestStreak)
+  const localCoins = useApp((s) => s.coins)
+  const localLevel = useApp((s) => s.level)
+  const localXp = useApp((s) => s.xp)
   const cardsToday = useApp((s) => s.cardsToday)
   const dailyGoal = useApp((s) => s.dailyGoal)
   const owned = useApp((s) => s.owned)
+  const level = guestMode ? localLevel : (gameState?.level ?? 1)
   const settings = useSettings()
   const online = useOnline()
   const [summary, setSummary] = useState<'streak' | 'level' | 'coins' | null>(null)
@@ -96,7 +102,13 @@ export function AppShell() {
     )
   }
 
-  const freezeCount = owned.filter((id) => id === 'freeze').length
+  const streak = guestMode ? localStreak : (gameState?.streakCurrent ?? 0)
+  const bestStreak = guestMode ? localBestStreak : (gameState?.streakBest ?? 0)
+  const coins = guestMode ? localCoins : (gameState?.coins ?? 0)
+  const xp = guestMode ? localXp : (gameState?.xpInLevel ?? 0)
+  const freezeCount = guestMode
+    ? owned.filter((id) => id === 'freeze').length
+    : (gameState?.streakFreezes ?? 0)
 
   return (
     <div className="min-h-dvh text-[var(--color-text)]">

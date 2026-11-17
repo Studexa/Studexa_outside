@@ -1,42 +1,10 @@
-import { lazy, Suspense, type ReactNode } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
-import { AppShell } from './AppShell'
-import { RequireAuth } from './RequireAuth'
-import { ErrorBoundary } from '../components/ErrorBoundary'
-import { PageSkeleton } from '../components/Skeleton'
-import { HomePage } from '../features/home/HomePage'
-import { LandingPage } from '../features/quiz/LandingPage'
-import { CreateRoomPage } from '../features/quiz/CreateRoomPage'
-import { JoinRoomPage } from '../features/quiz/JoinRoomPage'
-import { LobbyPage } from '../features/quiz/LobbyPage'
-import { PlayPage } from '../features/quiz/PlayPage'
-import { ResultsPage } from '../features/quiz/ResultsPage'
-
-const AuthPage = lazy(() => import('../features/auth/AuthPage').then((m) => ({ default: m.AuthPage })))
-const AuthCallbackPage = lazy(() => import('../features/auth/AuthCallbackPage').then((m) => ({ default: m.AuthCallbackPage })))
-const SubjectsPage = lazy(() => import('../features/subjects/SubjectsPage').then((m) => ({ default: m.SubjectsPage })))
-const OnboardingPage = lazy(() => import('../features/onboarding/OnboardingPage').then((m) => ({ default: m.OnboardingPage })))
-const StudyPage = lazy(() => import('../features/study/StudyPage').then((m) => ({ default: m.StudyPage })))
-const ReviewPage = lazy(() => import('../features/review/ReviewPage').then((m) => ({ default: m.ReviewPage })))
-const BossPage = lazy(() => import('../features/boss/BossPage').then((m) => ({ default: m.BossPage })))
-const TimerPage = lazy(() => import('../features/timer/TimerPage').then((m) => ({ default: m.TimerPage })))
-const QuizPage = lazy(() => import('../features/quiz/QuizPage').then((m) => ({ default: m.QuizPage })))
-const MinigamesPage = lazy(() => import('../features/minigames/MinigamesPage').then((m) => ({ default: m.MinigamesPage })))
-const DecksPage = lazy(() => import('../features/decks/DecksPage').then((m) => ({ default: m.DecksPage })))
-const DeckEditorPage = lazy(() => import('../features/decks/DeckEditorPage').then((m) => ({ default: m.DeckEditorPage })))
-const NotesPage = lazy(() => import('../features/notes/NotesPage').then((m) => ({ default: m.NotesPage })))
-const NoteEditorPage = lazy(() => import('../features/notes/NoteEditorPage').then((m) => ({ default: m.NoteEditorPage })))
-const PlanPage = lazy(() => import('../features/planner/PlanPage').then((m) => ({ default: m.PlanPage })))
-const StatsPage = lazy(() => import('../features/stats/StatsPage').then((m) => ({ default: m.StatsPage })))
-const ProfilePage = lazy(() => import('../features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })))
-const ExplorePage = lazy(() => import('../features/explore/ExplorePage').then((m) => ({ default: m.ExplorePage })))
-const SettingsPage = lazy(() => import('../features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
-const DesignPage = lazy(() => import('../features/design/DesignPage').then((m) => ({ default: m.DesignPage })))
-const StudexaHeroDemoPage = lazy(() => import('../features/demo/StudexaHeroDemoPage').then((m) => ({ default: m.StudexaHeroDemoPage })))
-
-function LazyRoute({ children }: { children: ReactNode }) {
-  return <Suspense fallback={<PageSkeleton />}>{children}</Suspense>
-}
+import {
+  AppShell, AuthCallbackPage, AuthPage, BossPage, CreateRoomPage, DeckEditorPage, DecksPage, DesignPage,
+  ErrorBoundary, ExplorePage, HomePage, JoinRoomPage, LandingPage, LazyRoute, LobbyPage, MinigamesPage,
+  NoteEditorPage, NotesPage, OnboardingPage, PlanPage, PlayPage, ProfilePage, QuizPage, RequireAuth,
+  ResultsPage, ReviewPage, SettingsPage, StatsPage, StudexaHeroDemoPage, StudyPage, SubjectsPage, TimerPage,
+} from './routeComponents'
 
 export const router = createBrowserRouter([
   {
@@ -85,23 +53,23 @@ export const router = createBrowserRouter([
   },
   {
     path: '/quiz/create',
-    element: <CreateRoomPage />,
+    element: <RequireAuth><CreateRoomPage /></RequireAuth>,
   },
   {
     path: '/quiz/join',
-    element: <JoinRoomPage />,
+    element: <RequireAuth><JoinRoomPage /></RequireAuth>,
   },
   {
     path: '/quiz/lobby/:code',
-    element: <LobbyPage />,
+    element: <RequireAuth><LobbyPage /></RequireAuth>,
   },
   {
     path: '/quiz/play/:sessionId',
-    element: <PlayPage />,
+    element: <RequireAuth><PlayPage /></RequireAuth>,
   },
   {
     path: '/quiz/results/:sessionId',
-    element: <ResultsPage />,
+    element: <RequireAuth><ResultsPage /></RequireAuth>,
   },
   {
     path: '/onboarding',

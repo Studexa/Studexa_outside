@@ -8,8 +8,45 @@ import {
   type DueCard,
   type StudyCard,
 } from './api'
-import { useAuth } from './auth'
+import { isGuestMode, useAuth } from './auth'
 import { cacheDueCards, getCachedDueCards } from './offlineDb'
+import { useApp, type Deck as LocalDeck } from './store'
+
+function toDeckSummary(deck: LocalDeck): DeckSummary {
+  return {
+    id: deck.id,
+    subjectId: null,
+    subjectName: deck.subject,
+    title: deck.title,
+    description: null,
+    color: deck.color,
+    icon: deck.icon,
+    cardCount: deck.cards.length,
+    dueCount: deck.cards.filter((card) => card.due).length,
+    createdAt: new Date(0).toISOString(),
+    updatedAt: new Date(0).toISOString(),
+  }
+}
+
+function toStudyCard(deckId: string, card: LocalDeck['cards'][number]): StudyCard {
+  return {
+    id: card.id,
+    deckId,
+    type: card.type === 'choice' ? 'MULTIPLE_CHOICE' : card.type === 'reverse' ? 'REVERSED' : card.type.toUpperCase() as StudyCard['type'],
+    front: card.front,
+    back: card.back,
+    extra: {},
+    tags: [],
+    mediaUrl: null,
+    starred: false,
+    suspended: false,
+    sourceTitle: null,
+    sourceExcerpt: null,
+    due: card.due,
+    createdAt: new Date(0).toISOString(),
+    updatedAt: new Date(0).toISOString(),
+  }
+}
 
 export const studyKeys = {
   decks: (userId?: string) => ['decks', userId ?? 'current'] as const,
@@ -27,16 +64,26 @@ export const studyKeys = {
   pet: (userId?: string) => ['pet', userId ?? 'current'] as const,
 }
 
-export function useDecks() {
+export function useDecks(enabled = true) {
   const user = useAuth((s) => s.user)
-  return useQuery({ queryKey: studyKeys.decks(user?.id), queryFn: decksApi.list })
+  return useQuery({
+    queryKey: studyKeys.decks(user?.id),
+    queryFn: () => isGuestMode() ? useApp.getState().decks.map(toDeckSummary) : decksApi.list(),
+    enabled,
+  })
 }
 
 export function useDeck(id: string | undefined) {
   const user = useAuth((s) => s.user)
   return useQuery({
     queryKey: studyKeys.deck(id ?? '', user?.id),
-    queryFn: () => decksApi.get(id as string),
+    queryFn: () => {
+      if (isGuestMode()) {
+        const local = useApp.getState().decks.find((deck) => deck.id === id)
+        if (local) return Promise.resolve(toDeckSummary(local))
+      }
+      return decksApi.get(id as string)
+    },
     enabled: Boolean(id),
   })
 }
@@ -45,7 +92,13 @@ export function useDeckCards(deckId: string | undefined, enabled = true) {
   const user = useAuth((s) => s.user)
   return useQuery({
     queryKey: studyKeys.cards(deckId ?? '', user?.id),
-    queryFn: () => cardsApi.list(deckId as string),
+    queryFn: () => {
+      if (isGuestMode()) {
+        const local = useApp.getState().decks.find((deck) => deck.id === deckId)
+        return Promise.resolve(local?.cards.map((card) => toStudyCard(deckId as string, card)) ?? [])
+      }
+      return cardsApi.list(deckId as string)
+    },
     enabled: Boolean(deckId) && enabled,
   })
 }
@@ -55,6 +108,25 @@ export function useDueCards(enabled = true) {
   return useQuery({
     queryKey: studyKeys.due(user?.id),
     queryFn: async () => {
+      if (isGuestMode()) {
+        return useApp.getState().decks.flatMap((deck) => deck.cards
+          .filter((card) => card.due)
+          .map((card): DueCard => ({
+            id: card.id,
+            deckId: deck.id,
+            deckTitle: deck.title,
+            deckColor: deck.color,
+            deckIcon: deck.icon,
+            deckSubject: deck.subject,
+            type: card.type === 'choice' ? 'MULTIPLE_CHOICE' : card.type === 'reverse' ? 'REVERSED' : card.type.toUpperCase() as DueCard['type'],
+            front: card.front,
+            back: card.back,
+            extra: {},
+            tags: [],
+            sourceTitle: null,
+            sourceExcerpt: null,
+          })))
+      }
       try {
         const cards = await cardsApi.due(50)
         if (user?.id) {
@@ -76,21 +148,23 @@ export function useDueCards(enabled = true) {
   })
 }
 
-export function useGameState() {
+export function useGameState(enabled = true) {
   const user = useAuth((s) => s.user)
   return useQuery({
     queryKey: studyKeys.gameState(user?.id),
     queryFn: gameApi.state,
     staleTime: 1000 * 60,
+    enabled,
   })
 }
 
-export function useTodayQuests() {
+export function useTodayQuests(enabled = true) {
   const user = useAuth((s) => s.user)
   return useQuery({
     queryKey: studyKeys.questsToday(user?.id),
     queryFn: questApi.today,
     staleTime: 1000 * 60,
+    enabled,
   })
 }
 

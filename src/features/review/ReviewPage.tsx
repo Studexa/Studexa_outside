@@ -14,7 +14,7 @@ import { type CardType, type DueCard, type ReviewRating } from '../../lib/api'
 import { questApi, reviewApi, type ReviewAnswerResponse } from '../../lib/api'
 import { studyKeys, useDueCards } from '../../lib/study'
 import { useApp } from '../../lib/store'
-import { useAuth } from '../../lib/auth'
+import { isGuestMode, useAuth } from '../../lib/auth'
 import { useSettings } from '../../lib/useSettings'
 import { queuePendingAnswer, getPendingAnswers, removePendingAnswer } from '../../lib/offlineDb'
 
@@ -118,8 +118,11 @@ export function ReviewPage() {
   }, [userId])
 
   const review = useMutation({
-    mutationFn: async ({ id, rating, msTaken }: { id: string; rating: ReviewRating; msTaken: number }) => {
-      const clientReviewId = crypto.randomUUID()
+    mutationFn: async ({ id, rating, msTaken, clientReviewId }: { id: string; rating: ReviewRating; msTaken: number; clientReviewId: string }) => {
+      if (isGuestMode()) {
+        useApp.getState().reviewGuestCard(id, rating === 'AGAIN')
+        return { xpEarned: 0, leveledUp: false, newLevel: 1 } as ReviewAnswerResponse
+      }
       try {
         return await reviewApi.answer({ cardId: id, rating, msTaken, clientReviewId })
       } catch {
@@ -132,7 +135,7 @@ export function ReviewPage() {
         return { xpEarned: 0, leveledUp: false, newLevel: 1 } as ReviewAnswerResponse
       }
     },
-    onSuccess: async (response: ReviewAnswerResponse) => {
+    onSuccess: async (response: ReviewAnswerResponse, variables) => {
       setServerXp(response.xpEarned)
       setLeveledUp(response.leveledUp)
       setNewLevel(response.newLevel)
@@ -140,7 +143,9 @@ export function ReviewPage() {
       void queryClient.invalidateQueries({ queryKey: studyKeys.decks() })
 
       // Report quest progress: warmup counts reviewed cards toward daily quest
-      void questApi.progress({ code: 'warmup', source: 'review_card', referenceId: undefined })
+      if (!isGuestMode() && navigator.onLine && userId) {
+        void questApi.progress({ code: 'warmup', source: 'review_card', referenceId: variables.clientReviewId }).catch(() => undefined)
+      }
     },
     onError: () => {
       setRatings((prev) => prev.slice(0, -1))
@@ -184,6 +189,7 @@ export function ReviewPage() {
       id: current.id,
       rating: rating.toUpperCase() as ReviewRating,
       msTaken: 0,
+      clientReviewId: crypto.randomUUID(),
     })
 
     if (isCorrect) {

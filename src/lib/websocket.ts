@@ -1,8 +1,10 @@
 import { Client } from '@stomp/stompjs'
 import type { IMessage } from '@stomp/stompjs'
-import { getAccessToken } from './api/client'
+import { getAccessToken, refreshAccessToken } from './api/client'
 
 let stompClient: Client | null = null
+let activeRoom = ''
+let roomSubscription: { unsubscribe: () => void } | null = null
 
 type MessageHandler = (destination: string, body: any) => void
 
@@ -21,35 +23,86 @@ function brokerUrl(): string {
   return `${proto}//${window.location.host}/quiz`
 }
 
+function tokenNeedsRefresh(token: string): boolean {
+  try {
+    const encoded = token.split('.')[1]
+    if (!encoded) return true
+    const base64 = encoded.replace(/-/g, '+').replace(/_/g, '/')
+    const payload = JSON.parse(atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '='))) as { exp?: number }
+    return typeof payload.exp !== 'number' || payload.exp * 1000 < Date.now() + 60_000
+  } catch {
+    return true
+  }
+}
+
 export function connectWebSocket(
-  _onMessage: MessageHandler,
+  roomCode: string,
+  onMessage: MessageHandler,
   onConnect?: () => void,
   onDisconnect?: () => void,
 ) {
-  if (stompClient?.connected) {
+  const destination = `/topic/room/${roomCode}`
+  if (stompClient?.connected && activeRoom === roomCode) {
+    roomSubscription?.unsubscribe()
+    roomSubscription = stompClient.subscribe(destination, (message: IMessage) => {
+      try {
+        onMessage(destination, JSON.parse(message.body))
+      } catch {
+        onMessage(destination, message.body)
+      }
+    })
     onConnect?.()
     return stompClient
   }
 
-  const token = getAccessToken()
+  if (stompClient) {
+    roomSubscription?.unsubscribe()
+    void stompClient.deactivate()
+    stompClient = null
+  }
+
   const client = new Client({
     brokerURL: brokerUrl(),
-    connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
+    connectHeaders: {},
+    beforeConnect: async () => {
+      // Reconnects may happen after the short-lived access token expires.
+      const currentToken = getAccessToken()
+      const token = currentToken && !tokenNeedsRefresh(currentToken)
+        ? currentToken
+        : (await refreshAccessToken()) ?? currentToken
+      client.connectHeaders = token ? { Authorization: `Bearer ${token}` } : {}
+    },
     reconnectDelay: 4000,
     debug: (msg) => console.log('[STOMP]', msg),
     onConnect: () => {
       stompClient = client
+      activeRoom = roomCode
+      roomSubscription = client.subscribe(destination, (message: IMessage) => {
+        try {
+          onMessage(destination, JSON.parse(message.body))
+        } catch {
+          onMessage(destination, message.body)
+        }
+      })
       onConnect?.()
     },
     onDisconnect: () => {
-      stompClient = null
+      if (stompClient === client) {
+        roomSubscription = null
+        activeRoom = ''
+        stompClient = null
+      }
       onDisconnect?.()
     },
+    onWebSocketClose: () => onDisconnect?.(),
     onStompError: (frame) => {
       console.error('[STOMP ERROR]', frame)
     },
   })
 
+  // Store it before activation so React StrictMode cleanup can also cancel a
+  // connection that has not completed its handshake yet.
+  stompClient = client
   client.activate()
   return client
 }
@@ -73,7 +126,10 @@ export function subscribeMessage(
 
 export function disconnectWebSocket() {
   if (stompClient) {
-    stompClient.deactivate()
+    roomSubscription?.unsubscribe()
+    roomSubscription = null
+    activeRoom = ''
+    void stompClient.deactivate()
     stompClient = null
   }
 }

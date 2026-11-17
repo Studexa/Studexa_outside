@@ -20,13 +20,10 @@ export function LobbyPage() {
   const [questionCount, setQuestionCount] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const isHost = Boolean(session && user?.id && session.hostId === user.id)
 
   useEffect(() => {
-    if (!roomCode) {
-      setError('Missing room code')
-      setLoading(false)
-      return
-    }
+    if (!roomCode) return
 
     let cancelled = false
     const loadRoom = async () => {
@@ -39,6 +36,10 @@ export function LobbyPage() {
         const mine = room.players.find((p) => p.userId && p.userId === user?.id)
         if (mine) {
           setPlayerId(mine.id)
+          if (room.session.status === 'ACTIVE') {
+            navigate(`/quiz/play/${room.session.id}?playerId=${encodeURIComponent(mine.id)}&roomCode=${encodeURIComponent(roomCode)}`, { replace: true })
+            return
+          }
         }
 
         try {
@@ -58,17 +59,44 @@ export function LobbyPage() {
     return () => {
       cancelled = true
     }
-  }, [roomCode, user?.id])
+  }, [roomCode, user?.id, navigate])
+
+  useEffect(() => {
+    if (!roomCode || !playerId || session?.status === 'ACTIVE') return
+    let cancelled = false
+    const refresh = async () => {
+      try {
+        const room = await sessionApi.getRoom(roomCode)
+        if (cancelled) return
+        setSession(room.session)
+        setPlayers(room.players)
+        if (room.session.status === 'ACTIVE') {
+          navigate(`/quiz/play/${room.session.id}?playerId=${encodeURIComponent(playerId)}&roomCode=${encodeURIComponent(roomCode)}`, { replace: true })
+        }
+      } catch {
+        // Keep the lobby usable during brief network interruptions.
+      }
+    }
+    const timer = window.setInterval(() => void refresh(), 2000)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [roomCode, playerId, session?.status, navigate])
 
   const handleStart = async () => {
-    if (questionCount === 0) {
+    if (questionCount === null) {
+      setError('Could not load the quiz questions. Refresh the lobby and try again.')
+      return
+    }
+    if (questionCount <= 0) {
       setError('This quiz has no questions yet. Add questions before starting.')
       return
     }
     try {
       await sessionApi.startSession(session.id)
-      const query = playerId ? `?playerId=${encodeURIComponent(playerId)}` : ''
-      navigate(`/quiz/play/${session.id}${query}`)
+      const query = new URLSearchParams({ playerId: playerId ?? '', roomCode })
+      navigate(`/quiz/play/${session.id}?${query.toString()}`)
     } catch (err: any) {
       setError(err.message || 'Failed to start session')
     }
@@ -93,6 +121,10 @@ export function LobbyPage() {
     } catch (err: any) {
       setError(err.message || 'Failed to join room')
     }
+  }
+
+  if (!roomCode) {
+    return <div className="flex min-h-screen items-center justify-center p-6">Missing room code.</div>
   }
 
   if (loading) {
@@ -160,13 +192,14 @@ export function LobbyPage() {
               </p>
             )}
 
-            <Button
-              className="w-full"
-              onClick={handleStart}
-              disabled={players.length === 0 || questionCount === 0}
-            >
-              Start Quiz
-            </Button>
+            {isHost ? (
+              <Button className="w-full" onClick={handleStart}
+                disabled={players.length === 0 || questionCount === null || questionCount <= 0 || !session}>
+                Start Quiz
+              </Button>
+            ) : playerId ? (
+              <p className="text-center text-sm text-[var(--text-muted)]">Waiting for the host to start…</p>
+            ) : null}
           </div>
         </div>
 

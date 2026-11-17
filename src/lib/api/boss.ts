@@ -1,3 +1,5 @@
+import { getAccessToken, refreshAccessToken } from './client'
+
 const API_BASE = '/api/v1'
 
 type RequestInitWithJson = Omit<RequestInit, 'body'> & { body?: unknown }
@@ -34,26 +36,24 @@ async function request<T>(path: string, init: RequestInitWithJson = {}): Promise
       body: init.body === undefined ? undefined : JSON.stringify(init.body),
     })
 
-  let accessToken: string | null = null
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { getAccessToken } = require('./client')
-    accessToken = getAccessToken()
-  } catch {}
+  let accessToken: string | null = getAccessToken()
 
   let res = await send(accessToken)
 
   if (res.status === 401) {
-    try {
-      const { refreshAccessToken } = require('./client')
-      const token = await refreshAccessToken()
-      if (token) res = await send(token)
-    } catch {}
+    const token = await refreshAccessToken()
+    if (token) res = await send(token)
   }
 
   if (!res.ok) {
-    const err = (await res.json().catch(() => ({}))) as { detail?: string; message?: string }
-    throw new Error(err.detail || err.message || `Request failed: ${res.status}`)
+    const err = (await res.json().catch(() => ({}))) as {
+      code?: string
+      detail?: string
+      message?: string
+      title?: string
+    }
+    const code = err.code ? `[${err.code}] ` : ''
+    throw new Error(`${code}${err.detail || err.message || err.title || `Request failed: ${res.status}`}`)
   }
 
   if (res.status === 204) return undefined as T

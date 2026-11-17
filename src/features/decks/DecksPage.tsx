@@ -9,6 +9,8 @@ import { Icon } from '../../components/Icon'
 import { Modal } from '../../components/Modal'
 import { decksApi, subjectsApi } from '../../lib/api'
 import { studyKeys, useDecks } from '../../lib/study'
+import { isGuestMode } from '../../lib/auth'
+import { useApp } from '../../lib/store'
 
 const colors = ['#6366f1', '#f59e0b', '#10b981', '#f87171', '#3b82f6', '#ec4899', '#8b5cf6', '#14b8a6']
 const icons = ['📚', '∑', 'ក', '🧬', 'Aa', '⚛', '📖', '🌏', '🎨']
@@ -17,10 +19,12 @@ export function DecksPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const guestMode = isGuestMode()
   const decksQuery = useDecks()
   const subjectsQuery = useQuery({
     queryKey: ['subjects', 'active'],
     queryFn: () => subjectsApi.list(false),
+    enabled: !guestMode,
   })
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState('')
@@ -30,13 +34,9 @@ export function DecksPage() {
   const [query, setQuery] = useState('')
 
   const createDeck = useMutation({
-    mutationFn: () =>
-      decksApi.create({
-        title: title.trim(),
-        subjectId: subjectId || null,
-        color,
-        icon,
-      }),
+    mutationFn: () => guestMode
+      ? Promise.resolve({ id: useApp.getState().addDeck({ title: title.trim(), subject: '', icon, color }) })
+      : decksApi.create({ title: title.trim(), subjectId: subjectId || null, color, icon }),
     onSuccess: (deck) => {
       void queryClient.invalidateQueries({ queryKey: studyKeys.decks() })
       setOpen(false)
@@ -53,6 +53,10 @@ export function DecksPage() {
 
   const create = () => {
     if (!title.trim()) return
+    if (guestMode) {
+      createDeck.mutate()
+      return
+    }
     createDeck.mutate()
   }
 

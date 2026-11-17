@@ -11,6 +11,7 @@ import { ProgressBar } from '../../components/ProgressBar'
 import { celebrate } from '../../lib/confetti'
 import {
   SHOP_ITEMS,
+  BADGES,
   buddyStageKey,
   levelTitleKey,
   useApp,
@@ -77,11 +78,17 @@ export function ProfilePage() {
   const setNickname = useApp((s) => s.setNickname)
   const mockOwned = useApp((s) => s.owned)
   const mockEquipped = useApp((s) => s.equipped)
+  const guestLevel = useApp((s) => s.level)
+  const guestXp = useApp((s) => s.xp)
+  const guestCoins = useApp((s) => s.coins)
+  const guestStreak = useApp((s) => s.streak)
+  const guestBestStreak = useApp((s) => s.bestStreak)
+  const guestBadges = useApp((s) => s.badges)
   const buyItem = useApp((s) => s.buyItem)
   const equipItem = useApp((s) => s.equipItem)
 
   const user = useAuth((s) => s.user)
-  const gameQuery = useGameState()
+  const gameQuery = useGameState(!isGuestMode())
   const queryClient = useQueryClient()
   const isGuest = isGuestMode()
 
@@ -89,6 +96,7 @@ export function ProfilePage() {
     queryKey: studyKeys.gameBadges(user?.id),
     queryFn: gameApi.badges,
     staleTime: 1000 * 60,
+    enabled: !isGuestMode(),
   })
 
   // Registered users buy from the server-validated shop; guests keep the
@@ -112,11 +120,11 @@ export function ProfilePage() {
   })
 
   const state = gameQuery.data
-  const level = state?.level ?? 1
-  const xp = state?.xpTotal ?? 0
-  const coins = state?.coins ?? 0
-  const streak = state?.streakCurrent ?? 0
-  const bestStreak = state?.streakBest ?? 0
+  const level = isGuest ? guestLevel : (state?.level ?? 1)
+  const xp = isGuest ? guestXp : (state?.xpTotal ?? 0)
+  const coins = isGuest ? guestCoins : (state?.coins ?? 0)
+  const streak = isGuest ? guestStreak : (state?.streakCurrent ?? 0)
+  const bestStreak = isGuest ? guestBestStreak : (state?.streakBest ?? 0)
 
   const shopItems: UiShopItem[] = isGuest
     ? SHOP_ITEMS
@@ -124,6 +132,9 @@ export function ProfilePage() {
   const owned: string[] = isGuest
     ? mockOwned
     : (shopOwnedQuery.data ?? []).map((o) => SERVER_ITEM_ID_TO_UI[o.shopItemId] ?? o.shopItemId)
+  const isOwnedItem = (itemId: string) => itemId === 'freeze'
+    ? (isGuest ? owned.filter((id) => id === 'freeze').length >= 2 : (state?.streakFreezes ?? 0) >= 2)
+    : owned.includes(itemId)
   const equipped: string | null = isGuest
     ? mockEquipped
     : (petQuery.data?.equippedAccessory ?? null)
@@ -155,7 +166,15 @@ export function ProfilePage() {
     },
   })
 
-  const badgeDtos = badgesQuery.data ?? []
+  const badgeDtos = isGuest
+    ? Object.entries(guestBadges).map(([code, earned]) => ({
+        code,
+        earned,
+        descriptionEn: code,
+        nameEn: code,
+        coinsReward: BADGES.find((badge) => badge.code === code)?.coins ?? 0,
+      }))
+    : (badgesQuery.data ?? [])
   const earnedBadges = badgeDtos.filter((b) => b.earned).map((b) => b.code)
   const ownedCount = earnedBadges.length
 
@@ -309,7 +328,7 @@ export function ProfilePage() {
           <p className="text-xs font-semibold text-[var(--color-muted)]">{t('profile.shopHint')}</p>
           <div className="mt-3 grid grid-cols-2 gap-2">
             {shopItems.map((item) => {
-              const isOwned = owned.includes(item.id)
+              const isOwned = isOwnedItem(item.id)
               const isEquipped = item.accessory && equipped === item.accessory
               return (
                 <button
@@ -378,7 +397,7 @@ export function ProfilePage() {
               <Icon name="coin" size={14} /> {preview.price}
             </p>
             <div className="mt-4 space-y-2">
-              {owned.includes(preview.id) ? (
+              {isOwnedItem(preview.id) ? (
                 preview.accessory ? (
                   <Button
                     full

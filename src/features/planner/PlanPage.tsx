@@ -1,15 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
 import { Button } from '../../components/Button'
 import { Icon } from '../../components/Icon'
 import { Modal } from '../../components/Modal'
 import { Badge } from '../../components/Badge'
 import { ProgressBar } from '../../components/ProgressBar'
 import { daysUntil, todayISO, useApp, type Importance } from '../../lib/store'
-import { useAuth } from '../../lib/auth'
-import { cardsApi, gameApi, examsApi, tasksApi } from '../../lib/api'
+import { isGuestMode, useAuth } from '../../lib/auth'
+import { useDueCards, useGameState } from '../../lib/study'
 
 function dateKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
@@ -33,14 +32,8 @@ export function PlanPage() {
   const loadTasks = useApp((s) => s.loadTasks)
   const dailyGoal = useApp((s) => s.dailyGoal)
 
-  const cardsDueQuery = useQuery({
-    queryKey: ['cards', 'due'],
-    queryFn: () => cardsApi.due(50),
-  })
-  const gameQuery = useQuery({
-    queryKey: ['game', 'state'],
-    queryFn: gameApi.state,
-  })
+  const cardsDueQuery = useDueCards()
+  const gameQuery = useGameState(!isGuestMode())
 
   const cardsDue = cardsDueQuery.data ?? []
   const gameState = gameQuery.data

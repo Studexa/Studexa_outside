@@ -185,20 +185,37 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
 .skip-link { position: fixed; top: -100px; left: 1rem; z-index: 100; padding: 0.75rem 1.25rem; border-radius: 12px; background: var(--color-text); color: var(--color-surface); }
 .skip-link:focus { top: 1rem; }
 .app-dialog {
+  --dialog-pad: clamp(.75rem, 4vw, 1.75rem);
+  --dialog-gutter: clamp(.375rem, 2.5vw, 1rem);
   margin: auto;
-  width: min(480px, calc(100% - 2rem));
-  max-height: calc(100dvh - 3rem);
+  width: min(480px, calc(100% - 2 * var(--dialog-gutter)));
+  max-height: calc(100dvh - 2 * var(--dialog-gutter) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
   padding: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block-start: calc(44px + var(--dialog-pad) + .25rem);
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 24px;
   box-shadow: 0 32px 100px rgb(0 0 0 / 25%);
 }
+.app-dialog-header {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  padding: calc(var(--dialog-pad) / 2) var(--dialog-pad);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+.app-dialog-body { padding: var(--dialog-pad); }
 .app-dialog::backdrop { background: rgb(10 10 15 / 48%); backdrop-filter: blur(6px); }
 @media (max-width: 639px) {
-  .app-dialog { margin-block-end: max(1rem, env(safe-area-inset-bottom)); }
+  .app-dialog { margin-block-end: max(var(--dialog-gutter), env(safe-area-inset-bottom, 0px)); }
 }
 
 /* 3D card flip */

@@ -20,7 +20,7 @@ export function BetaTutor() {
   return (
     <>
       <button className="study-header-action" onClick={() => setOpen(true)} aria-label={t('beta.tutor')}>
-        <Icon name="sparkles" size={19} /><span className="hidden sm:inline">{t('beta.tutor')}</span>
+        <Icon name="sparkles" size={19} /><span className="study-header-label">{t('beta.tutor')}</span>
       </button>
       <Modal open={open} title={t('beta.tutor')} onClose={() => setOpen(false)}>
         <div className="space-y-3">

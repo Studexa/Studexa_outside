@@ -86,10 +86,10 @@ function StudyBuddy() {
 
   return <>
     {!open && <button ref={launcherRef} onClick={() => setOpen(true)} aria-label={t('pet.open')} className="study-header-action">
-      <Icon name="sparkles" size={19} /><span className="hidden sm:inline">{t('pet.button')}</span>
+      <Icon name="sparkles" size={19} /><span className="study-header-label">{t('pet.button')}</span>
     </button>}
     {open && <section aria-label={t('pet.title')} onKeyDown={(event) => { if (event.key === 'Escape') close() }}
-      className={`fixed bottom-[72px] right-3 z-50 flex w-[calc(100%-1.5rem)] max-w-[420px] flex-col overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-lift)] md:bottom-6 md:right-6 ${expanded ? 'h-[80dvh]' : 'h-[65dvh]'} max-h-[calc(100dvh-100px)]`}>
+      className={`fixed bottom-[calc(var(--study-nav-inset,0px)+0.75rem)] right-3 z-50 flex w-[calc(100%-1.5rem)] max-w-[420px] flex-col overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-lift)] md:right-6 ${expanded ? 'h-[80dvh]' : 'h-[65dvh]'} max-h-[calc(100dvh-var(--study-nav-inset,0px)-1.5rem)]`}>
       <header className="flex items-center gap-1 border-b border-[var(--color-border)] bg-[var(--color-primary-soft)] p-3">
         <Mascot species={buddy} mood="happy" size={36} />
         <div className="min-w-0 flex-1"><h2 className="text-sm font-black">{t('pet.title')}</h2><p className="text-xs text-[var(--color-muted)]">{t('pet.subtitle')}</p></div>

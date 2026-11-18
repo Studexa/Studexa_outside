@@ -44,6 +44,31 @@ test('the study queue can recover from a failed deck request', async ({ page }) 
   await expect(queue.getByRole('link', { name: 'Create deck' })).toBeVisible()
 })
 
+test('the workspace fits narrow phones and uses compact navigation on tablets', async ({ page }) => {
+  await register(page, 'Responsive learner')
+  await page.evaluate(() => {
+    localStorage.setItem('lang', 'km')
+    localStorage.setItem('studexa_settings', JSON.stringify({ fontSize: 'lg' }))
+  })
+  await page.setViewportSize({ width: 280, height: 640 })
+  await page.goto('/plan')
+  await expect(page.locator('html')).toHaveAttribute('lang', 'km')
+  await expect(page.locator('.study-bottom-bar')).toBeInViewport({ ratio: 1 })
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(280)
+  await page.locator('.mobile-more summary').click()
+  await expect(page.locator('.study-more-menu')).toBeInViewport({ ratio: 1 })
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.mobile-more summary')).toBeFocused()
+
+  await page.setViewportSize({ width: 820, height: 1180 })
+  await page.goto('/')
+  await expect(page.locator('.study-bottom-bar')).toBeHidden()
+  await expect.poll(() => page.locator('.study-sidebar').evaluate((sidebar) => sidebar.clientWidth)).toBeLessThan(100)
+  await expect.poll(() => page.locator('.study-dashboard-grid').evaluate((grid) =>
+    getComputedStyle(grid).gridTemplateColumns.split(' ').length,
+  )).toBe(2)
+})
+
 test('invited students can save study data, use AI samples, and switch accounts', async ({ browser, baseURL }) => {
   const mobile = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 }, serviceWorkers: 'block' })
   const desktop = await browser.newContext({ baseURL, serviceWorkers: 'block' })
@@ -136,6 +161,12 @@ test('invited students can save study data, use AI samples, and switch accounts'
     await flashcard.press('Space')
     await expect(flashcard).toHaveAttribute('aria-pressed', 'true')
     await expect(learner.getByText('Water vapor condenses.')).toBeVisible()
+    await learner.setViewportSize({ width: 667, height: 375 })
+    await expect(learner.getByRole('button', { name: /^Good/ })).toBeInViewport({ ratio: 1 })
+    await expect.poll(() => learner.locator('.review-answer-content').evaluate((answer) =>
+      answer.getBoundingClientRect().bottom < document.querySelector('.review-action-tray')!.getBoundingClientRect().top,
+    )).toBe(true)
+    await learner.setViewportSize({ width: 390, height: 844 })
     await learner.route('**/api/v1/review/answer', (route) => route.fulfill({ status: 503 }), { times: 1 })
     await learner.keyboard.press('3')
     await expect(learner.getByRole('alert')).toHaveText("We couldn't save that rating. Try again.")

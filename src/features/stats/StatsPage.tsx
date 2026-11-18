@@ -290,11 +290,11 @@ export function StatsPage() {
       </section>
 
       <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <section className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+        <section className="min-w-0 rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
           <h2 className="text-lg font-extrabold">{t('stats.timeBySubject')}</h2>
           <p className="text-xs font-semibold text-[var(--color-muted)]">{t('stats.timeTakeaway')}</p>
-          <div className="mt-2 h-56 w-full">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="mt-2 h-56 w-full min-w-0 overflow-clip">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <BarChart
                 data={subjectData}
                 margin={{ top: 8, right: 4, left: -18, bottom: 0 }}
@@ -304,7 +304,8 @@ export function StatsPage() {
                   tick={{ fontSize: 10, fill: 'var(--color-muted)', fontWeight: 700 }}
                   axisLine={false}
                   tickLine={false}
-                  interval={0}
+                  interval="preserveStartEnd"
+                  minTickGap={12}
                 />
                 <YAxis tick={{ fontSize: 10, fill: 'var(--color-muted)' }} axisLine={false} tickLine={false} />
                 <Tooltip

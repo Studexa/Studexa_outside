@@ -95,10 +95,10 @@ export function AppShell() {
             <span>{t('app.name')}</span>
           </Link>
 
-          <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
+          <div className="study-header-actions">
             {!hideTutor && (betaEnabled ? !guest && <BetaTutor /> : <AiPet />)}
             <button className="study-header-action" onClick={() => setShowProgress(true)} aria-label={t('workspace.progress')}>
-              <Icon name="chart" size={19} /><span className="hidden sm:inline">{t('workspace.progress')}</span>
+              <Icon name="chart" size={19} /><span className="study-header-label">{t('workspace.progress')}</span>
             </button>
             <NavLink to="/settings" className="study-header-action" aria-label={t('shell.settings')}>
               <Icon name="settings" size={19} />

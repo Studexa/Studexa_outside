@@ -52,8 +52,8 @@ export function SettingsPage() {
           {t('settings.account')}
         </h2>
         <div className="overflow-hidden rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)] sm:rounded-[24px]">
-          <div className="flex flex-col gap-3.5 p-3.5 sm:flex-row sm:items-center sm:justify-between sm:p-4">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3.5 p-3.5 sm:p-4">
+            <div className="flex min-w-0 flex-[1_1_13rem] items-center gap-3">
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 text-lg font-black text-white shadow-sm ring-2 ring-white/20 sm:h-14 sm:w-14 sm:text-xl">
                 {nickname ? nickname.slice(0, 1).toUpperCase() : 'U'}
               </span>
@@ -68,8 +68,7 @@ export function SettingsPage() {
               </div>
             </div>
 
-            {/* Mobile: 2-column balanced action buttons */}
-            <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+            <div className="grid min-w-0 flex-[1_1_15rem] grid-cols-[repeat(auto-fit,minmax(min(100%,7rem),1fr))] gap-2 lg:max-w-sm">
               <button
                 onClick={() => {
                   replayOnboarding()
@@ -78,14 +77,14 @@ export function SettingsPage() {
                 className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 text-xs font-bold text-[var(--color-text)] transition-colors hover:bg-[var(--color-border)]/70 active:scale-[0.98]"
               >
                 <Icon name="reset" size={14} className="text-[var(--color-primary)]" />
-                <span className="truncate">{t('settings.replay')}</span>
+                <span className="[overflow-wrap:anywhere]">{t('settings.replay')}</span>
               </button>
               <button
                 onClick={() => void signOut()}
                 className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-[var(--color-danger)]/30 bg-[var(--color-danger-soft)]/50 px-3 text-xs font-bold text-[var(--color-danger)] transition-colors hover:bg-[var(--color-danger-soft)] active:scale-[0.98]"
               >
                 <Icon name="arrowRight" size={14} />
-                <span className="truncate">{t('settings.signOut')}</span>
+                <span className="[overflow-wrap:anywhere]">{t('settings.signOut')}</span>
               </button>
             </div>
           </div>
@@ -111,7 +110,7 @@ export function SettingsPage() {
             </div>
 
             {/* Segmented selector with high contrast in both themes */}
-            <div className="grid w-full grid-cols-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-1 sm:w-auto sm:flex">
+            <div className="grid w-full grid-cols-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-1 sm:w-auto sm:flex">
               <button
                 onClick={() => i18n.changeLanguage('en')}
                 aria-pressed={i18n.language === 'en'}

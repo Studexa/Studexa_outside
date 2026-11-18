@@ -139,15 +139,15 @@ export function PlanPage() {
           <h1 className="text-2xl font-black">{t('plan.title')}</h1>
           <p className="text-sm text-[var(--color-muted)]">{t('plan.subtitle')}</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => setTaskOpen(true)}>
-            <Icon name="plus" size={17} /> {t('plan.addTask')}
+        <div className="flex min-w-0 flex-wrap gap-2">
+          <Button variant="secondary" size="sm" onClick={() => setTaskOpen(true)}>
+            <Icon className="shrink-0" name="plus" size={17} /> {t('plan.addTask')}
           </Button>
-          <Button onClick={() => setExamOpen(true)}>
-            <Icon name="calendar" size={17} /> {t('plan.addExam')}
+          <Button size="sm" onClick={() => setExamOpen(true)}>
+            <Icon className="shrink-0" name="calendar" size={17} /> {t('plan.addExam')}
           </Button>
-          <Button variant="ghost" onClick={() => setGoalOpen(true)}>
-            <Icon name="target" size={17} /> {t('plan.setGoals')}
+          <Button variant="ghost" size="sm" onClick={() => setGoalOpen(true)}>
+            <Icon className="shrink-0" name="target" size={17} /> {t('plan.setGoals')}
           </Button>
         </div>
       </div>
@@ -248,7 +248,7 @@ export function PlanPage() {
             })}
           </div>
 
-          <div className="mt-3 flex items-center gap-3 text-[11px] font-bold text-[var(--color-muted)]">
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-bold text-[var(--color-muted)]">
             <span className="inline-flex items-center gap-1">
               <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-danger-soft)] text-[var(--color-danger)]">
                 <Icon name="sword" size={9} />
@@ -294,7 +294,7 @@ export function PlanPage() {
                 >
                   {task.done && <Icon name="check" size={13} />}
                 </span>
-                <span className={`text-sm font-bold ${task.done ? 'text-[var(--color-muted)] line-through' : ''}`}>
+                <span className={`min-w-0 text-sm font-bold [overflow-wrap:anywhere] ${task.done ? 'text-[var(--color-muted)] line-through' : ''}`}>
                   {task.title}
                 </span>
               </label>

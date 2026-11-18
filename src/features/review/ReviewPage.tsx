@@ -403,7 +403,7 @@ function ReviewSession({ dueQuery, initialCards, userId }: {
 
       <div className="review-session-body">
         <ProgressBar value={index} max={total} size="sm" label={t('workspace.reviewProgress')} />
-        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+        <div className="review-card-meta flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
           {current?.deckSubject && <span className="font-semibold [overflow-wrap:anywhere]">{current.deckSubject}</span>}
           <span className="study-muted">{t('decks.types.' + typeKey[current?.type ?? 'BASIC'])}</span>
         </div>
@@ -419,11 +419,13 @@ function ReviewSession({ dueQuery, initialCards, userId }: {
             if (!actionPending.current) setFlipped((visible) => !visible)
           }}
         >
-          <span id="review-card-content" className="block" aria-live="polite">
-            <span className="review-card-label">{t('review.front')}</span>
-            <span className={flipped ? 'block text-base' : 'review-card-text'}>{current?.front}</span>
+          <span id="review-card-content" className="review-card-content" aria-live="polite">
+            <span className="min-w-0">
+              <span className="review-card-label">{t('review.front')}</span>
+              <span className={flipped ? 'block text-base whitespace-pre-wrap' : 'review-card-text'}>{current?.front}</span>
+            </span>
             {flipped && (
-              <span className="mt-5 block border-t border-(--study-border) pt-5">
+              <span className="review-answer-content">
                 <span className="review-card-label">{t('review.back')}</span>
                 <span className="review-card-text">{current?.back}</span>
                 {typeof current?.extra?.explanation === 'string' && current.extra.explanation && (
@@ -444,36 +446,36 @@ function ReviewSession({ dueQuery, initialCards, userId }: {
           </span>
         </button>
 
-        {flipped ? (
-          <section className="mt-5" aria-label={t('review.rateHint')}>
-            <p className="study-muted mb-2">{t('review.rateHint')}</p>
-            <div className="review-ratings">
-              {(['again', 'hard', 'good', 'easy'] as Rating[]).map((rating, i) => (
-                <button key={rating} type="button" data-rating={rating} className="review-rating"
-                  aria-disabled={busy} onClick={() => void rate(rating)}>
-                  <span className="font-semibold">{t('review.ratings.' + rating)}</span>
-                  <span className="study-muted">{t('review.intervals.' + rating)}</span>
-                  <kbd className="review-key">{i + 1}</kbd>
-                </button>
-              ))}
-            </div>
-          </section>
-        ) : (
-          <p className="study-muted mt-4 hidden sm:block">{t('review.spaceHint')}</p>
-        )}
-
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
-          {flipped && <p className="study-muted sm:hidden">{t('review.swipeHint')}</p>}
-          {undoCardId && online && (
-            <Button variant="ghost" size="sm" disabled={busy} onClick={() => void undo()}>
-              <Icon name="undo" size={16} />{t('common.undo')}
-            </Button>
-          )}
-        </div>
-        {actionError && (
-          <p className="mt-2 text-sm text-(--color-danger-text)" role="alert">
-            {t(actionError === 'undo' ? 'workspace.undoError' : 'workspace.ratingError')}
-          </p>
+        {!flipped && <p className="study-muted mt-4 hidden sm:block">{t('review.spaceHint')}</p>}
+        {(flipped || (undoCardId && online) || actionError) && (
+          <div className="review-action-tray">
+            {flipped && (
+              <section aria-label={t('review.rateHint')}>
+                <p className="review-rate-hint study-muted mb-2">{t('review.rateHint')}</p>
+                <div className="review-ratings">
+                  {(['again', 'hard', 'good', 'easy'] as Rating[]).map((rating, i) => (
+                    <button key={rating} type="button" data-rating={rating} className="review-rating"
+                      aria-disabled={busy} onClick={() => void rate(rating)}>
+                      <span className="font-semibold">{t('review.ratings.' + rating)}</span>
+                      <span className="study-muted">{t('review.intervals.' + rating)}</span>
+                      <kbd className="review-key">{i + 1}</kbd>
+                    </button>
+                  ))}
+                </div>
+                <p className="review-swipe-hint study-muted mt-2">{t('review.swipeHint')}</p>
+              </section>
+            )}
+            {undoCardId && online && (
+              <Button className={flipped ? 'mt-2' : ''} variant="ghost" size="sm" disabled={busy} onClick={() => void undo()}>
+                <Icon name="undo" size={16} />{t('common.undo')}
+              </Button>
+            )}
+            {actionError && (
+              <p className="mt-2 text-sm text-(--color-danger-text)" role="alert">
+                {t(actionError === 'undo' ? 'workspace.undoError' : 'workspace.ratingError')}
+              </p>
+            )}
+          </div>
         )}
       </div>
     </main>

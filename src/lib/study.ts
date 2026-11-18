@@ -107,6 +107,7 @@ export function useDueCards(enabled = true) {
   const user = useAuth((s) => s.user)
   return useQuery({
     queryKey: studyKeys.due(user?.id),
+    networkMode: 'always',
     queryFn: async () => {
       if (isGuestMode()) {
         return useApp.getState().decks.flatMap((deck) => deck.cards

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { betaEnabled } from '../../lib/beta'
@@ -28,7 +28,17 @@ export function DecksPage() {
     queryFn: () => subjectsApi.list(false),
     enabled: !guestMode,
   })
+  const [search, setSearch] = useSearchParams()
+  const fromCreateLink = search.get('create') === '1'
   const [open, setOpen] = useState(false)
+  const closeCreate = () => {
+    setOpen(false)
+    if (fromCreateLink) {
+      const params = new URLSearchParams(search)
+      params.delete('create')
+      setSearch(params, { replace: true })
+    }
+  }
   const [title, setTitle] = useState('')
   const [subjectId, setSubjectId] = useState('')
   const [color, setColor] = useState(colors[0])
@@ -44,7 +54,7 @@ export function DecksPage() {
       setOpen(false)
       setTitle('')
       setSubjectId('')
-      navigate(`/study/decks/${deck.id}`)
+      navigate(`/study/decks/${deck.id}`, { replace: fromCreateLink })
     },
   })
 
@@ -129,7 +139,7 @@ export function DecksPage() {
         </div>
       </div>
 
-      <Modal open={open} title={t('decks.newDeck')} onClose={() => setOpen(false)}>
+      <Modal open={open || fromCreateLink} title={t('decks.newDeck')} onClose={closeCreate}>
         <div className="space-y-3">
           <div>
             <label className="text-sm font-bold" htmlFor="deck-title">{t('decks.deckName')}</label>

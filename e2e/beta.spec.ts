@@ -7,6 +7,7 @@ const password = 'Local-test-password-729'
 const inviteScript = fileURLToPath(new URL('../../scripts/beta-invites.mjs', import.meta.url))
 
 async function register(page: Page, nickname: string) {
+  if (!process.env.PGDATABASE?.endsWith('_test')) throw new Error('Use a dedicated database ending in _test.')
   const email = `${randomUUID()}@example.test`
   const invite = execFileSync(process.execPath, [inviteScript, 'issue', email], { encoding: 'utf8' }).trim()
   await page.goto('/register')
@@ -24,8 +25,26 @@ async function register(page: Page, nickname: string) {
   return { email, accessToken }
 }
 
+test('the root route opens the sign-in form in a fresh browser session', async ({ page }) => {
+  await page.goto('/')
+  await expect(page).toHaveURL(/\/login$/)
+  await expect(page.getByLabel('Email', { exact: true })).toBeVisible()
+  await expect(page.getByLabel('Password', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible()
+})
+
+test('the study queue can recover from a failed deck request', async ({ page }) => {
+  await register(page, 'Sophea')
+  await page.route('**/api/v1/decks', (route) => route.fulfill({ status: 503 }))
+  await page.goto('/study')
+  const queue = page.getByRole('region', { name: 'Review queue' })
+  await expect(queue.getByText("We couldn't load your decks.")).toBeVisible({ timeout: 15_000 })
+  await page.unroute('**/api/v1/decks')
+  await queue.getByRole('button', { name: 'Retry' }).click()
+  await expect(queue.getByRole('link', { name: 'Create deck' })).toBeVisible()
+})
+
 test('invited students can save study data, use AI samples, and switch accounts', async ({ browser, baseURL }) => {
-  if (!process.env.PGDATABASE?.endsWith('_test')) throw new Error('Use a dedicated database ending in _test.')
   const mobile = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 }, serviceWorkers: 'block' })
   const desktop = await browser.newContext({ baseURL, serviceWorkers: 'block' })
   try {
@@ -95,8 +114,9 @@ test('invited students can save study data, use AI samples, and switch accounts'
     await expect(tutor.locator('blockquote')).toContainText('tiny liquid droplets')
     await tutor.getByRole('button', { name: 'Close' }).click()
 
-    await learner.goto('/study/decks')
-    await learner.getByRole('button', { name: 'New deck' }).click()
+    await learner.goto('/')
+    await learner.getByRole('link', { name: 'Create deck' }).click()
+    await expect(learner.getByRole('dialog', { name: 'New deck' })).toBeVisible()
     await learner.getByLabel('Deck name').fill('Water cycle study deck')
     await learner.getByRole('button', { name: 'Create deck' }).click()
     await expect(learner.getByRole('heading', { name: 'Water cycle study deck' })).toBeVisible()
@@ -107,11 +127,28 @@ test('invited students can save study data, use AI samples, and switch accounts'
     await generator.getByRole('button', { name: /Add.*1|Add selected/i }).click()
     await expect(learner.getByText('How do clouds form?')).toBeVisible()
 
-    await learner.goto('/study/review')
-    await learner.getByRole('button', { name: 'Flip the flashcard' }).click()
+    await learner.goto('/')
+    await expect(learner.getByText('1 card due', { exact: true })).toBeVisible()
+    await learner.getByRole('link', { name: 'Start review' }).click()
+    await expect(learner).toHaveURL(/\/study\/review$/)
+    const flashcard = learner.getByRole('button', { name: 'Flip the flashcard' })
+    await expect(learner.getByRole('button', { name: /^Good/ })).toHaveCount(0)
+    await flashcard.press('Space')
+    await expect(flashcard).toHaveAttribute('aria-pressed', 'true')
+    await expect(learner.getByText('Water vapor condenses.')).toBeVisible()
+    await learner.route('**/api/v1/review/answer', (route) => route.fulfill({ status: 503 }), { times: 1 })
+    await learner.keyboard.press('3')
+    await expect(learner.getByRole('alert')).toHaveText("We couldn't save that rating. Try again.")
+    await expect(flashcard).toHaveAttribute('aria-pressed', 'true')
     const review = learner.waitForResponse((response) => response.url().endsWith('/review/answer') && response.ok())
-    await learner.getByRole('button', { name: /^Good/ }).click()
+    await learner.keyboard.press('3')
     await review
+    await expect(learner.getByRole('heading', { name: 'You showed up today' })).toBeFocused()
+    await expect(learner.getByText('cards reviewed', { exact: true }).locator('..').getByText('1', { exact: true })).toBeVisible()
+    await learner.getByRole('link', { name: 'Back to home' }).click()
+    await expect(learner.getByText("You're caught up", { exact: true })).toBeVisible()
+    await expect(learner.getByRole('link', { name: 'Browse decks' })).toBeVisible()
+    await expect(learner.getByText(/^1 of \d+ cards$/)).toBeVisible()
 
     await learner.goto('/plan')
     await learner.getByRole('button', { name: 'Add task' }).first().click()
@@ -122,11 +159,20 @@ test('invited students can save study data, use AI samples, and switch accounts'
     await learner.getByRole('button', { name: 'Add exam' }).first().click()
     const exam = learner.getByRole('dialog')
     await exam.getByLabel('Exam title').fill('Water cycle exam')
+    const localDate = await learner.evaluate(() => {
+      const now = new Date()
+      return [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-')
+    })
+    await exam.locator('input[type="date"]').fill(localDate)
     await exam.getByRole('button', { name: 'Add exam' }).click()
     await expect(learner.getByText('Water cycle exam', { exact: true }).first()).toBeVisible()
     await learner.reload()
     await expect(learner.getByText('Review the water cycle')).toBeVisible()
     await expect(learner.getByText('Water cycle exam', { exact: true }).first()).toBeVisible()
+    await learner.goto('/')
+    const upcoming = learner.getByRole('region', { name: 'Upcoming exam' })
+    await expect(upcoming.getByRole('heading', { name: 'Water cycle exam' })).toBeVisible()
+    await expect(upcoming.getByText('Today', { exact: true })).toBeVisible()
 
     await learner.clock.install({ time: new Date(Date.now() - 70_000) })
     await learner.goto('/study/timer')

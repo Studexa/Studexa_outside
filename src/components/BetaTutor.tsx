@@ -19,9 +19,9 @@ export function BetaTutor() {
 
   return (
     <>
-      <Button className="fixed bottom-20 right-4 z-30 shadow-lg md:bottom-6" onClick={() => setOpen(true)}>
-        <Icon name="sparkles" size={18} /> {t('beta.tutor')}
-      </Button>
+      <button className="study-header-action" onClick={() => setOpen(true)} aria-label={t('beta.tutor')}>
+        <Icon name="sparkles" size={19} /><span className="hidden sm:inline">{t('beta.tutor')}</span>
+      </button>
       <Modal open={open} title={t('beta.tutor')} onClose={() => setOpen(false)}>
         <div className="space-y-3">
           <StudySamplePicker {...picker} onChange={(id) => { setSampleId(id); tutor.reset() }} />

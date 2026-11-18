@@ -85,9 +85,8 @@ function StudyBuddy() {
   const iconButton = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl hover:brightness-95 disabled:opacity-40'
 
   return <>
-    {!open && <button ref={launcherRef} onClick={() => setOpen(true)} aria-label={t('pet.open')}
-      className="fixed bottom-20 right-3 z-40 flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-2 pr-4 shadow-[var(--shadow-lift)] md:bottom-6 md:right-6">
-      <Mascot species={buddy} mood="happy" size={42} /><span className="text-xs font-black text-[var(--color-primary)]">{t('pet.button')}</span>
+    {!open && <button ref={launcherRef} onClick={() => setOpen(true)} aria-label={t('pet.open')} className="study-header-action">
+      <Icon name="sparkles" size={19} /><span className="hidden sm:inline">{t('pet.button')}</span>
     </button>}
     {open && <section aria-label={t('pet.title')} onKeyDown={(event) => { if (event.key === 'Escape') close() }}
       className={`fixed bottom-[72px] right-3 z-50 flex w-[calc(100%-1.5rem)] max-w-[420px] flex-col overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-lift)] md:bottom-6 md:right-6 ${expanded ? 'h-[80dvh]' : 'h-[65dvh]'} max-h-[calc(100dvh-100px)]`}>

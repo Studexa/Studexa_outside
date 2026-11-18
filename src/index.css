@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
+@import './workspace.css';
 
 @theme {
   --font-weight-extrabold: 650;
@@ -176,12 +177,9 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
   box-shadow: 0 12px 32px -16px rgb(0 0 0 / 24%);
   border: 1px solid rgb(255 255 255 / 8%);
 }
-.app-header { box-shadow: 0 1px 12px rgb(0 0 0 / 2%); }
-.sidebar-link[aria-current='page'] { font-weight: 600; }
-.sidebar-link[aria-current='page'] svg { color: var(--color-primary); }
-.app-content > div > div > :where(section + section) { margin-top: 1.5rem; }
-.app-content :where(h1) { font-weight: 650; }
-.app-content :where(h2, h3) { font-weight: 600; }
+.app-content > div > div:not(.study-workspace) > :where(section + section) { margin-top: 1.5rem; }
+.app-content > div > :not(.study-workspace) :where(h1) { font-weight: 650; }
+.app-content > div > :not(.study-workspace) :where(h2, h3) { font-weight: 600; }
 .mobile-more summary::-webkit-details-marker { display: none; }
 .mobile-more[open] summary { color: var(--color-primary-text); }
 .skip-link { position: fixed; top: -100px; left: 1rem; z-index: 100; padding: 0.75rem 1.25rem; border-radius: 12px; background: var(--color-text); color: var(--color-surface); }

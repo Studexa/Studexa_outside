@@ -15,18 +15,11 @@ import { ApiError, questApi, reviewApi, type ReviewAnswerResponse } from '../../
 import { studyKeys, useDueCards } from '../../lib/study'
 import { useApp } from '../../lib/store'
 import { isGuestMode, useAuth } from '../../lib/auth'
-import { useSettings } from '../../lib/useSettings'
+import { useOnline } from '../../lib/useSettings'
 import { queuePendingAnswer, getPendingAnswers, removePendingAnswer } from '../../lib/offlineDb'
 
 type Rating = 'again' | 'hard' | 'good' | 'easy'
-type RatingLog = { rating: Rating; correct: boolean; xpEarned?: number }
-
-const ratingStyles: Record<Rating, string> = {
-  again: 'bg-[var(--color-danger-soft)] text-[#b91c1c] dark:text-[var(--color-danger)] hover:brightness-95',
-  hard: 'bg-[var(--color-accent-soft)] text-[#92610a] dark:text-[var(--color-accent)] hover:brightness-95',
-  good: 'bg-[var(--color-success-soft)] text-[#047857] dark:text-[var(--color-success)] hover:brightness-95',
-  easy: 'bg-[var(--color-primary-soft)] text-[var(--color-primary-strong)] dark:text-[var(--color-primary)] hover:brightness-95',
-}
+type RatingLog = { rating: Rating; correct: boolean; response: ReviewAnswerResponse | null }
 
 const typeKey: Record<CardType, string> = {
   BASIC: 'basic',
@@ -46,46 +39,8 @@ function shuffle<T>(items: T[]): T[] {
 
 export function ReviewPage() {
   const { t } = useTranslation()
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const recordReviewSession = useApp((s) => s.recordReviewSession)
-  const buddy = useApp((s) => s.buddy)
-  const userId = useAuth((s) => s.user?.id)
-  const settings = useSettings()
+  const userId = useAuth((state) => state.user?.id)
   const dueQuery = useDueCards()
-
-  const [queue, setQueue] = useState<DueCard[]>([])
-  const [index, setIndex] = useState(0)
-  const [flipped, setFlipped] = useState(false)
-  const [ratings, setRatings] = useState<RatingLog[]>([])
-  const [combo, setCombo] = useState(0)
-  const [maxCombo, setMaxCombo] = useState(0)
-  const [elapsed, setElapsed] = useState(0)
-  const [finished, setFinished] = useState(false)
-  const [float, setFloat] = useState<{ key: number; amount: number } | null>(null)
-  const [cheer, setCheer] = useState(false)
-  const [lastRating, setLastRating] = useState<RatingLog | null>(null)
-  const [serverXp, setServerXp] = useState(0)
-  const [leveledUp, setLeveledUp] = useState(false)
-  const [newLevel, setNewLevel] = useState(1)
-  const [undoCardId, setUndoCardId] = useState<string | null>(null)
-  const undoTimer = useRef<number | null>(null)
-  const initialized = useRef(false)
-  const committed = useRef(false)
-  const touchStart = useRef<number | null>(null)
-
-  useEffect(() => {
-    if (initialized.current || !dueQuery.data) return
-    initialized.current = true
-    setQueue(shuffle(dueQuery.data))
-  }, [dueQuery.data])
-
-  // Clean up undo timer on unmount (BUG-K02: memory leak / stale closure)
-  useEffect(() => {
-    return () => {
-      if (undoTimer.current) window.clearTimeout(undoTimer.current)
-    }
-  }, [])
 
   // Replay pending offline answers when the component mounts or comes back online
   useEffect(() => {
@@ -122,11 +77,69 @@ export function ReviewPage() {
     }
   }, [userId])
 
-  const review = useMutation({
+  if (dueQuery.data) {
+    return <ReviewSession key={userId} dueQuery={dueQuery} initialCards={dueQuery.data} userId={userId} />
+  }
+
+  if (dueQuery.isError) {
+    return (
+      <main className="review-workspace review-centered">
+        <EmptyState
+          title={t('review.loadError')}
+          hint={dueQuery.error.message}
+          action={<Button onClick={() => void dueQuery.refetch()}>{t('common.retry')}</Button>}
+        />
+        <Link className="study-text-link" to="/study"><Icon name="arrowLeft" size={16} />{t('nav.study')}</Link>
+      </main>
+    )
+  }
+
+  return <main className="review-workspace grid min-h-dvh place-items-center"><Spinner label={t('common.loading')} /></main>
+}
+
+function ReviewSession({ dueQuery, initialCards, userId }: {
+  dueQuery: ReturnType<typeof useDueCards>
+  initialCards: DueCard[]
+  userId?: string
+}) {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const recordReviewSession = useApp((s) => s.recordReviewSession)
+  const buddy = useApp((s) => s.buddy)
+  const online = useOnline()
+
+  const [savedQueue, setQueue] = useState(() => initialCards.length ? shuffle(initialCards) : null)
+  const [index, setIndex] = useState(0)
+  const [flipped, setFlipped] = useState(false)
+  const [ratings, setRatings] = useState<RatingLog[]>([])
+  const [elapsed, setElapsed] = useState(0)
+  const [finished, setFinished] = useState(false)
+  const [undoCardId, setUndoCardId] = useState<string | null>(null)
+  const [undoing, setUndoing] = useState(false)
+  const [actionError, setActionError] = useState<'rating' | 'undo' | null>(null)
+  const actionPending = useRef(false)
+  const undoTimer = useRef<number | null>(null)
+  const committed = useRef(false)
+  const touchStart = useRef<number | null>(null)
+  const swiped = useRef(false)
+  const revealButton = useRef<HTMLButtonElement>(null)
+  const summaryTitle = useRef<HTMLHeadingElement>(null)
+  const restoreFocus = useRef(false)
+
+  // Clean up undo timer on unmount (BUG-K02: memory leak / stale closure)
+  useEffect(() => {
+    return () => {
+      if (undoTimer.current) window.clearTimeout(undoTimer.current)
+    }
+  }, [])
+
+  const { mutateAsync: submitRating, isPending: savingRating } = useMutation({
+    networkMode: 'always',
     mutationFn: async ({ id, rating, msTaken, clientReviewId }: { id: string; rating: ReviewRating; msTaken: number; clientReviewId: string }) => {
       if (isGuestMode()) {
         useApp.getState().reviewGuestCard(id, rating === 'AGAIN')
-        return { xpEarned: 0, leveledUp: false, newLevel: 1 } as ReviewAnswerResponse
+        return null
       }
       try {
         return await reviewApi.answer({ cardId: id, rating, msTaken, clientReviewId })
@@ -142,39 +155,34 @@ export function ReviewPage() {
           throw error
         }
         // Return a synthetic response so the UI stays responsive offline
-        return { xpEarned: 0, leveledUp: false, newLevel: 1 } as ReviewAnswerResponse
+        return null
       }
     },
-    onSuccess: async (response: ReviewAnswerResponse, variables) => {
+    onSuccess: (response, variables) => {
       if (useAuth.getState().user?.id !== userId) return
-      setServerXp(response.xpEarned)
-      setLeveledUp(response.leveledUp)
-      setNewLevel(response.newLevel)
       void queryClient.invalidateQueries({ queryKey: studyKeys.due(userId) })
       void queryClient.invalidateQueries({ queryKey: studyKeys.decks(userId) })
 
       // Report quest progress: warmup counts reviewed cards toward daily quest
-      if (!isGuestMode() && navigator.onLine && userId) {
-        void questApi.progress({ code: 'warmup', source: 'review_card', referenceId: variables.clientReviewId }).catch(() => undefined)
+      if (response && userId) {
+        void questApi.progress({ code: 'warmup', source: 'review_card', referenceId: variables.clientReviewId })
+          .then(() => queryClient.invalidateQueries({ queryKey: studyKeys.questsToday(userId) }))
+          .catch(() => undefined)
       }
-    },
-    onError: () => {
-      setRatings((prev) => prev.slice(0, -1))
-      setFlipped(true)
-      setIndex((i) => Math.max(0, i - 1))
     },
   })
 
-  const isRating = review.isPending
-
+  const queue = savedQueue ?? initialCards
   const current = queue[index]
   const total = queue.length
-  const correct = ratings.filter((r) => r.correct).length
-  const xpEarned = serverXp > 0 ? serverXp : ratings.length * 3 + correct * 2 + (ratings.length >= 5 ? 20 : 0)
+  const correct = ratings.filter((entry) => entry.correct).length
+  const awardedXp = ratings.reduce((sum, entry) => sum + (entry.response?.xpEarned ?? 0), 0)
+  const xpEarned = ratings.some((entry) => entry.response) ? awardedXp : ratings.length * 3 + correct * 2 + (ratings.length >= 5 ? 20 : 0)
+  const busy = savingRating || undoing
 
   useEffect(() => {
     if (finished) return
-    const timer = window.setInterval(() => setElapsed((s) => s + 1), 1000)
+    const timer = window.setInterval(() => setElapsed((seconds) => seconds + 1), 1000)
     return () => window.clearInterval(timer)
   }, [finished])
 
@@ -186,358 +194,288 @@ export function ReviewPage() {
     playSound('success')
   }, [finished, ratings.length, correct, recordReviewSession])
 
-  const rate = useCallback((rating: Rating) => {
-    if (!current || finished || !flipped || isRating) return
-    const isCorrect = rating === 'good' || rating === 'easy'
-    const log: RatingLog = { rating, correct: isCorrect }
-    setRatings((prev) => [...prev, log])
-    setLastRating(log)
-    setFlipped(false)
-    const localXp = rating === 'again' ? 3 : rating === 'hard' ? 4 : 5
-    setFloat({ key: Date.now(), amount: localXp })
-    playSound(isCorrect ? 'success' : 'error')
-    review.mutate({
-      id: current.id,
-      rating: rating.toUpperCase() as ReviewRating,
-      msTaken: 0,
-      clientReviewId: crypto.randomUUID(),
-    })
+  useEffect(() => {
+    if (!restoreFocus.current) return
+    restoreFocus.current = false
+    if (finished) summaryTitle.current?.focus()
+    else revealButton.current?.focus({ preventScroll: true })
+    window.scrollTo({ top: 0, behavior: 'auto' })
+  }, [finished, index])
 
-    if (isCorrect) {
-      const nextCombo = combo + 1
-      setCombo(nextCombo)
-      setMaxCombo((m) => Math.max(m, nextCombo))
-      setCheer(true)
-      window.setTimeout(() => setCheer(false), 650)
-    } else {
-      setCombo(0)
-    }
+  const rate = useCallback(async (rating: Rating) => {
+    if (!current || finished || !flipped || actionPending.current) return
+    actionPending.current = true
+    setActionError(null)
+    try {
+      const response = await submitRating({
+        id: current.id,
+        rating: rating.toUpperCase() as ReviewRating,
+        msTaken: 0,
+        clientReviewId: crypto.randomUUID(),
+      })
+      if (useAuth.getState().user?.id !== userId) return
 
-    // Set up undo: available for 5 seconds after each rating
-    setUndoCardId(current.id)
-    if (undoTimer.current) window.clearTimeout(undoTimer.current)
-    undoTimer.current = window.setTimeout(() => setUndoCardId(null), 5000)
+      const correct = rating === 'good' || rating === 'easy'
+      setRatings((previous) => [...previous, { rating, correct, response }])
+      playSound(correct ? 'success' : 'error')
+      if (undoTimer.current !== null) window.clearTimeout(undoTimer.current)
+      setUndoCardId(response ? current.id : null)
+      if (response) undoTimer.current = window.setTimeout(() => setUndoCardId(null), 5000)
 
-    let isLast = index + 1 >= queue.length
-    if (rating === 'again') {
-      // Re-insert "Again" card so it reappears before the session ends (BUG-C09)
-      setQueue((prev) => [...prev, current])
-      isLast = false
-    }
-
-    if (isLast) {
-      setFinished(true)
+      if (rating === 'again') setQueue([...queue, current])
+      else {
+        if (!savedQueue) setQueue(queue)
+        if (index + 1 === total) setFinished(true)
+      }
+      restoreFocus.current = true
       setIndex(index + 1)
-    } else {
-      setIndex(index + 1)
+      setFlipped(false)
+    } catch {
+      setActionError('rating')
+    } finally {
+      actionPending.current = false
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current, finished, flipped, isRating, combo, index, queue.length, review])
+  }, [current, finished, flipped, index, queue, savedQueue, submitRating, total, userId])
+
+  const undo = async () => {
+    if (!undoCardId || actionPending.current || !online) return
+    actionPending.current = true
+    setUndoing(true)
+    setActionError(null)
+    try {
+      await reviewApi.undo(undoCardId)
+      if (useAuth.getState().user?.id !== userId) return
+      if (undoTimer.current !== null) window.clearTimeout(undoTimer.current)
+      setUndoCardId(null)
+      if (ratings.at(-1)?.rating === 'again') setQueue(queue.slice(0, -1))
+      setRatings((previous) => previous.slice(0, -1))
+      restoreFocus.current = true
+      setIndex((previous) => Math.max(0, previous - 1))
+      setFlipped(false)
+      void queryClient.invalidateQueries({ queryKey: studyKeys.due(userId) })
+      void queryClient.invalidateQueries({ queryKey: studyKeys.decks(userId) })
+    } catch {
+      setActionError('undo')
+    } finally {
+      setUndoing(false)
+      actionPending.current = false
+    }
+  }
 
   const restart = async () => {
     const result = await dueQuery.refetch()
-    const next = result.data ?? []
-    if (next.length === 0) {
+    if (result.isError) {
+      setActionError('rating')
+      return
+    }
+    if (!result.data?.length) {
       navigate('/study/decks')
       return
     }
+    if (undoTimer.current !== null) window.clearTimeout(undoTimer.current)
     committed.current = false
-    setQueue(shuffle(next))
+    restoreFocus.current = true
+    setQueue(shuffle(result.data))
     setIndex(0)
     setFlipped(false)
     setRatings([])
-    setCombo(0)
-    setMaxCombo(0)
     setElapsed(0)
+    setUndoCardId(null)
+    setActionError(null)
     setFinished(false)
-    setFloat(null)
-    setCheer(false)
-    setLastRating(null)
-    setServerXp(0)
-    setLeveledUp(false)
-    setNewLevel(1)
   }
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.repeat) return
-      // BUG-C02: Ignore shortcuts when typing in an input/textarea/select/contenteditable, or during IME composition.
-      const target = event.target as HTMLElement
+      const target = event.target
       if (
-        event.isComposing ||
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLTextAreaElement ||
-        target instanceof HTMLSelectElement ||
-        target.isContentEditable
+        event.defaultPrevented || event.repeat || event.isComposing || event.altKey || event.ctrlKey || event.metaKey ||
+        (target instanceof HTMLElement && (target.isContentEditable || target.closest('input, textarea, select')))
       ) return
-      if (event.code === 'Space') {
+
+      if (event.code === 'Space' && !finished && current && !actionPending.current) {
+        if (target instanceof HTMLElement && target.closest('button, a, summary, [role="button"]')) return
         event.preventDefault()
-        if (!finished) setFlipped((f) => !f)
+        setFlipped((visible) => !visible)
         return
       }
-      const map: Record<string, Rating> = { '1': 'again', '2': 'hard', '3': 'good', '4': 'easy' }
-      const rating = map[event.key]
-      if (rating) {
+      const shortcuts: Record<string, Rating> = { '1': 'again', '2': 'hard', '3': 'good', '4': 'easy' }
+      const rating = shortcuts[event.key]
+      if (rating && flipped && !finished) {
         event.preventDefault()
-        rate(rating)
+        void rate(rating)
       }
       if (event.key === 'Escape') navigate('/study')
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [finished, flipped, rate])
+  }, [current, finished, flipped, navigate, rate])
 
   const onTouchStart = (event: React.TouchEvent) => {
     touchStart.current = event.touches[0]?.clientX ?? null
+    swiped.current = false
   }
   const onTouchEnd = (event: React.TouchEvent) => {
     if (touchStart.current === null) return
     const dx = (event.changedTouches[0]?.clientX ?? touchStart.current) - touchStart.current
     touchStart.current = null
-    if (Math.abs(dx) < 60) return
-    if (dx < 0) rate('again')
-    else rate('good')
+    if (Math.abs(dx) < 60 || !flipped) return
+    swiped.current = true
+    void rate(dx < 0 ? 'again' : 'good')
   }
 
-  if (dueQuery.isLoading) {
-    return <div className="flex min-h-dvh items-center justify-center"><Spinner label={t('common.loading')} /></div>
+  if (!total && dueQuery.isFetching) {
+    return <main className="review-workspace grid min-h-dvh place-items-center"><Spinner label={t('common.loading')} /></main>
   }
 
-  if (dueQuery.isError) {
+  if (!total) {
     return (
-      <div className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center p-5">
-        <EmptyState
-          title={t('review.loadError')}
-          hint={dueQuery.error.message}
-          action={<Button onClick={() => void dueQuery.refetch()}>{t('common.retry')}</Button>}
-        />
-      </div>
-    )
-  }
-
-  if (total === 0) {
-    return (
-      <div className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center p-5">
-        <EmptyState
-          title={t('review.emptyTitle')}
-          hint={t('review.emptyHint')}
-          action={
-            <div className="mt-2 flex gap-2">
-              <Link to="/study/decks"><Button variant="secondary">{t('nav.study')}</Button></Link>
-              <Link to="/"><Button>{t('nav.home')}</Button></Link>
-            </div>
-          }
-        />
-      </div>
+      <main className="review-workspace review-centered">
+        <EmptyState title={t('review.emptyTitle')} hint={t('review.emptyHint')} action={
+          <Link to="/study/decks" className="study-action">{t('workspace.browseDecks')}</Link>
+        } />
+        <Link className="study-text-link" to="/study"><Icon name="arrowLeft" size={16} />{t('nav.study')}</Link>
+      </main>
     )
   }
 
   if (finished) {
-    const accuracy = ratings.length ? Math.round((correct / ratings.length) * 100) : 0
-    const minutes = Math.floor(elapsed / 60)
-    const seconds = elapsed % 60
+    const accuracy = Math.round((correct / Math.max(1, ratings.length)) * 100)
+    const time = Math.floor(elapsed / 60) + ':' + String(elapsed % 60).padStart(2, '0')
+    const leveledUp = ratings.findLast((entry) => entry.response?.leveledUp)?.response
+    let combo = 0
+    let bestCombo = 0
+    for (const entry of ratings) {
+      combo = entry.correct ? combo + 1 : 0
+      bestCombo = Math.max(bestCombo, combo)
+    }
+    const summary = [
+      { label: 'review.cardsReviewed', value: ratings.length },
+      { label: 'review.accuracy', value: accuracy + '%' },
+      { label: 'review.time', value: time },
+      { label: 'review.xpEarned', value: '+' + xpEarned },
+    ]
     return (
-      <div className="mx-auto flex min-h-dvh w-full max-w-xl flex-col justify-center gap-4 p-4 sm:p-6">
-        <div className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-center shadow-[var(--shadow-md)]">
-          <div className="mx-auto w-fit animate-pop-in">
-            <Mascot species={buddy} mood="sparkle" size={150} accessory="hat" />
+      <main className="review-workspace review-centered">
+        <div className="study-panel w-full">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="study-icon mb-4"><Icon name="checkCircle" size={25} /></div>
+              <h1 className="text-2xl font-semibold sm:text-3xl" ref={summaryTitle} tabIndex={-1}>{t('review.endTitle')}</h1>
+              <p className="study-muted mt-2">{t('review.endHint')}</p>
+            </div>
+            <Mascot species={buddy} mood="sparkle" size={52} />
           </div>
-          <p className="mt-2 text-xs font-black uppercase tracking-[0.2em] text-[var(--color-success)]">{t('review.endKicker')}</p>
-          <h1 className="mt-1 text-2xl font-black sm:text-3xl">{t('review.endTitle')}</h1>
-          <p className="mt-1 text-sm text-[var(--color-muted)]">{t('review.endHint')}</p>
-
-          <div className="mt-5 grid grid-cols-2 gap-2 text-left">
-            <div className="rounded-2xl bg-[var(--color-primary-soft)] p-3">
-              <p className="text-2xl font-black text-[var(--color-primary)]">{ratings.length}</p>
-              <p className="text-xs font-bold text-[var(--color-muted)]">{t('review.cardsReviewed')}</p>
-            </div>
-            <div className="rounded-2xl bg-[var(--color-success-soft)] p-3">
-              <p className="text-2xl font-black text-[var(--color-success)]">{accuracy}%</p>
-              <p className="text-xs font-bold text-[var(--color-muted)]">{t('review.accuracy')}</p>
-            </div>
-            <div className="rounded-2xl bg-[var(--color-surface-alt)] p-3">
-              <p className="text-2xl font-black">{minutes}:{String(seconds).padStart(2, '0')}</p>
-              <p className="text-xs font-bold text-[var(--color-muted)]">{t('review.time')}</p>
-            </div>
-            <div className="rounded-2xl bg-[var(--color-accent-soft)] p-3">
-              <p className="text-2xl font-black text-[var(--color-accent)]">+{xpEarned}</p>
-              <p className="text-xs font-bold text-[var(--color-muted)]">{t('review.xpEarned')}</p>
-            </div>
-          </div>
-
-          {leveledUp && (
-            <div className="mt-3 rounded-full bg-[var(--color-accent-soft)] px-3 py-1 text-xs font-black text-[var(--color-accent)]">
-              {t('shell.levelUp')} {t('review.levelReached', { level: newLevel })}
-            </div>
-          )}
-
-          {maxCombo >= 3 && (
-            <p className="mt-3 inline-flex items-center gap-1 rounded-full bg-[var(--color-accent-soft)] px-3 py-1 text-xs font-black text-[var(--color-accent)]">
-              <Icon name="bolt" size={13} /> {t('review.bestCombo', { count: maxCombo })}
-            </p>
-          )}
-
-          <div className="mt-5 space-y-2">
-            <Button full size="lg" onClick={() => void restart()}>
-              <Icon name="reset" size={19} /> {t('review.keepGoing')}
-            </Button>
-            <Button full variant="secondary" onClick={() => navigate('/')}>
-              {t('review.doneToday')}
-            </Button>
+          <dl className="mt-6 grid grid-cols-2 gap-3">
+            {summary.map(({ label, value }) => (
+              <div className="rounded-xl bg-(--color-surface-alt) p-3 sm:p-4" key={label}>
+                <dt className="study-muted">{t(label)}</dt>
+                <dd className="text-xl font-semibold tabular-nums">{value}</dd>
+              </div>
+            ))}
+          </dl>
+          {leveledUp && <p className="study-muted mt-4">{t('review.levelReached', { level: leveledUp.newLevel })}</p>}
+          {bestCombo >= 3 && <p className="study-muted mt-2">{t('review.bestCombo', { count: bestCombo })}</p>}
+          {actionError && <p className="mt-3 text-(--color-danger-text)" role="alert">{t('review.loadError')}</p>}
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <Link className="study-action" to="/">{t('review.doneToday')}<Icon name="arrowRight" size={18} /></Link>
+            <Button variant="secondary" onClick={() => void restart()} disabled={dueQuery.isFetching}>{t('review.keepGoing')}</Button>
           </div>
         </div>
-      </div>
+      </main>
     )
   }
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <header className="px-3 pt-3 sm:px-5 sm:pt-5">
-        <div className="mx-auto flex w-full max-w-3xl items-center gap-3">
-          <button
-            onClick={() => navigate('/study')}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-muted)] hover:text-[var(--color-text)]"
-            aria-label={t('common.exit')}
-          >
-            <Icon name="close" size={20} />
-          </button>
+    <main className="review-workspace min-h-dvh">
+      <header className="review-session-header">
+        <div className="review-session-inner">
+          <Link to="/study" className="study-header-action" aria-label={t('common.exit')}>
+            <Icon name="arrowLeft" size={20} />
+          </Link>
           <div className="min-w-0 flex-1">
-            <div className="mb-1 flex items-center justify-between text-xs font-bold text-[var(--color-muted)]">
-              <span className="truncate">{current?.deckTitle ?? t('review.title')}</span>
-              <span>
-                {index + 1} / {total}
-              </span>
-            </div>
-            <ProgressBar value={index} max={total} size="sm" />
+            <p className="text-xs font-semibold text-(--study-ink)">{t('review.title')}</p>
+            <h1 className="font-semibold [overflow-wrap:anywhere]">{current?.deckTitle}</h1>
           </div>
-          <div className="flex h-11 min-w-11 items-center justify-center gap-1 rounded-full bg-[var(--color-accent-soft)] px-2.5 text-sm font-black text-[var(--color-accent)]">
-            <Icon name="bolt" size={16} /> {combo}
-          </div>
+          <p className="shrink-0 text-sm font-semibold tabular-nums">{t('workspace.cardPosition', { current: index + 1, total })}</p>
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center px-3 py-4 sm:px-5">
-        <div className="mb-2 flex min-h-8 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span
-              className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-black text-white"
-              style={{ background: current?.deckColor }}
-            >
-              {current?.deckSubject}
-            </span>
-            <span className="text-[11px] font-bold text-[var(--color-muted)]">
-              {t(`decks.types.${typeKey[current?.type ?? 'BASIC']}`)}
-            </span>
-          </div>
-          {combo >= 3 && (
-            <span className="animate-pop-in inline-flex items-center gap-1 rounded-full bg-[var(--color-accent)] px-2.5 py-1 text-[11px] font-black text-[#3b2503]">
-              <Icon name="bolt" size={12} /> {t('review.combo', { count: combo })}
-            </span>
-          )}
+      <div className="review-session-body">
+        <ProgressBar value={index} max={total} size="sm" label={t('workspace.reviewProgress')} />
+        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+          {current?.deckSubject && <span className="font-semibold [overflow-wrap:anywhere]">{current.deckSubject}</span>}
+          <span className="study-muted">{t('decks.types.' + typeKey[current?.type ?? 'BASIC'])}</span>
         </div>
 
-        <div className="flip-scene relative" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-          <button
-            onClick={() => setFlipped((f) => !f)}
-            className="block w-full text-left"
-            aria-label={t('review.flipLabel')}
-          >
-            <div className={`flip-card h-[330px] w-full sm:h-[400px] ${flipped ? 'is-flipped' : ''} ${settings.theme === 'antigravity' ? 'animate-antigravity-float' : ''}`}>
-              <div className="flip-face flex h-full w-full flex-col items-center justify-center rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-center shadow-[var(--shadow-md)] sm:p-10">
-                <span className="mb-4 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-muted)]">
-                  {t('review.front')}
-                </span>
-                <p className="text-2xl font-extrabold leading-snug sm:text-3xl">{current?.front}</p>
-                <span className="mt-6 inline-flex items-center gap-1.5 text-xs font-bold text-[var(--color-muted)]">
-                  <Icon name="reset" size={14} /> {t('review.tapToFlip')}
-                </span>
-              </div>
-              <div className="flip-back flex h-full w-full flex-col items-center justify-center overflow-y-auto rounded-[28px] border-2 border-[var(--color-success)]/40 bg-[var(--color-surface)] p-6 text-center shadow-[var(--shadow-md)] sm:p-10">
-                <span className="mb-4 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-success)]">
-                  {t('review.back')}
-                </span>
-                <p className="text-2xl font-extrabold leading-snug sm:text-3xl">{current?.back}</p>
+        <button ref={revealButton} type="button" className="study-panel review-card"
+          aria-label={t('review.flipLabel')} aria-pressed={flipped} aria-describedby="review-card-content"
+          onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onTouchCancel={() => { touchStart.current = null }}
+          onClick={(event) => {
+            if (swiped.current && event.detail > 0) {
+              swiped.current = false
+              return
+            }
+            if (!actionPending.current) setFlipped((visible) => !visible)
+          }}
+        >
+          <span id="review-card-content" className="block" aria-live="polite">
+            <span className="review-card-label">{t('review.front')}</span>
+            <span className={flipped ? 'block text-base' : 'review-card-text'}>{current?.front}</span>
+            {flipped && (
+              <span className="mt-5 block border-t border-(--study-border) pt-5">
+                <span className="review-card-label">{t('review.back')}</span>
+                <span className="review-card-text">{current?.back}</span>
                 {typeof current?.extra?.explanation === 'string' && current.extra.explanation && (
-                  <p className="mt-3 max-w-md text-sm font-semibold text-[var(--color-muted)]">
-                    {current.extra.explanation}
-                  </p>
+                  <span className="study-muted mt-3 block whitespace-pre-wrap">{current.extra.explanation}</span>
                 )}
                 {(current?.sourceTitle || current?.sourceExcerpt) && (
-                  <div className="mt-4 max-w-md rounded-2xl bg-[var(--color-surface-alt)] p-3 text-left">
-                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-primary)]">
-                      {t('decks.source')}{current?.sourceTitle ? `: ${current.sourceTitle}` : ''}
-                    </p>
-                    {current?.sourceExcerpt && (
-                      <p className="mt-1 text-xs italic text-[var(--color-muted)]">“{current.sourceExcerpt}”</p>
-                    )}
-                  </div>
+                  <span className="mt-4 block rounded-xl bg-(--color-surface-alt) p-3 text-sm">
+                    <span className="block font-semibold">{current.sourceTitle || t('decks.source')}</span>
+                    {current.sourceExcerpt && <span className="study-muted mt-1 block whitespace-pre-wrap">{current.sourceExcerpt}</span>}
+                  </span>
                 )}
-                <span className="mt-4 inline-flex items-center gap-1 rounded-full bg-[var(--color-surface-alt)] px-3 py-1 text-xs font-bold text-[var(--color-muted)]">
-                  {current?.deckTitle}
-                </span>
-              </div>
+              </span>
+            )}
+          </span>
+          <span className="review-reveal-label">
+            <Icon name={flipped ? 'chevronUp' : 'chevronDown'} size={18} />
+            {t(flipped ? 'workspace.hideAnswer' : 'workspace.showAnswer')}
+          </span>
+        </button>
+
+        {flipped ? (
+          <section className="mt-5" aria-label={t('review.rateHint')}>
+            <p className="study-muted mb-2">{t('review.rateHint')}</p>
+            <div className="review-ratings">
+              {(['again', 'hard', 'good', 'easy'] as Rating[]).map((rating, i) => (
+                <button key={rating} type="button" data-rating={rating} className="review-rating"
+                  aria-disabled={busy} onClick={() => void rate(rating)}>
+                  <span className="font-semibold">{t('review.ratings.' + rating)}</span>
+                  <span className="study-muted">{t('review.intervals.' + rating)}</span>
+                  <kbd className="review-key">{i + 1}</kbd>
+                </button>
+              ))}
             </div>
-          </button>
+          </section>
+        ) : (
+          <p className="study-muted mt-4 hidden sm:block">{t('review.spaceHint')}</p>
+        )}
 
-          {float && (
-            <span
-              key={float.key}
-              className="animate-float-up pointer-events-none absolute right-5 top-5 rounded-full bg-[var(--color-accent)] px-3 py-1 text-sm font-black text-[#3b2503] shadow-[var(--shadow-sm)]"
-            >
-              +{float.amount} XP
-            </span>
-          )}
-
-          <div className={`pointer-events-none absolute -top-16 right-2 transition-opacity ${cheer ? 'animate-cheer opacity-100' : 'opacity-70'} ${settings.theme === 'antigravity' ? 'animate-antigravity-drift' : ''}`}>
-            <Mascot species={buddy} mood={cheer ? 'sparkle' : 'happy'} size={72} />
-          </div>
-        </div>
-
-        <p className="mt-3 min-h-5 text-center text-sm font-semibold text-[var(--color-muted)]">
-          {!flipped
-            ? t('review.spaceHint')
-            : ratings.length > 0 && !lastRating?.correct
-              ? t('review.almost')
-              : t('review.rateHint')}
-        </p>
-
-        <div className="mt-2 grid grid-cols-4 gap-2">
-          {(['again', 'hard', 'good', 'easy'] as Rating[]).map((rating, i) => (
-            <button
-              key={rating}
-              onClick={() => rate(rating)}
-              disabled={!flipped || isRating}
-              className={`flex min-h-16 flex-col items-center justify-center rounded-2xl px-1 py-2 font-black transition disabled:cursor-not-allowed disabled:opacity-40 ${ratingStyles[rating]}`}
-            >
-              <span className="text-sm">{t(`review.ratings.${rating}`)}</span>
-              <span className="text-[11px] font-bold opacity-70">{t(`review.intervals.${rating}`)}</span>
-              <span className="mt-0.5 hidden text-[9px] font-bold opacity-50 sm:block">{i + 1}</span>
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-3 flex items-center justify-center gap-3">
-          <span className="text-xs text-[var(--color-muted)]">{t('review.swipeHint')}</span>
-          {undoCardId && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={async () => {
-                await reviewApi.undo(undoCardId)
-                setUndoCardId(null)
-                if (undoTimer.current) window.clearTimeout(undoTimer.current)
-                void queryClient.invalidateQueries({ queryKey: studyKeys.due(userId) })
-                setIndex((i) => Math.max(0, i - 1))
-                setFlipped(false)
-                setRatings((prev) => prev.slice(0, -1))
-              }}
-            >
-              {t('common.undo')}
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+          {flipped && <p className="study-muted sm:hidden">{t('review.swipeHint')}</p>}
+          {undoCardId && online && (
+            <Button variant="ghost" size="sm" disabled={busy} onClick={() => void undo()}>
+              <Icon name="undo" size={16} />{t('common.undo')}
             </Button>
           )}
         </div>
+        {actionError && (
+          <p className="mt-2 text-sm text-(--color-danger-text)" role="alert">
+            {t(actionError === 'undo' ? 'workspace.undoError' : 'workspace.ratingError')}
+          </p>
+        )}
       </div>
-    </div>
+    </main>
   )
 }

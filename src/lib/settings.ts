@@ -46,4 +46,5 @@ export function applySettings(s = getSettings()) {
   document.documentElement.classList.toggle('dark', s.theme === 'dark')
   document.documentElement.classList.toggle('antigravity', s.theme === 'antigravity')
   document.documentElement.dataset.fontSize = s.fontSize
+  document.documentElement.dataset.reducedMotion = String(s.reducedMotion)
 }

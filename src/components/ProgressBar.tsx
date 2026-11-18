@@ -10,7 +10,7 @@ type Props = {
 export function ProgressBar({ value, max = 100, tone = 'primary', size = 'md', label, showLabel }: Props) {
   const pct = Math.max(0, Math.min(100, (value / Math.max(1, max)) * 100))
   const colors = {
-    primary: 'var(--color-primary)',
+    primary: 'var(--progress-bar-primary, var(--color-primary))',
     accent: 'var(--color-accent)',
     success: 'var(--color-success)',
     danger: 'var(--color-danger)',

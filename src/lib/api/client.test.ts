@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { ApiError, call } from './client'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { ApiError, call, getAccessToken, refreshAccessToken, setAccessToken } from './client'
 
 function response(status: number): Response {
   return new Response(null, { status })
@@ -33,5 +33,32 @@ describe('call', () => {
     expect(error).toBeInstanceOf(ApiError)
     expect(error.message).toMatch(/Something went wrong/)
     expect(error.code).toBe('REQUEST_FAILED')
+  })
+})
+
+describe('session refresh', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    setAccessToken(null)
+  })
+
+  it('rejects a refresh cookie for a different account', async () => {
+    setAccessToken('expired-a', 'account-a')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({
+      accessToken: 'fresh-b', user: { id: 'account-b' },
+    })))
+    await expect(refreshAccessToken()).resolves.toBeNull()
+    expect(getAccessToken()).toBeNull()
+  })
+
+  it('keeps the new session if an old refresh finishes after switching accounts', async () => {
+    setAccessToken('expired-a', 'account-a')
+    let finishRefresh!: (response: Response) => void
+    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>((resolve) => { finishRefresh = resolve })))
+    const refresh = refreshAccessToken()
+    setAccessToken('fresh-b', 'account-b')
+    finishRefresh(Response.json({ accessToken: 'fresh-a', user: { id: 'account-a' } }))
+    await expect(refresh).resolves.toBeNull()
+    expect(getAccessToken()).toBe('fresh-b')
   })
 })

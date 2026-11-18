@@ -383,6 +383,15 @@ const initialState = {
   weakCards: [],
 }
 
+let studySession = 0
+
+function scopeStudyUpdates(set: (update: Partial<State>) => void) {
+  const session = studySession
+  const isCurrent = () => session === studySession
+  const setForSession = (update: Partial<State>) => { if (isCurrent()) set(update) }
+  return { isCurrent, setForSession }
+}
+
 export const useApp = create<State>()(
   persist(
     (set, get) => ({
@@ -478,31 +487,34 @@ export const useApp = create<State>()(
       }),
 
       loadNotes: async () => {
+        const { setForSession } = scopeStudyUpdates(set)
         if (isGuestStore()) return
-        set({ loading: { ...get().loading, notes: true } })
+        setForSession({ loading: { ...get().loading, notes: true } })
         try {
           const dtos = await notesApi.list()
-          set({ notes: dtos.map((d) => ({ id: d.id, title: d.title, content: d.content, subject: d.subject ?? '', updatedAt: d.updatedAt })) })
+          setForSession({ notes: dtos.map((d) => ({ id: d.id, title: d.title, content: d.content, subject: d.subject ?? '', updatedAt: d.updatedAt })) })
         } finally {
-          set({ loading: { ...get().loading, notes: false } })
+          setForSession({ loading: { ...get().loading, notes: false } })
         }
       },
 
       addNote: async (note) => {
+        const { isCurrent, setForSession } = scopeStudyUpdates(set)
         if (isGuestStore()) {
           const stored = { ...note, id: uid('note'), updatedAt: new Date().toISOString() }
-          set({ notes: [stored, ...get().notes] })
+          setForSession({ notes: [stored, ...get().notes] })
           get().addXp(5)
           return stored.id
         }
         const dto = await notesApi.create({ title: note.title, content: note.content, subject: note.subject })
         const stored = { id: dto.id, title: dto.title, content: dto.content, subject: dto.subject ?? '', updatedAt: dto.updatedAt }
-        set({ notes: [stored, ...get().notes] })
-        get().addXp(5)
+        setForSession({ notes: [stored, ...get().notes] })
+        if (isCurrent()) get().addXp(5)
         return stored.id
       },
 
       updateNote: async (id, patch) => {
+        const { setForSession } = scopeStudyUpdates(set)
         const current = get().notes.find((note) => note.id === id)
         if (!current) return
         const updated = { ...current, ...patch, updatedAt: new Date().toISOString() }
@@ -511,7 +523,7 @@ export const useApp = create<State>()(
           content: updated.content,
           subject: updated.subject,
         })
-        set({
+        setForSession({
           notes: get().notes.map((n) =>
             n.id === id ? updated : n,
           ),
@@ -519,121 +531,132 @@ export const useApp = create<State>()(
       },
 
       deleteNote: async (id) => {
+        const { setForSession } = scopeStudyUpdates(set)
         if (!isGuestStore()) await notesApi.remove(id)
-        set({ notes: get().notes.filter((n) => n.id !== id) })
+        setForSession({ notes: get().notes.filter((n) => n.id !== id) })
       },
 
       loadExams: async () => {
+        const { setForSession } = scopeStudyUpdates(set)
         if (isGuestStore()) return
-        set({ loading: { ...get().loading, exams: true } })
+        setForSession({ loading: { ...get().loading, exams: true } })
         try {
           const dtos = await examsApi.list()
-          set({ exams: dtos.map((d) => ({ id: d.id, title: d.title, subject: d.subject ?? '', date: d.date, importance: d.importance })) })
+          setForSession({ exams: dtos.map((d) => ({ id: d.id, title: d.title, subject: d.subject ?? '', date: d.date, importance: d.importance })) })
         } finally {
-          set({ loading: { ...get().loading, exams: false } })
+          setForSession({ loading: { ...get().loading, exams: false } })
         }
       },
 
       addExam: async (exam) => {
+        const { setForSession } = scopeStudyUpdates(set)
         if (isGuestStore()) {
           const stored = { ...exam, id: uid('exam') }
-          set({ exams: [stored, ...get().exams] })
+          setForSession({ exams: [stored, ...get().exams] })
           return stored.id
         }
         const dto = await examsApi.create({ title: exam.title, subject: exam.subject, date: exam.date, importance: exam.importance })
         const stored = { id: dto.id, title: dto.title, subject: dto.subject ?? '', date: dto.date, importance: dto.importance }
-        set({ exams: [stored, ...get().exams] })
+        setForSession({ exams: [stored, ...get().exams] })
         return stored.id
       },
 
       removeExam: async (id) => {
+        const { setForSession } = scopeStudyUpdates(set)
         if (!isGuestStore()) await examsApi.remove(id)
-        set({ exams: get().exams.filter((e) => e.id !== id) })
+        setForSession({ exams: get().exams.filter((e) => e.id !== id) })
       },
 
       loadTasks: async (date?: string) => {
+        const { setForSession } = scopeStudyUpdates(set)
         if (isGuestStore()) return
-        set({ loading: { ...get().loading, tasks: true } })
+        setForSession({ loading: { ...get().loading, tasks: true } })
         try {
           const dtos = await tasksApi.list(date)
-          set({ tasks: dtos.map((d) => ({ id: d.id, title: d.title, date: d.date, done: d.done })) })
+          setForSession({ tasks: dtos.map((d) => ({ id: d.id, title: d.title, date: d.date, done: d.done })) })
         } finally {
-          set({ loading: { ...get().loading, tasks: false } })
+          setForSession({ loading: { ...get().loading, tasks: false } })
         }
       },
 
       toggleTask: async (id) => {
+        const { setForSession } = scopeStudyUpdates(set)
         if (isGuestStore()) {
-          set({ tasks: get().tasks.map((task) => task.id === id ? { ...task, done: !task.done } : task) })
+          setForSession({ tasks: get().tasks.map((task) => task.id === id ? { ...task, done: !task.done } : task) })
           return
         }
         const dto = await tasksApi.toggle(id)
-        set({
+        setForSession({
           tasks: get().tasks.map((t) => (t.id === id ? { ...t, done: dto.done } : t)),
         })
       },
 
       addTask: async (title, date) => {
+        const { setForSession } = scopeStudyUpdates(set)
         if (isGuestStore()) {
           const stored = { id: uid('task'), title, date, done: false }
-          set({ tasks: [stored, ...get().tasks] })
+          setForSession({ tasks: [stored, ...get().tasks] })
           return stored.id
         }
         const dto = await tasksApi.create({ title, date })
         const stored = { id: dto.id, title: dto.title, date: dto.date, done: dto.done }
-        set({ tasks: [stored, ...get().tasks] })
+        setForSession({ tasks: [stored, ...get().tasks] })
         return stored.id
       },
 
       loadFocusSessions: async () => {
+        const { setForSession } = scopeStudyUpdates(set)
         if (isGuestStore()) return
-        set({ loading: { ...get().loading, focus: true } })
+        setForSession({ loading: { ...get().loading, focus: true } })
         try {
           const dtos = await focusSessionsApi.list()
-          set({ focusSessions: dtos.map((d) => ({ id: d.id, minutes: d.minutes, completedAt: d.completedAt })) })
+          setForSession({ focusSessions: dtos.map((d) => ({ id: d.id, minutes: d.minutes, completedAt: d.completedAt })) })
         } finally {
-          set({ loading: { ...get().loading, focus: false } })
+          setForSession({ loading: { ...get().loading, focus: false } })
         }
       },
 
       recordFocus: async (minutes) => {
+        const { isCurrent, setForSession } = scopeStudyUpdates(set)
         const now = new Date().toISOString()
         if (isGuestStore()) {
-          set({ focusSessions: [{ id: uid('focus'), minutes, completedAt: now }, ...get().focusSessions] })
+          setForSession({ focusSessions: [{ id: uid('focus'), minutes, completedAt: now }, ...get().focusSessions] })
           get().addXp(Math.round(25 * Math.min(1, minutes / 25)))
           get().addQuestProgress('focus', 1)
           return
         }
         const dto = await focusSessionsApi.create({ minutes, completedAt: now })
         const stored = { id: dto.id, minutes: dto.minutes, completedAt: dto.completedAt }
-        set({ focusSessions: [stored, ...get().focusSessions] })
-        get().addXp(Math.round(25 * Math.min(1, minutes / 25)))
-        get().addQuestProgress('focus', 1)
+        setForSession({ focusSessions: [stored, ...get().focusSessions] })
+        if (isCurrent()) get().addXp(Math.round(25 * Math.min(1, minutes / 25)))
+        if (isCurrent()) get().addQuestProgress('focus', 1)
       },
 
       loadBossFights: async () => {
+        const { setForSession } = scopeStudyUpdates(set)
         if (isGuestStore()) return
-        set({ loading: { ...get().loading, boss: true } })
+        setForSession({ loading: { ...get().loading, boss: true } })
         try {
           const dtos = await bossFightsApi.list()
-          set({ bossFights: dtos.map((d) => ({ id: d.id, won: d.won, questionsCount: d.questionsCount, heartsRemaining: d.heartsRemaining, completedAt: d.completedAt })) })
+          setForSession({ bossFights: dtos.map((d) => ({ id: d.id, won: d.won, questionsCount: d.questionsCount, heartsRemaining: d.heartsRemaining, completedAt: d.completedAt })) })
         } finally {
-          set({ loading: { ...get().loading, boss: false } })
+          setForSession({ loading: { ...get().loading, boss: false } })
         }
       },
 
       recordBoss: async () => {
+        const { isCurrent, setForSession } = scopeStudyUpdates(set)
         if (isGuestStore()) {
-          set({ bossFights: [{ id: uid('boss'), won: true, questionsCount: 5, heartsRemaining: 3, completedAt: new Date().toISOString() }, ...get().bossFights] })
+          setForSession({ bossFights: [{ id: uid('boss'), won: true, questionsCount: 5, heartsRemaining: 3, completedAt: new Date().toISOString() }, ...get().bossFights] })
           get().addXp(100)
-          set({ badges: { ...get().badges, bossSlayer: true } })
+          setForSession({ badges: { ...get().badges, bossSlayer: true } })
           return
         }
         const dto = await bossFightsApi.create({ won: true, questionsCount: 5, heartsRemaining: 3, completedAt: new Date().toISOString() })
         const stored = { id: dto.id, won: dto.won, questionsCount: dto.questionsCount, heartsRemaining: dto.heartsRemaining, completedAt: dto.completedAt }
-        set({ bossFights: [stored, ...get().bossFights] })
-        get().addXp(100)
-        set({ badges: { ...get().badges, bossSlayer: true } })
+        setForSession({ bossFights: [stored, ...get().bossFights] })
+        if (isCurrent()) get().addXp(100)
+        setForSession({ badges: { ...get().badges, bossSlayer: true } })
       },
 
       buyItem: (item) => {
@@ -651,10 +674,16 @@ export const useApp = create<State>()(
       equipItem: (accessory) => set({ equipped: accessory }),
 
       resetAll: () => {
+        studySession += 1
         localStorage.removeItem('studexa_v1')
         set({ ...initialState, quests: freshQuests(), badges: freshBadges() })
       },
     }),
-    { name: 'studexa_v1', version: 1 },
+    {
+      name: 'studexa_v1',
+      version: 1,
+      partialize: (state) => isGuestStore() ? state : {},
+      merge: (persisted, current) => isGuestStore() ? { ...current, ...(persisted as Partial<State>) } : current,
+    },
   ),
 )

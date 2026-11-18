@@ -1,8 +1,4 @@
-import { getAccessToken, refreshAccessToken } from './client'
-
-const API_BASE = '/api/v1'
-
-type RequestInitWithJson = Omit<RequestInit, 'body'> & { body?: unknown }
+import { call, client } from './client'
 
 export type BossFightDto = {
   id: string
@@ -21,58 +17,17 @@ export type BossFightInput = {
   completedAt: string
 }
 
-async function request<T>(path: string, init: RequestInitWithJson = {}): Promise<T> {
-  const url = `${API_BASE}${path}`
-
-  const send = (token: string | null) =>
-    fetch(url, {
-      method: init.method ?? 'GET',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(init.headers ?? {}),
-      },
-      body: init.body === undefined ? undefined : JSON.stringify(init.body),
-    })
-
-  let accessToken: string | null = getAccessToken()
-
-  let res = await send(accessToken)
-
-  if (res.status === 401) {
-    const token = await refreshAccessToken()
-    if (token) res = await send(token)
-  }
-
-  if (!res.ok) {
-    const err = (await res.json().catch(() => ({}))) as {
-      code?: string
-      detail?: string
-      message?: string
-      title?: string
-    }
-    const code = err.code ? `[${err.code}] ` : ''
-    throw new Error(`${code}${err.detail || err.message || err.title || `Request failed: ${res.status}`}`)
-  }
-
-  if (res.status === 204) return undefined as T
-  return res.json() as Promise<T>
-}
-
 export const bossFightsApi = {
-  list: () => request<BossFightDto[]>('/boss-fights'),
+  list: () => call<BossFightDto[]>(client.GET('/api/v1/boss-fights')),
   listByRange: (start: string, end: string) =>
-    request<BossFightDto[]>(
-      `/boss-fights?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,
-    ),
-  get: (id: string) => request<BossFightDto>(`/boss-fights/${id}`),
+    call<BossFightDto[]>(client.GET('/api/v1/boss-fights', { params: { query: { start, end } } })),
+  get: (id: string) =>
+    call<BossFightDto>(client.GET('/api/v1/boss-fights/{id}', { params: { path: { id } } })),
   create: (input: BossFightInput) =>
-    request<BossFightDto>('/boss-fights', { method: 'POST', body: input }),
-  remove: (id: string) => request<void>(`/boss-fights/${id}`, { method: 'DELETE' }),
+    call<BossFightDto>(client.POST('/api/v1/boss-fights', { body: input })),
+  remove: (id: string) =>
+    call<void>(client.DELETE('/api/v1/boss-fights/{id}', { params: { path: { id } } })),
   count: (start: string, end: string) =>
-    request<number>(
-      `/boss-fights/count?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,
-    ),
-  countWins: () => request<number>('/boss-fights/wins/count'),
+    call<number>(client.GET('/api/v1/boss-fights/count', { params: { query: { start, end } } })),
+  countWins: () => call<number>(client.GET('/api/v1/boss-fights/wins/count')),
 }

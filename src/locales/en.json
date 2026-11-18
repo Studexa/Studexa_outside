@@ -1,4 +1,20 @@
 {
+  "beta": {
+    "inviteCode": "Invite code",
+    "adultConfirm": "I am at least 18 years old.",
+    "adultRequired": "Confirm that you are at least 18.",
+    "invalidInvite": "Use a valid invite code for this email address.",
+    "support": "Need help signing in? Contact the beta organizer.",
+    "aiDisclosure": "Gemini receives the sample or preset question you choose. Google may review the text and results to improve its services. Check generated answers against the sample.",
+    "sample": "Study sample",
+    "samplesError": "Could not load the study samples.",
+    "retry": "Try again",
+    "tutor": "AI tutor",
+    "prompt": "Question",
+    "askTutor": "Ask Gemini",
+    "quizHint": "Generate a quiz from a sample or practise cards from your deck.",
+    "deckHint": "Generate flashcards from a provided study sample."
+  },
   "app": {
     "name": "Studexa",
     "tagline": "Study, grow, repeat"
@@ -346,6 +362,7 @@
     "hint": "Put your phone face down. One task until the bell."
   },
   "notes": {
+    "saveError": "Could not save this note.",
     "title": "Notes",
     "subtitle": "Write it down, then turn it into cards.",
     "newNote": "New note",
@@ -378,6 +395,7 @@
     "backToNotes": "Back to notes"
   },
   "plan": {
+    "saveError": "Could not save. Try again.",
     "title": "Plan",
     "subtitle": "Your goals, exams, and tasks — set by you.",
     "addTask": "Add task",

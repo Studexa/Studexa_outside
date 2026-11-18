@@ -50,6 +50,8 @@ export function PlanPage() {
   })
   const [examOpen, setExamOpen] = useState(false)
   const [taskOpen, setTaskOpen] = useState(false)
+  const [savingEntry, setSavingEntry] = useState(false)
+  const [entryError, setEntryError] = useState(false)
   const [goalOpen, setGoalOpen] = useState(false)
   const [taskTitle, setTaskTitle] = useState('')
   const [examTitle, setExamTitle] = useState('')
@@ -83,22 +85,38 @@ export function PlanPage() {
 
   const createTask = async () => {
     if (!taskTitle.trim()) return
-    await addTask(taskTitle.trim(), today)
-    setTaskTitle('')
-    setTaskOpen(false)
+    setSavingEntry(true)
+    setEntryError(false)
+    try {
+      await addTask(taskTitle.trim(), today)
+      setTaskTitle('')
+      setTaskOpen(false)
+    } catch {
+      setEntryError(true)
+    } finally {
+      setSavingEntry(false)
+    }
   }
 
   const createExam = async () => {
     if (!examTitle.trim() || !examDate) return
-    await addExam({
-      title: examTitle.trim(),
-      subject: examSubject.trim() || examTitle.trim(),
-      date: examDate,
-      importance,
-    })
-    setExamTitle('')
-    setExamSubject('')
-    setExamOpen(false)
+    setSavingEntry(true)
+    setEntryError(false)
+    try {
+      await addExam({
+        title: examTitle.trim(),
+        subject: examSubject.trim() || examTitle.trim(),
+        date: examDate,
+        importance,
+      })
+      setExamTitle('')
+      setExamSubject('')
+      setExamOpen(false)
+    } catch {
+      setEntryError(true)
+    } finally {
+      setSavingEntry(false)
+    }
   }
 
   const saveGoals = async () => {
@@ -348,7 +366,7 @@ export function PlanPage() {
         </div>
       </section>
 
-      <Modal open={taskOpen} title={t('plan.addTask')} onClose={() => setTaskOpen(false)}>
+      <Modal open={taskOpen} title={t('plan.addTask')} onClose={() => { setTaskOpen(false); setEntryError(false) }}>
         <label className="text-sm font-bold" htmlFor="task-title">{t('plan.taskTitle')}</label>
         <input
           id="task-title"
@@ -358,12 +376,13 @@ export function PlanPage() {
           className="mt-1 w-full rounded-2xl px-4 py-2.5"
           autoFocus
         />
-        <Button full className="mt-3" onClick={createTask} disabled={!taskTitle.trim()}>
+        {entryError && <p role="alert" className="mt-2 text-sm text-[var(--color-danger)]">{t('plan.saveError')}</p>}
+        <Button full className="mt-3" onClick={createTask} disabled={!taskTitle.trim() || savingEntry}>
           {t('plan.addTask')}
         </Button>
       </Modal>
 
-      <Modal open={examOpen} title={t('plan.addExam')} onClose={() => setExamOpen(false)}>
+      <Modal open={examOpen} title={t('plan.addExam')} onClose={() => { setExamOpen(false); setEntryError(false) }}>
         <div className="space-y-3">
           <div>
             <label className="text-sm font-bold" htmlFor="exam-title">{t('plan.examTitle')}</label>
@@ -415,7 +434,8 @@ export function PlanPage() {
               ))}
             </div>
           </div>
-          <Button full onClick={createExam} disabled={!examTitle.trim() || !examDate}>
+          {entryError && <p role="alert" className="text-sm text-[var(--color-danger)]">{t('plan.saveError')}</p>}
+          <Button full onClick={createExam} disabled={!examTitle.trim() || !examDate || savingEntry}>
             {t('plan.addExam')}
           </Button>
         </div>

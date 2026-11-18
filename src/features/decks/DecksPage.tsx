@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { betaEnabled } from '../../lib/beta'
 import { Button } from '../../components/Button'
 import { DeckTile } from '../../components/DeckTile'
 import { DeckTileSkeleton } from '../../components/Skeleton'
@@ -9,7 +10,7 @@ import { Icon } from '../../components/Icon'
 import { Modal } from '../../components/Modal'
 import { decksApi, subjectsApi } from '../../lib/api'
 import { studyKeys, useDecks } from '../../lib/study'
-import { isGuestMode } from '../../lib/auth'
+import { isGuestMode, useAuth } from '../../lib/auth'
 import { useApp } from '../../lib/store'
 
 const colors = ['#6366f1', '#f59e0b', '#10b981', '#f87171', '#3b82f6', '#ec4899', '#8b5cf6', '#14b8a6']
@@ -20,9 +21,10 @@ export function DecksPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const guestMode = isGuestMode()
+  const userId = useAuth((state) => state.user?.id)
   const decksQuery = useDecks()
   const subjectsQuery = useQuery({
-    queryKey: ['subjects', 'active'],
+    queryKey: ['subjects', userId, 'active'],
     queryFn: () => subjectsApi.list(false),
     enabled: !guestMode,
   })
@@ -38,7 +40,7 @@ export function DecksPage() {
       ? Promise.resolve({ id: useApp.getState().addDeck({ title: title.trim(), subject: '', icon, color }) })
       : decksApi.create({ title: title.trim(), subjectId: subjectId || null, color, icon }),
     onSuccess: (deck) => {
-      void queryClient.invalidateQueries({ queryKey: studyKeys.decks() })
+      void queryClient.invalidateQueries({ queryKey: studyKeys.decks(userId) })
       setOpen(false)
       setTitle('')
       setSubjectId('')
@@ -117,7 +119,7 @@ export function DecksPage() {
           </span>
           <div className="flex-1">
             <p className="font-extrabold text-[var(--color-primary)]">{t('decks.aiTitle')}</p>
-            <p className="text-sm text-[var(--color-muted)]">{t('decks.aiHint')}</p>
+            <p className="text-sm text-[var(--color-muted)]">{t(betaEnabled ? 'beta.deckHint' : 'decks.aiHint')}</p>
           </div>
           <Link to={decks[0] ? `/study/decks/${decks[0].id}` : '/study/decks'}>
             <Button variant="secondary" size="sm">

@@ -3,6 +3,8 @@ import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+const backendOrigin = process.env.STUDEXA_DEV_API_ORIGIN ?? 'http://localhost:8080'
+
 export default defineConfig({
   plugins: [
     react(),
@@ -10,6 +12,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
+        navigateFallbackDenylist: [/^\/api(?:\/|$)/, /^\/actuator(?:\/|$)/, /^\/quiz(?:\/|$)/],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
@@ -51,12 +54,12 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8081',
+        target: backendOrigin,
         changeOrigin: true,
       },
       // STOMP endpoint (handshake + WebSocket upgrade) for live quiz rooms.
       '/quiz': {
-        target: 'http://localhost:8081',
+        target: backendOrigin,
         changeOrigin: true,
         ws: true,
       },

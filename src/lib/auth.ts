@@ -5,11 +5,14 @@ import {
   setAccessToken,
   type AuthResponse,
   type Profile,
+  type RegisterInput,
   type UpdateProfileInput,
   type User,
 } from './api'
 import { queryClient } from './queryClient'
 import { useApp } from './store'
+import { clearOfflineAccount } from './offlineDb'
+import { betaEnabled } from './beta'
 
 type AuthStatus = 'idle' | 'loading' | 'authenticated' | 'unauthenticated'
 
@@ -19,32 +22,38 @@ type AuthState = {
   profile: Profile | null
   bootstrap: () => Promise<void>
   login: (email: string, password: string) => Promise<void>
-  register: (input: { email: string; password: string; nickname: string; language?: 'en' | 'km' }) => Promise<void>
+  register: (input: RegisterInput) => Promise<void>
   logout: () => Promise<void>
   updateProfile: (input: UpdateProfileInput) => Promise<Profile>
   loginAsGuest: () => void
 }
 
-function syncLocalProfile(profile: Profile) {
+function syncLocalProfile(profile: Profile, restoreOnboarding = false) {
   const local = useApp.getState()
   local.setNickname(profile.nickname)
-  useApp.setState({ dailyGoal: profile.dailyGoalCards })
+  useApp.setState({
+    dailyGoal: profile.dailyGoalCards,
+    ...(restoreOnboarding && { onboarded: Boolean(profile.levelOfStudy) }),
+  })
 }
 
 function applySession(response: AuthResponse) {
-  setAccessToken(response.accessToken)
-  syncLocalProfile(response.profile)
+  setAccessToken(response.accessToken, response.user.id)
+  syncLocalProfile(response.profile, true)
   return { user: response.user, profile: response.profile }
 }
 
-function resetClientState() {
+function resetClientState(previousUserId?: string) {
   queryClient.clear()
   useApp.getState().resetAll()
+  if (previousUserId && previousUserId !== 'demo-guest-user') {
+    void clearOfflineAccount(previousUserId).catch(() => undefined)
+  }
 }
 
 /** True when the app is running in isolated guest/demo mode (no backend calls). */
 export function isGuestMode(): boolean {
-  return typeof window !== 'undefined' && localStorage.getItem('studexa_guest_mode') === 'true'
+  return !betaEnabled && typeof window !== 'undefined' && localStorage.getItem('studexa_guest_mode') === 'true'
 }
 
 export const useAuth = create<AuthState>()((set, get) => ({
@@ -64,48 +73,60 @@ export const useAuth = create<AuthState>()((set, get) => ({
     set({ status: 'loading' })
     try {
       const me = await restoreSession()
+      if (get().status !== 'loading') return
       if (!me) {
+        resetClientState()
         set({ status: 'unauthenticated', user: null, profile: null })
         return
       }
-      syncLocalProfile(me.profile)
+      localStorage.removeItem('studexa_guest_mode')
+      resetClientState()
+      syncLocalProfile(me.profile, true)
       set({ status: 'authenticated', user: me.user, profile: me.profile })
     } catch {
-      set({ status: 'unauthenticated', user: null, profile: null })
+      if (get().status === 'loading') {
+        setAccessToken(null)
+        resetClientState()
+        set({ status: 'unauthenticated', user: null, profile: null })
+      }
     }
   },
 
   login: async (email, password) => {
     const response = await authApi.login({ email, password })
-    resetClientState()
+    localStorage.removeItem('studexa_guest_mode')
+    resetClientState(get().user?.id)
     const session = applySession(response)
     set({ status: 'authenticated', ...session })
   },
 
   register: async (input) => {
     const response = await authApi.register(input)
-    resetClientState()
+    localStorage.removeItem('studexa_guest_mode')
+    resetClientState(get().user?.id)
     const session = applySession(response)
     set({ status: 'authenticated', ...session })
   },
 
   logout: async () => {
+    const previousUserId = get().user?.id
+    setAccessToken(null)
     if (typeof window !== 'undefined') {
       localStorage.removeItem('studexa_guest_mode')
     }
+    resetClientState(previousUserId)
+    set({ status: 'unauthenticated', user: null, profile: null })
     try {
       await authApi.logout()
     } catch {
       // The refresh cookie may already be gone; clear local state regardless.
-    } finally {
-      setAccessToken(null)
-      resetClientState()
-      set({ status: 'unauthenticated', user: null, profile: null })
     }
   },
 
   loginAsGuest: () => {
+    if (betaEnabled) return
     if (typeof window !== 'undefined') {
+      if (!isGuestMode()) resetClientState(get().user?.id)
       localStorage.setItem('studexa_guest_mode', 'true')
     }
     const guestUser: User = {
@@ -130,6 +151,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
   },
 
   updateProfile: async (input) => {
+    const userId = get().user?.id
     if (isGuestMode()) {
       const current = get().profile
       const guestProfile: Profile = {
@@ -150,12 +172,13 @@ export const useAuth = create<AuthState>()((set, get) => ({
 
     try {
       const me = await authApi.updateMe(input)
+      if (get().user?.id !== userId) throw new Error('Your account changed.')
       syncLocalProfile(me.profile)
       set({ user: me.user, profile: me.profile })
       return me.profile
     } catch (err) {
       const current = get().profile
-      if (current) {
+      if (current && get().user?.id === userId && !betaEnabled) {
         const fallbackProfile: Profile = {
           ...current,
           ...input,

@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { betaEnabled } from '../lib/beta'
 import {
   AppShell, AuthCallbackPage, AuthPage, BossPage, CreateRoomPage, DeckEditorPage, DecksPage, DesignPage,
   ErrorBoundary, ExplorePage, HomePage, JoinRoomPage, LandingPage, LazyRoute, LobbyPage, MinigamesPage,
@@ -32,7 +33,7 @@ export const router = createBrowserRouter([
     element: (
       <ErrorBoundary>
         <LazyRoute>
-          <AuthCallbackPage />
+          {betaEnabled ? <Navigate to="/login" replace /> : <AuthCallbackPage />}
         </LazyRoute>
       </ErrorBoundary>
     ),
@@ -49,27 +50,27 @@ export const router = createBrowserRouter([
   },
   {
     path: '/quiz',
-    element: <LandingPage />,
+    element: betaEnabled ? <Navigate to="/study/quiz" replace /> : <LandingPage />,
   },
   {
     path: '/quiz/create',
-    element: <RequireAuth><CreateRoomPage /></RequireAuth>,
+    element: betaEnabled ? <Navigate to="/study/quiz" replace /> : <RequireAuth><CreateRoomPage /></RequireAuth>,
   },
   {
     path: '/quiz/join',
-    element: <RequireAuth><JoinRoomPage /></RequireAuth>,
+    element: betaEnabled ? <Navigate to="/study/quiz" replace /> : <RequireAuth><JoinRoomPage /></RequireAuth>,
   },
   {
     path: '/quiz/lobby/:code',
-    element: <RequireAuth><LobbyPage /></RequireAuth>,
+    element: betaEnabled ? <Navigate to="/study/quiz" replace /> : <RequireAuth><LobbyPage /></RequireAuth>,
   },
   {
     path: '/quiz/play/:sessionId',
-    element: <RequireAuth><PlayPage /></RequireAuth>,
+    element: betaEnabled ? <Navigate to="/study/quiz" replace /> : <RequireAuth><PlayPage /></RequireAuth>,
   },
   {
     path: '/quiz/results/:sessionId',
-    element: <RequireAuth><ResultsPage /></RequireAuth>,
+    element: betaEnabled ? <Navigate to="/study/quiz" replace /> : <RequireAuth><ResultsPage /></RequireAuth>,
   },
   {
     path: '/onboarding',
@@ -213,7 +214,7 @@ export const router = createBrowserRouter([
         path: 'explore',
         element: (
           <LazyRoute>
-            <ExplorePage />
+            {betaEnabled ? <Navigate to="/" replace /> : <ExplorePage />}
           </LazyRoute>
         ),
       },

@@ -11,7 +11,7 @@ import { Spinner } from '../../components/Spinner'
 import { celebrate } from '../../lib/confetti'
 import { playSound } from '../../lib/sound'
 import { type CardType, type DueCard, type ReviewRating } from '../../lib/api'
-import { questApi, reviewApi, type ReviewAnswerResponse } from '../../lib/api'
+import { ApiError, questApi, reviewApi, type ReviewAnswerResponse } from '../../lib/api'
 import { studyKeys, useDueCards } from '../../lib/study'
 import { useApp } from '../../lib/store'
 import { isGuestMode, useAuth } from '../../lib/auth'
@@ -91,30 +91,35 @@ export function ReviewPage() {
   useEffect(() => {
     if (!userId) return
     let synced = false
+    let disposed = false
+    const isCurrent = () => !disposed && useAuth.getState().user?.id === userId
     const syncPending = async () => {
-      if (synced) return
+      if (synced || !isCurrent()) return
       synced = true
-      const pending = await getPendingAnswers(userId)
-      for (const p of pending) {
-        try {
+      try {
+        const pending = await getPendingAnswers(userId)
+        for (const p of pending) {
+          if (!isCurrent()) break
           await reviewApi.answer({
             cardId: p.cardId,
             rating: p.rating.toUpperCase() as ReviewRating,
             msTaken: 0,
             clientReviewId: p.clientReviewId,
           })
-          await removePendingAnswer(p.id!)
-        } catch {
-          // Still offline or server error — keep queued, stop retrying for now
-          break
+          if (p.id !== undefined) await removePendingAnswer(p.id)
         }
+      } finally {
+        synced = false
       }
-      synced = false
     }
+    const retryPending = () => { void syncPending().catch(() => undefined) }
 
-    syncPending()
-    window.addEventListener('online', syncPending)
-    return () => window.removeEventListener('online', syncPending)
+    retryPending()
+    window.addEventListener('online', retryPending)
+    return () => {
+      disposed = true
+      window.removeEventListener('online', retryPending)
+    }
   }, [userId])
 
   const review = useMutation({
@@ -125,22 +130,28 @@ export function ReviewPage() {
       }
       try {
         return await reviewApi.answer({ cardId: id, rating, msTaken, clientReviewId })
-      } catch {
+      } catch (error) {
         // Offline: queue the answer to replay when reconnected.
         // The backend's idempotency key (clientReviewId) makes replay safe.
-        if (userId) {
+        if (error instanceof ApiError || !userId || useAuth.getState().user?.id !== userId) {
+          throw error
+        }
+        if (error instanceof TypeError || !navigator.onLine) {
           await queuePendingAnswer(userId, id, rating.toLowerCase() as 'again' | 'hard' | 'good' | 'easy', clientReviewId)
+        } else {
+          throw error
         }
         // Return a synthetic response so the UI stays responsive offline
         return { xpEarned: 0, leveledUp: false, newLevel: 1 } as ReviewAnswerResponse
       }
     },
     onSuccess: async (response: ReviewAnswerResponse, variables) => {
+      if (useAuth.getState().user?.id !== userId) return
       setServerXp(response.xpEarned)
       setLeveledUp(response.leveledUp)
       setNewLevel(response.newLevel)
-      void queryClient.invalidateQueries({ queryKey: studyKeys.due() })
-      void queryClient.invalidateQueries({ queryKey: studyKeys.decks() })
+      void queryClient.invalidateQueries({ queryKey: studyKeys.due(userId) })
+      void queryClient.invalidateQueries({ queryKey: studyKeys.decks(userId) })
 
       // Report quest progress: warmup counts reviewed cards toward daily quest
       if (!isGuestMode() && navigator.onLine && userId) {
@@ -516,7 +527,7 @@ export function ReviewPage() {
                 await reviewApi.undo(undoCardId)
                 setUndoCardId(null)
                 if (undoTimer.current) window.clearTimeout(undoTimer.current)
-                void queryClient.invalidateQueries({ queryKey: studyKeys.due() })
+                void queryClient.invalidateQueries({ queryKey: studyKeys.due(userId) })
                 setIndex((i) => Math.max(0, i - 1))
                 setFlipped(false)
                 setRatings((prev) => prev.slice(0, -1))

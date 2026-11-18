@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { Button } from '../../components/Button'
@@ -9,6 +10,10 @@ import { Icon } from '../../components/Icon'
 import { Modal } from '../../components/Modal'
 import { useApp, type Note } from '../../lib/store'
 import { openStudyBuddy } from '../../lib/aiStudy'
+import { betaEnabled } from '../../lib/beta'
+import { isGuestMode, useAuth } from '../../lib/auth'
+import { cardsApi } from '../../lib/api'
+import { studyKeys, useDecks } from '../../lib/study'
 
 export function NoteEditorPage() {
   const { t } = useTranslation()
@@ -36,13 +41,15 @@ export function NoteEditorPage() {
 function NoteEditor({ note }: { note: Note }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const decks = useApp((s) => s.decks)
+  const { data: decks = [] } = useDecks()
+  const queryClient = useQueryClient()
+  const userId = useAuth((state) => state.user?.id)
   const updateNote = useApp((s) => s.updateNote)
   const deleteNote = useApp((s) => s.deleteNote)
   const addCard = useApp((s) => s.addCard)
 
   const [title, setTitle] = useState(note.title)
-  const [status, setStatus] = useState<'saved' | 'saving'>('saved')
+  const [status, setStatus] = useState<'saved' | 'saving' | 'error'>('saved')
   const [selectedText, setSelectedText] = useState('')
   const [cardOpen, setCardOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -51,16 +58,33 @@ function NoteEditor({ note }: { note: Note }) {
   const [deckId, setDeckId] = useState(decks[0]?.id ?? '')
   const [flash, setFlash] = useState<string | null>(null)
   const saveTimer = useRef<number | null>(null)
-  const latest = useRef({ title: note.title, content: note.content })
+  const initial = { title: note.title, content: note.content }
+  const latest = useRef(initial)
+  const saved = useRef(initial)
+  const saving = useRef<Promise<void>>(Promise.resolve())
 
-  const queueSave = async (patch: { title?: string; content?: string }) => {
+  const flush = () => {
+    if (saveTimer.current !== null) window.clearTimeout(saveTimer.current)
+    saveTimer.current = null
+    setStatus('saving')
+    const snapshot = latest.current
+    const request = saving.current.then(async () => {
+      if (useAuth.getState().user?.id !== userId) return
+      if (snapshot !== saved.current) {
+        await updateNote(note.id, snapshot)
+        saved.current = snapshot
+      }
+      if (latest.current === snapshot) setStatus('saved')
+    })
+    saving.current = request.catch(() => { setStatus('error') })
+    return request
+  }
+
+  const queueSave = (patch: { title?: string; content?: string }) => {
     latest.current = { ...latest.current, ...patch }
     setStatus('saving')
     if (saveTimer.current) window.clearTimeout(saveTimer.current)
-    saveTimer.current = window.setTimeout(async () => {
-      await updateNote(note.id, latest.current)
-      setStatus('saved')
-    }, 600)
+    saveTimer.current = window.setTimeout(() => { void flush().catch(() => undefined) }, 600)
   }
 
   const editor = useEditor({
@@ -85,11 +109,6 @@ function NoteEditor({ note }: { note: Note }) {
     }
   }, [])
 
-  const flush = async () => {
-    if (saveTimer.current) window.clearTimeout(saveTimer.current)
-    await updateNote(note.id, latest.current)
-  }
-
   const openCardModal = () => {
     setCardFront(selectedText)
     setCardBack('')
@@ -97,17 +116,30 @@ function NoteEditor({ note }: { note: Note }) {
     setCardOpen(true)
   }
 
-  const createCard = () => {
-    if (!cardFront.trim() || !cardBack.trim() || !deckId) return
-    addCard(deckId, cardFront.trim(), cardBack.trim())
-    setCardOpen(false)
-    setSelectedText('')
-    setFlash(t('notes.flashcardCreated'))
-    window.setTimeout(() => setFlash(null), 2600)
-  }
+  const createCard = useMutation({
+    mutationFn: async () => {
+      const front = cardFront.trim()
+      const back = cardBack.trim()
+      if (isGuestMode()) {
+        addCard(deckId, front, back)
+      } else {
+        await cardsApi.create(deckId, { type: 'BASIC', front, back })
+      }
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: studyKeys.decks(userId) })
+      void queryClient.invalidateQueries({ queryKey: studyKeys.due(userId) })
+      setCardOpen(false)
+      setSelectedText('')
+      setFlash(t('notes.flashcardCreated'))
+      window.setTimeout(() => setFlash(null), 2600)
+    },
+  })
 
   const confirmDelete = async () => {
     if (saveTimer.current) window.clearTimeout(saveTimer.current)
+    await saving.current
+    if (useAuth.getState().user?.id !== userId) return
     await deleteNote(note.id)
     navigate('/notes')
   }
@@ -128,8 +160,7 @@ function NoteEditor({ note }: { note: Note }) {
       <div className="flex items-center gap-2">
         <button
           onClick={() => {
-            flush()
-            navigate('/notes')
+            void flush().then(() => navigate('/notes')).catch(() => undefined)
           }}
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-muted)]"
           aria-label={t('common.back')}
@@ -142,13 +173,17 @@ function NoteEditor({ note }: { note: Note }) {
           </span>
           <span className="inline-flex items-center gap-1 text-xs font-bold text-[var(--color-muted)]" role="status">
             <Icon name={status === 'saved' ? 'checkCircle' : 'reset'} size={14} className={status === 'saving' ? 'animate-spin' : ''} />
-            {status === 'saved' ? t('notes.saved') : t('notes.saving')}
+            {status === 'error' ? t('notes.saveError') : status === 'saved' ? t('notes.saved') : t('notes.saving')}
           </span>
+          {status === 'error' && (
+            <button type="button" className="text-xs font-bold underline"
+              onClick={() => void flush().catch(() => undefined)}>{t('common.retry')}</button>
+          )}
         </div>
-        <Button variant="secondary" size="sm" disabled={!editor?.getText().trim()}
+        {!betaEnabled && <Button variant="secondary" size="sm" disabled={!editor?.getText().trim()}
           onClick={() => openStudyBuddy({ title, text: selectedText || editor?.getText({ blockSeparator: '\n' }) || '' })}>
           <Icon name="sparkles" size={16} /> {t('pet.studyNote')}
-        </Button>
+        </Button>}
         <button
           onClick={() => setDeleteOpen(true)}
           className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--color-muted)] hover:bg-[var(--color-danger-soft)] hover:text-[var(--color-danger)]"
@@ -255,7 +290,9 @@ function NoteEditor({ note }: { note: Note }) {
               ))}
             </select>
           </div>
-          <Button full onClick={createCard} disabled={!cardFront.trim() || !cardBack.trim() || !deckId}>
+          {createCard.isError && <p role="alert" className="text-sm text-[var(--color-danger)]">{createCard.error.message}</p>}
+          <Button full onClick={() => createCard.mutate()}
+            disabled={!cardFront.trim() || !cardBack.trim() || !deckId || createCard.isPending}>
             <Icon name="plus" size={18} /> {t('notes.createCard')}
           </Button>
         </div>

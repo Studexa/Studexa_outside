@@ -21,41 +21,54 @@ export class ApiError extends Error {
 }
 
 let accessToken: string | null = null
+let sessionAccountId: string | undefined
+let sessionGeneration = 0
 
-export function setAccessToken(token: string | null) {
+export function setAccessToken(token: string | null, accountId?: string) {
+  sessionGeneration += 1
   accessToken = token
+  sessionAccountId = accountId
 }
 
 export function getAccessToken() {
   return accessToken
 }
 
-let refreshing: Promise<string | null> | null = null
+let refreshing: { generation: number; pending: Promise<string | null> } | undefined
 
 export async function refreshAccessToken(): Promise<string | null> {
-  if (!refreshing) {
-    refreshing = (async () => {
-      try {
-        const res = await fetch(`${API_ORIGIN}${API_PREFIX}/auth/refresh`, {
-          method: 'POST',
-          credentials: 'include',
-        })
-        if (!res.ok) {
-          accessToken = null
-          return null
-        }
-        const data = (await res.json()) as { accessToken?: string }
-        accessToken = data.accessToken ?? null
-        return accessToken
-      } catch {
-        accessToken = null
-        return null
-      } finally {
-        refreshing = null
-      }
-    })()
+  const generation = sessionGeneration
+  if (refreshing?.generation === generation) return refreshing.pending
+  const pending = requestSessionRefresh(generation)
+  refreshing = { generation, pending }
+  try {
+    return await pending
+  } finally {
+    if (refreshing?.pending === pending) refreshing = undefined
   }
-  return refreshing
+}
+
+async function requestSessionRefresh(generation: number): Promise<string | null> {
+  try {
+    const response = await fetch(`${API_ORIGIN}${API_PREFIX}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+    const data = response.ok
+      ? (await response.json()) as { accessToken?: string; user?: { id: string } }
+      : null
+    if (generation !== sessionGeneration) return null
+    if (!data?.user?.id || (sessionAccountId && sessionAccountId !== data.user.id)) {
+      accessToken = null
+      return null
+    }
+    sessionAccountId = data.user.id
+    accessToken = data.accessToken ?? null
+    return accessToken
+  } catch {
+    if (generation === sessionGeneration) accessToken = null
+    return null
+  }
 }
 
 const NO_RETRY_PATHS = [
@@ -72,25 +85,39 @@ function isAuthPath(url: string) {
   return NO_RETRY_PATHS.some((suffix) => path.endsWith(suffix))
 }
 
+const sessionRequests = new WeakMap<Request, { generation: number; retry?: Request }>()
+
 const authMiddleware: Middleware = {
   onRequest({ request }) {
     if (accessToken) {
       request.headers.set('Authorization', `Bearer ${accessToken}`)
     }
+    if (!isAuthPath(request.url)) {
+      const retry = request.body ? request.clone() : undefined
+      sessionRequests.set(request, { generation: sessionGeneration, retry })
+    }
     return request
   },
 
   async onResponse({ request, response }) {
-    if (response.status !== 401 || isAuthPath(request.url)) {
-      return response
+    const initial = sessionRequests.get(request)
+    sessionRequests.delete(request)
+    if (!initial) return response
+    if (initial.generation !== sessionGeneration) {
+      throw new ApiError(401, 'SESSION_CHANGED', 'Your account changed. Please retry.')
     }
+    if (response.status !== 401 || !sessionAccountId) return response
     const token = await refreshAccessToken()
-    if (!token) {
+    if (!token || initial.generation !== sessionGeneration) {
       return response
     }
-    const retry = request.clone()
+    const retry = initial.retry ?? request.clone()
     retry.headers.set('Authorization', `Bearer ${token}`)
-    return fetch(retry)
+    const retried = await fetch(retry)
+    if (initial.generation !== sessionGeneration) {
+      throw new ApiError(401, 'SESSION_CHANGED', 'Your account changed. Please retry.')
+    }
+    return retried
   },
 }
 

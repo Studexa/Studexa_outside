@@ -6,6 +6,7 @@ import { Icon } from '../../components/Icon'
 import { Mascot } from '../../components/Mascot'
 import { ApiError } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
+import { betaEnabled, betaSupportEmail } from '../../lib/beta'
 
 type Mode = 'login' | 'register'
 
@@ -22,6 +23,8 @@ export function AuthPage({ mode }: { mode: Mode }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [nickname, setNickname] = useState('')
+  const [inviteCode, setInviteCode] = useState('')
+  const [adultConfirmed, setAdultConfirmed] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fields, setFields] = useState<Record<string, string>>({})
@@ -51,12 +54,14 @@ export function AuthPage({ mode }: { mode: Mode }) {
           password,
           nickname: nickname.trim(),
           language: i18n.language === 'km' ? 'km' : 'en',
+          ...(betaEnabled && { inviteCode: inviteCode.trim(), adultConfirmed }),
         })
         navigate('/onboarding', { replace: true })
       }
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.message)
+        setError(err.code === 'BETA_INVALID_INVITE' ? t('beta.invalidInvite')
+          : err.code === 'BETA_ADULT_REQUIRED' ? t('beta.adultRequired') : err.message)
         setFields(err.fields ?? {})
       } else {
         setError(t('auth.errorGeneric'))
@@ -181,6 +186,21 @@ export function AuthPage({ mode }: { mode: Mode }) {
                 {fieldError('password')}
               </div>
 
+              {betaEnabled && mode === 'register' && (
+                <>
+                  <label className="block text-sm font-bold">
+                    {t('beta.inviteCode')}
+                    <input autoComplete="off" spellCheck={false} required maxLength={128}
+                      className="mt-1 w-full rounded-[16px] px-4 py-3"
+                      value={inviteCode} onChange={(event) => setInviteCode(event.target.value)} />
+                  </label>
+                  <label className="flex items-center gap-2 text-sm font-bold">
+                    <input type="checkbox" required checked={adultConfirmed}
+                      onChange={(event) => setAdultConfirmed(event.target.checked)} />
+                    {t('beta.adultConfirm')}
+                  </label>
+                </>
+              )}
               {error && (
                 <p
                   role="alert"
@@ -190,12 +210,13 @@ export function AuthPage({ mode }: { mode: Mode }) {
                 </p>
               )}
 
-              <Button type="submit" full size="lg" disabled={busy}>
+              <Button type="submit" full size="lg" disabled={busy || status === 'loading'}>
                 {busy ? t('common.loading') : mode === 'login' ? t('auth.loginButton') : t('auth.registerButton')}
                 <Icon name="arrowRight" size={19} />
               </Button>
             </form>
 
+            {!betaEnabled && <>
             <div className="relative my-3 flex items-center justify-center">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-[var(--color-border)]" />
@@ -218,6 +239,7 @@ export function AuthPage({ mode }: { mode: Mode }) {
               <Icon name="sparkles" size={19} />
               {t('auth.guestButton', 'Continue in Demo / Offline Mode')}
             </Button>
+            </>}
 
             <p className="mt-4 text-center text-sm text-[var(--color-muted)]">
               {mode === 'login' ? t('auth.noAccount') : t('auth.haveAccount')}{' '}
@@ -228,6 +250,13 @@ export function AuthPage({ mode }: { mode: Mode }) {
                 {mode === 'login' ? t('auth.toRegister') : t('auth.toLogin')}
               </Link>
             </p>
+            {betaEnabled && mode === 'login' && (
+              <p className="mt-3 text-center text-sm text-[var(--color-muted)]">
+                {t('beta.support')}{betaSupportEmail && (
+                  <> <a href={`mailto:${betaSupportEmail}`} className="underline">{betaSupportEmail}</a></>
+                )}
+              </p>
+            )}
           </div>
 
           <button

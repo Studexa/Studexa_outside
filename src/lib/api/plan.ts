@@ -1,48 +1,6 @@
 import type { Importance, Note, Exam, Task } from '../../lib/store'
-import { getAccessToken, refreshAccessToken } from './client'
-
-const API_BASE = '/api/v1'
-
-type RequestInitWithJson = Omit<RequestInit, 'body'> & { body?: unknown }
-
-async function request<T>(path: string, init: RequestInitWithJson = {}): Promise<T> {
-  const url = `${API_BASE}${path}`
-
-  const send = (token: string | null) =>
-    fetch(url, {
-      method: init.method ?? 'GET',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(init.headers ?? {}),
-      },
-      body: init.body === undefined ? undefined : JSON.stringify(init.body),
-    })
-
-  let accessToken: string | null = getAccessToken()
-
-  let res = await send(accessToken)
-
-  if (res.status === 401) {
-    const token = await refreshAccessToken()
-    if (token) res = await send(token)
-  }
-
-  if (!res.ok) {
-    const err = (await res.json().catch(() => ({}))) as {
-      code?: string
-      detail?: string
-      message?: string
-      title?: string
-    }
-    const code = err.code ? `[${err.code}] ` : ''
-    throw new Error(`${code}${err.detail || err.message || err.title || `Request failed: ${res.status}`}`)
-  }
-
-  if (res.status === 204) return undefined as T
-  return res.json() as Promise<T>
-}
+import { asBody, call, client } from './client'
+import type { components } from './schema'
 
 /** Notes */
 export type NoteDto = {
@@ -60,13 +18,17 @@ export type NoteInput = {
   subject?: string | null
 }
 
+const pathId = (id: string) => ({ path: { id } })
+
 export const notesApi = {
-  list: () => request<NoteDto[]>('/notes'),
-  get: (id: string) => request<NoteDto>(`/notes/${id}`),
-  create: (input: NoteInput) => request<NoteDto>('/notes', { method: 'POST', body: input }),
+  list: () => call<NoteDto[]>(client.GET('/api/v1/notes')),
+  get: (id: string) => call<NoteDto>(client.GET('/api/v1/notes/{id}', { params: pathId(id) })),
+  create: (input: NoteInput) =>
+    call<NoteDto>(client.POST('/api/v1/notes', { body: asBody(input) })),
   update: (id: string, input: NoteInput) =>
-    request<NoteDto>(`/notes/${id}`, { method: 'PUT', body: input }),
-  remove: (id: string) => request<void>(`/notes/${id}`, { method: 'DELETE' }),
+    call<NoteDto>(client.PUT('/api/v1/notes/{id}', { params: pathId(id), body: asBody(input) })),
+  remove: (id: string) =>
+    call<void>(client.DELETE('/api/v1/notes/{id}', { params: pathId(id) })),
 }
 
 /** Exams */
@@ -87,15 +49,30 @@ export type ExamInput = {
   importance: Importance
 }
 
+type ExamResponse = Omit<ExamDto, 'date' | 'importance'> & { examDate: string; importance: string }
+
+const examImportance = { low: 'LOW', medium: 'MEDIUM', high: 'HIGH' } as const
+
+function examBody({ date, importance, ...input }: ExamInput): components['schemas']['ExamRequest'] {
+  return { ...input, subject: input.subject ?? undefined, examDate: date, importance: examImportance[importance] }
+}
+
+function mapExam({ examDate, importance, ...exam }: ExamResponse): ExamDto {
+  return { ...exam, date: examDate, importance: importance.toLowerCase() as Importance }
+}
+
 export const examsApi = {
-  list: () => request<ExamDto[]>('/exams'),
-  listByRange: (start: string, end: string) =>
-    request<ExamDto[]>(`/exams/range?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`),
-  get: (id: string) => request<ExamDto>(`/exams/${id}`),
-  create: (input: ExamInput) => request<ExamDto>('/exams', { method: 'POST', body: input }),
-  update: (id: string, input: ExamInput) =>
-    request<ExamDto>(`/exams/${id}`, { method: 'PUT', body: input }),
-  remove: (id: string) => request<void>(`/exams/${id}`, { method: 'DELETE' }),
+  list: async () => (await call<ExamResponse[]>(client.GET('/api/v1/exams'))).map(mapExam),
+  listByRange: async (start: string, end: string) =>
+    (await call<ExamResponse[]>(client.GET('/api/v1/exams/range', { params: { query: { start, end } } }))).map(mapExam),
+  get: async (id: string) =>
+    mapExam(await call<ExamResponse>(client.GET('/api/v1/exams/{id}', { params: pathId(id) }))),
+  create: async (input: ExamInput) =>
+    mapExam(await call<ExamResponse>(client.POST('/api/v1/exams', { body: examBody(input) }))),
+  update: async (id: string, input: ExamInput) =>
+    mapExam(await call<ExamResponse>(client.PUT('/api/v1/exams/{id}', { params: pathId(id), body: examBody(input) }))),
+  remove: (id: string) =>
+    call<void>(client.DELETE('/api/v1/exams/{id}', { params: pathId(id) })),
 }
 
 /** Tasks */
@@ -114,15 +91,28 @@ export type TaskInput = {
   done?: boolean
 }
 
+type TaskResponse = Omit<TaskDto, 'date'> & { taskDate: string }
+
+function taskBody({ date, ...input }: TaskInput): components['schemas']['TaskRequest'] {
+  return { ...input, taskDate: date }
+}
+
+function mapTask({ taskDate, ...task }: TaskResponse): TaskDto {
+  return { ...task, date: taskDate }
+}
+
 export const tasksApi = {
-  list: (date?: string) =>
-    request<TaskDto[]>(date ? `/tasks?date=${encodeURIComponent(date)}` : '/tasks'),
-  get: (id: string) => request<TaskDto>(`/tasks/${id}`),
-  create: (input: TaskInput) => request<TaskDto>('/tasks', { method: 'POST', body: input }),
-  update: (id: string, input: TaskInput) =>
-    request<TaskDto>(`/tasks/${id}`, { method: 'PUT', body: input }),
-  toggle: (id: string) => request<TaskDto>(`/tasks/${id}/toggle`, { method: 'PUT' }),
-  remove: (id: string) => request<void>(`/tasks/${id}`, { method: 'DELETE' }),
+  list: async (date?: string) =>
+    (await call<TaskResponse[]>(client.GET('/api/v1/tasks', { params: { query: { date } } }))).map(mapTask),
+  get: async (id: string) =>
+    mapTask(await call<TaskResponse>(client.GET('/api/v1/tasks/{id}', { params: pathId(id) }))),
+  create: async (input: TaskInput) =>
+    mapTask(await call<TaskResponse>(client.POST('/api/v1/tasks', { body: taskBody(input) }))),
+  update: async (id: string, input: TaskInput) =>
+    mapTask(await call<TaskResponse>(client.PUT('/api/v1/tasks/{id}', { params: pathId(id), body: taskBody(input) }))),
+  toggle: async (id: string) =>
+    mapTask(await call<TaskResponse>(client.PUT('/api/v1/tasks/{id}/toggle', { params: pathId(id) }))),
+  remove: (id: string) => call<void>(client.DELETE('/api/v1/tasks/{id}', { params: pathId(id) })),
 }
 
 // Helper: map backend DTO to store type

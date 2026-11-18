@@ -6,6 +6,7 @@ import { Modal } from '../components/Modal'
 import { ProgressBar } from '../components/ProgressBar'
 import { Mascot } from '../components/Mascot'
 import { AiPet } from '../components/AiPet'
+import { BetaTutor } from '../components/BetaTutor'
 import { GoalRing } from '../components/GoalRing'
 import { celebrate } from '../lib/confetti'
 import { playSound } from '../lib/sound'
@@ -14,6 +15,7 @@ import { updateSettings } from '../lib/settings'
 import { levelTitleKey, useApp, xpForNext } from '../lib/store'
 import { useGameState } from '../lib/study'
 import { isGuestMode } from '../lib/auth'
+import { betaEnabled } from '../lib/beta'
 
 type NavItem = { to: string; label: string; icon: IconName }
 
@@ -29,7 +31,7 @@ const sideNav: NavItem[] = [
   ...mobileNav,
   { to: '/subjects', label: 'nav.subjects', icon: 'layers' },
   { to: '/stats', label: 'nav.stats', icon: 'chart' },
-  { to: '/explore', label: 'nav.explore', icon: 'compass' },
+  ...(!betaEnabled ? [{ to: '/explore', label: 'nav.explore', icon: 'compass' as const }] : []),
 ]
 
 const immersiveRoutes = ['/study/review', '/study/boss', '/study/timer']
@@ -278,7 +280,7 @@ export function AppShell() {
         </div>
       </nav>
 
-      {!hidePet && <AiPet />}
+      {!hidePet && (betaEnabled ? !guestMode && <BetaTutor /> : <AiPet />)}
 
       <Modal open={summary === 'streak'} title={t('shell.streakSummary')} onClose={() => setSummary(null)}>
         <div className="flex items-center gap-4">

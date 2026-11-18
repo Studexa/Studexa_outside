@@ -4,6 +4,38 @@
  */
 
 export interface paths {
+    "/api/v1/tasks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get"];
+        put: operations["update"];
+        post?: never;
+        delete: operations["delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tasks/{id}/toggle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["toggle"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/subjects/{id}": {
         parameters: {
             query?: never;
@@ -12,9 +44,9 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["update"];
+        put: operations["update_1"];
         post?: never;
-        delete: operations["delete"];
+        delete: operations["delete_1"];
         options?: never;
         head?: never;
         patch?: never;
@@ -36,6 +68,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_1"];
+        put: operations["update_2"];
+        post?: never;
+        delete: operations["delete_2"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -44,9 +92,25 @@ export interface paths {
             cookie?: never;
         };
         get: operations["me"];
-        put: operations["update_1"];
+        put: operations["update_3"];
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_2"];
+        put: operations["update_4"];
+        post?: never;
+        delete: operations["delete_3"];
         options?: never;
         head?: never;
         patch?: never;
@@ -59,10 +123,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get"];
-        put: operations["update_2"];
+        get: operations["get_3"];
+        put: operations["update_5"];
         post?: never;
-        delete: operations["delete_1"];
+        delete: operations["delete_4"];
         options?: never;
         head?: never;
         patch?: never;
@@ -76,9 +140,25 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["update_3"];
+        put: operations["update_6"];
         post?: never;
-        delete: operations["delete_2"];
+        delete: operations["delete_5"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list"];
+        put?: never;
+        post: operations["create"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -91,9 +171,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list"];
+        get: operations["list_1"];
         put?: never;
-        post: operations["create"];
+        post: operations["create_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -110,6 +190,54 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["buy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["createSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sessions/{id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["startSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sessions/{id}/players": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPlayers"];
+        put?: never;
+        post: operations["joinSession"];
         delete?: never;
         options?: never;
         head?: never;
@@ -142,6 +270,38 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["answer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quizzes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listQuizzes"];
+        put?: never;
+        post: operations["createQuiz"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quizzes/{id}/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["addQuestion"];
         delete?: never;
         options?: never;
         head?: never;
@@ -212,6 +372,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_2"];
+        put?: never;
+        post: operations["create_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/game/streak-freeze/consume": {
         parameters: {
             query?: never;
@@ -228,6 +404,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/focus-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_3"];
+        put?: never;
+        post: operations["create_3"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_4"];
+        put?: never;
+        post: operations["create_4"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/decks": {
         parameters: {
             query?: never;
@@ -235,9 +443,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_1"];
+        get: operations["list_5"];
         put?: never;
-        post: operations["create_1"];
+        post: operations["create_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -251,9 +459,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_2"];
+        get: operations["list_6"];
         put?: never;
-        post: operations["create_2"];
+        post: operations["create_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -275,7 +483,23 @@ export interface paths {
         head?: never;
         patch?: never;
         trace?: never;
-    },
+    };
+    "/api/v1/boss-fights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_7"];
+        put?: never;
+        post: operations["create_7"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/reset-password": {
         parameters: {
             query?: never;
@@ -372,6 +596,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submitAnswer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ai/tutor": {
         parameters: {
             query?: never;
@@ -382,6 +622,38 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["tutor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/samples/tutor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["sampleTutor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/samples/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["sampleGenerate"];
         delete?: never;
         options?: never;
         head?: never;
@@ -436,6 +708,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sessions/{id}/leaderboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getLeaderboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sessions/room/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getRoom"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/review/queue": {
         parameters: {
             query?: never;
@@ -444,6 +748,38 @@ export interface paths {
             cookie?: never;
         };
         get: operations["queue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quizzes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getQuiz"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quizzes/public": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listPublicQuizzes"];
         put?: never;
         post?: never;
         delete?: never;
@@ -548,6 +884,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/focus-sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_4"];
+        put?: never;
+        post?: never;
+        delete: operations["delete_6"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/focus-sessions/count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["countInRange"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/range": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listByDateRange"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cards/due": {
         parameters: {
             query?: never;
@@ -564,10 +948,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/boss-fights/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_5"];
+        put?: never;
+        post?: never;
+        delete: operations["delete_7"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/boss-fights/wins/count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["countWins"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/boss-fights/count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["countInRange_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/answers/session/{sessionId}/player/{playerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPlayerAnswers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/samples": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["samples"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        TaskRequest: {
+            title: string;
+            /** Format: date */
+            taskDate: string;
+            done?: boolean;
+        };
+        TaskDto: {
+            /** Format: uuid */
+            id?: string;
+            title?: string;
+            /** Format: date */
+            taskDate?: string;
+            done?: boolean;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
         UpdateSubjectRequest: {
             name?: string;
             color?: string;
@@ -602,6 +1084,22 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        NoteRequest: {
+            title: string;
+            content?: string;
+            subject?: string;
+        };
+        NoteDto: {
+            /** Format: uuid */
+            id?: string;
+            title?: string;
+            content?: string;
+            subject?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
         };
         UpdateMeRequest: {
             nickname?: string;
@@ -638,6 +1136,27 @@ export interface components {
             id?: string;
             email?: string;
             role?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        ExamRequest: {
+            title: string;
+            subject?: string;
+            /** Format: date */
+            examDate: string;
+            /** @enum {string} */
+            importance: "LOW" | "MEDIUM" | "HIGH";
+        };
+        ExamDto: {
+            /** Format: uuid */
+            id?: string;
+            title?: string;
+            subject?: string;
+            /** Format: date */
+            examDate?: string;
+            importance?: string;
+            /** Format: date-time */
+            updatedAt?: string;
             /** Format: date-time */
             createdAt?: string;
         };
@@ -722,6 +1241,55 @@ export interface components {
             remainingCoins?: number;
             isFreeze?: boolean;
         };
+        CreateSessionRequest: {
+            /** Format: uuid */
+            quizId?: string;
+            mode?: string;
+            /** Format: int32 */
+            numQuestions?: number;
+            /** Format: int32 */
+            timePerQuestion?: number;
+            difficulty?: string;
+        };
+        SessionResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            quizId?: string;
+            /** Format: uuid */
+            hostId?: string;
+            roomCode?: string;
+            mode?: string;
+            status?: string;
+            settings?: string;
+            /** Format: date-time */
+            startedAt?: string;
+            /** Format: date-time */
+            endedAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        JoinRoomRequest: {
+            roomCode?: string;
+            nickname?: string;
+        };
+        SessionPlayerResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            sessionId?: string;
+            /** Format: uuid */
+            userId?: string;
+            nickname?: string;
+            avatarUrl?: string;
+            teamId?: string;
+            /** Format: int32 */
+            totalScore?: number;
+            /** Format: int32 */
+            finalRank?: number;
+            isReady?: boolean;
+            isHost?: boolean;
+        };
         ReviewUndoResponse: {
             /** Format: uuid */
             cardId?: string;
@@ -796,22 +1364,81 @@ export interface components {
             /** Format: date-time */
             nextCardDueAt?: string;
         };
+        QuizRequest: {
+            title?: string;
+            description?: string;
+            subject?: string;
+            visibility?: string;
+        };
+        QuizResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            ownerId?: string;
+            title?: string;
+            description?: string;
+            subject?: string;
+            visibility?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        QuestionRequest: {
+            text?: string;
+            type?: string;
+            options?: string;
+            correctAnswer?: string;
+            explanation?: string;
+            subject?: string;
+            topic?: string;
+            subtopic?: string;
+            difficulty?: string;
+            /** Format: int32 */
+            timeLimitSeconds?: number;
+        };
+        QuestionResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            quizId?: string;
+            text?: string;
+            type?: string;
+            options?: string;
+            correctAnswer?: string;
+            explanation?: string;
+            subject?: string;
+            topic?: string;
+            subtopic?: string;
+            difficulty?: string;
+            /** Format: int32 */
+            timeLimitSeconds?: number;
+            /** Format: date-time */
+            createdAt?: string;
+        };
         QuestProgressRequest: {
             code: string;
-            /** Format: int32 */
-            amount?: number;
             source: string;
             referenceId?: string;
         };
-        UpdateStageRequest: {
-            /** Format: int32 */
-            level: number;
-        };
-        UpdateMoodRequest: {
-            studiedToday: boolean;
-        };
         EquipAccessoryRequest: {
             accessoryType?: string;
+        };
+        FocusSessionRequest: {
+            /** Format: int32 */
+            minutes: number;
+            /** Format: date-time */
+            completedAt: string;
+        };
+        FocusSessionDto: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: int32 */
+            minutes?: number;
+            /** Format: date-time */
+            completedAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
         };
         CreateDeckRequest: {
             title?: string;
@@ -835,7 +1462,31 @@ export interface components {
         };
         BulkCreateCardsRequest: {
             cards: components["schemas"]["CreateCardRequest"][];
-        },
+        };
+        BossFightRequest: {
+            won: boolean;
+            /** Format: int32 */
+            questionsCount: number;
+            /** Format: int32 */
+            heartsRemaining: number;
+            /** Format: date-time */
+            completedAt: string;
+        };
+        BossFightDto: {
+            /** Format: uuid */
+            id?: string;
+            won?: boolean;
+            /** Format: int32 */
+            questionsCount?: number;
+            /** Format: int32 */
+            heartsRemaining?: number;
+            /** Format: date-time */
+            completedAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
         ResetPasswordRequest: {
             token: string;
             newPassword: string;
@@ -846,6 +1497,8 @@ export interface components {
             password: string;
             nickname?: string;
             language?: string;
+            inviteCode?: string;
+            adultConfirmed?: boolean;
         };
         AuthResponse: {
             accessToken?: string;
@@ -867,6 +1520,24 @@ export interface components {
             /** Format: email */
             email: string;
         };
+        AnswerRequest: {
+            /** Format: uuid */
+            sessionPlayerId?: string;
+            /** Format: uuid */
+            questionId?: string;
+            selectedAnswer?: string;
+            /** Format: int32 */
+            responseTimeMs?: number;
+        };
+        AnswerResponse: {
+            /** Format: uuid */
+            id?: string;
+            isCorrect?: boolean;
+            /** Format: int32 */
+            scoreAwarded?: number;
+            correctAnswer?: string;
+            explanation?: string;
+        };
         AiTutorRequest: {
             question: string;
             sourceText?: string;
@@ -880,16 +1551,16 @@ export interface components {
             answer?: string;
             references?: components["schemas"]["AiTutorReference"][];
         };
-        AiGenerateRequest: {
+        SampleTutorRequest: {
+            sampleId: string;
+            promptId: string;
+        };
+        SampleGenerateRequest: {
+            sampleId: string;
             /** @enum {string} */
             task: "FLASHCARDS" | "QUIZ";
-            /** Format: uuid */
-            deckId?: string;
-            sourceText?: string;
-            sourceTitle?: string;
             /** Format: int32 */
-            count?: number;
-            language?: string;
+            count: number;
         };
         AiCardItem: {
             /** @enum {string} */
@@ -903,6 +1574,17 @@ export interface components {
         };
         AiGenerateResponse: {
             items?: components["schemas"]["AiCardItem"][];
+        };
+        AiGenerateRequest: {
+            /** @enum {string} */
+            task: "FLASHCARDS" | "QUIZ";
+            /** Format: uuid */
+            deckId?: string;
+            sourceText?: string;
+            sourceTitle?: string;
+            /** Format: int32 */
+            count?: number;
+            language?: string;
         };
         ShopItemDto: {
             id?: string;
@@ -920,6 +1602,18 @@ export interface components {
             shopItemId?: string;
             /** Format: date-time */
             purchasedAt?: string;
+        };
+        LeaderboardEntry: {
+            nickname?: string;
+            /** Format: int32 */
+            totalScore?: number;
+            /** Format: int32 */
+            finalRank?: number;
+            isHost?: boolean;
+        };
+        RoomInfoResponse: {
+            session?: components["schemas"]["SessionResponse"];
+            players?: components["schemas"]["SessionPlayerResponse"][];
         };
         ReviewQueueCard: {
             /** Format: uuid */
@@ -964,6 +1658,10 @@ export interface components {
             remainingReview?: number;
             /** Format: date-time */
             now?: string;
+        };
+        QuizWithQuestions: {
+            quiz?: components["schemas"]["QuizResponse"];
+            questions?: components["schemas"]["QuestionResponse"][];
         };
         QuestDto: {
             /** Format: uuid */
@@ -1054,6 +1752,17 @@ export interface components {
             sourceTitle?: string;
             sourceExcerpt?: string;
         };
+        Prompt: {
+            id?: string;
+            question?: string;
+        };
+        StudySample: {
+            id?: string;
+            language?: string;
+            title?: string;
+            text?: string;
+            prompts?: components["schemas"]["Prompt"][];
+        };
     };
     responses: never;
     parameters: never;
@@ -1063,7 +1772,97 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TaskDto"];
+                };
+            };
+        };
+    };
     update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TaskDto"];
+                };
+            };
+        };
+    };
+    delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    toggle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TaskDto"];
+                };
+            };
+        };
+    };
+    update_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -1089,7 +1888,7 @@ export interface operations {
             };
         };
     };
-    delete: {
+    delete_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -1133,6 +1932,74 @@ export interface operations {
             };
         };
     };
+    get_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NoteDto"];
+                };
+            };
+        };
+    };
+    update_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NoteDto"];
+                };
+            };
+        };
+    };
+    delete_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     me: {
         parameters: {
             query?: never;
@@ -1153,7 +2020,7 @@ export interface operations {
             };
         };
     };
-    update_1: {
+    update_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -1177,7 +2044,75 @@ export interface operations {
             };
         };
     };
-    get: {
+    get_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExamDto"];
+                };
+            };
+        };
+    };
+    update_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExamDto"];
+                };
+            };
+        };
+    };
+    delete_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -1199,7 +2134,7 @@ export interface operations {
             };
         };
     };
-    update_2: {
+    update_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -1225,7 +2160,7 @@ export interface operations {
             };
         };
     };
-    delete_1: {
+    delete_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -1245,7 +2180,7 @@ export interface operations {
             };
         };
     };
-    update_3: {
+    update_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -1271,7 +2206,7 @@ export interface operations {
             };
         };
     };
-    delete_2: {
+    delete_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -1294,6 +2229,52 @@ export interface operations {
     list: {
         parameters: {
             query?: {
+                date?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TaskDto"][];
+                };
+            };
+        };
+    };
+    create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TaskDto"];
+                };
+            };
+        };
+    };
+    list_1: {
+        parameters: {
+            query?: {
                 archived?: boolean;
             };
             header?: never;
@@ -1313,7 +2294,7 @@ export interface operations {
             };
         };
     };
-    create: {
+    create_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -1357,6 +2338,100 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ShopPurchaseResult"];
+                };
+            };
+        };
+    };
+    createSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SessionResponse"];
+                };
+            };
+        };
+    };
+    startSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SessionResponse"];
+                };
+            };
+        };
+    };
+    getPlayers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SessionPlayerResponse"][];
+                };
+            };
+        };
+    };
+    joinSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JoinRoomRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SessionPlayerResponse"];
                 };
             };
         };
@@ -1407,6 +2482,76 @@ export interface operations {
             };
         };
     };
+    listQuizzes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuizResponse"][];
+                };
+            };
+        };
+    };
+    createQuiz: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuizRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuizResponse"];
+                };
+            };
+        };
+    };
+    addQuestion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuestionRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionResponse"];
+                };
+            };
+        };
+    };
     addProgress: {
         parameters: {
             query?: never;
@@ -1436,6 +2581,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
@@ -1453,6 +2599,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
@@ -1485,6 +2632,50 @@ export interface operations {
             };
         };
     };
+    list_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NoteDto"][];
+                };
+            };
+        };
+    };
+    create_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NoteDto"];
+                };
+            };
+        };
+    };
     consumeStreakFreeze: {
         parameters: {
             query?: never;
@@ -1503,7 +2694,98 @@ export interface operations {
             };
         };
     };
-    list_1: {
+    list_3: {
+        parameters: {
+            query?: {
+                start?: string;
+                end?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FocusSessionDto"][];
+                };
+            };
+        };
+    };
+    create_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FocusSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FocusSessionDto"];
+                };
+            };
+        };
+    };
+    list_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExamDto"][];
+                };
+            };
+        };
+    };
+    create_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExamDto"];
+                };
+            };
+        };
+    };
+    list_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -1523,7 +2805,7 @@ export interface operations {
             };
         };
     };
-    create_1: {
+    create_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -1547,7 +2829,7 @@ export interface operations {
             };
         };
     };
-    list_2: {
+    list_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -1569,7 +2851,7 @@ export interface operations {
             };
         };
     };
-    create_2: {
+    create_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -1621,20 +2903,17 @@ export interface operations {
             };
         };
     };
-    review: {
+    list_7: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
+            query?: {
+                start?: string;
+                end?: string;
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReviewCardRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
@@ -1642,7 +2921,31 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["CardResponse"];
+                    "*/*": components["schemas"]["BossFightDto"][];
+                };
+            };
+        };
+    };
+    create_7: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BossFightRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BossFightDto"];
                 };
             };
         };
@@ -1789,6 +3092,30 @@ export interface operations {
             };
         };
     };
+    submitAnswer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnswerRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AnswerResponse"];
+                };
+            };
+        };
+    };
     tutor: {
         parameters: {
             query?: never;
@@ -1809,6 +3136,54 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AiTutorResponse"];
+                };
+            };
+        };
+    };
+    sampleTutor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SampleTutorRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AiTutorResponse"];
+                };
+            };
+        };
+    };
+    sampleGenerate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SampleGenerateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AiGenerateResponse"];
                 };
             };
         };
@@ -1877,6 +3252,50 @@ export interface operations {
             };
         };
     };
+    getLeaderboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LeaderboardEntry"][];
+                };
+            };
+        };
+    };
+    getRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoomInfoResponse"];
+                };
+            };
+        };
+    };
     queue: {
         parameters: {
             query?: {
@@ -1895,6 +3314,48 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ReviewQueueResponse"];
+                };
+            };
+        };
+    };
+    getQuiz: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuizWithQuestions"];
+                };
+            };
+        };
+    };
+    listPublicQuizzes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuizResponse"][];
                 };
             };
         };
@@ -2021,6 +3482,94 @@ export interface operations {
             };
         };
     };
+    get_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FocusSessionDto"];
+                };
+            };
+        };
+    };
+    delete_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    countInRange: {
+        parameters: {
+            query: {
+                start: string;
+                end: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": number;
+                };
+            };
+        };
+    };
+    listByDateRange: {
+        parameters: {
+            query: {
+                start: string;
+                end: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExamDto"][];
+                };
+            };
+        };
+    };
     due: {
         parameters: {
             query?: {
@@ -2039,6 +3588,134 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["DueCardResponse"][];
+                };
+            };
+        };
+    };
+    get_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BossFightDto"];
+                };
+            };
+        };
+    };
+    delete_7: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    countWins: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": number;
+                };
+            };
+        };
+    };
+    countInRange_1: {
+        parameters: {
+            query: {
+                start: string;
+                end: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": number;
+                };
+            };
+        };
+    };
+    getPlayerAnswers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+                playerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AnswerResponse"][];
+                };
+            };
+        };
+    };
+    samples: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudySample"][];
                 };
             };
         };

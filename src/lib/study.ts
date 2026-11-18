@@ -129,13 +129,13 @@ export function useDueCards(enabled = true) {
       }
       try {
         const cards = await cardsApi.due(50)
-        if (user?.id) {
-          void cacheDueCards(user.id, cards)
+        if (user?.id && useAuth.getState().user?.id === user.id) {
+          void cacheDueCards(user.id, cards).catch(() => undefined)
         }
         return cards
       } catch {
         // Offline: serve the last-cached due queue from IndexedDB so study never stops
-        if (user?.id) {
+        if (user?.id && useAuth.getState().user?.id === user.id) {
           const cached = await getCachedDueCards(user.id)
           if (cached.length > 0) return cached
         }
@@ -171,11 +171,12 @@ export function useTodayQuests(enabled = true) {
 export type StudyCardWithDeck = { card: StudyCard; deck: DeckSummary }
 
 export function useAllStudyCards() {
+  const userId = useAuth((state) => state.user?.id)
   const decksQuery = useDecks()
   const decks = decksQuery.data ?? []
   const cardQueries = useQueries({
     queries: decks.map((deck) => ({
-      queryKey: studyKeys.cards(deck.id),
+      queryKey: studyKeys.cards(deck.id, userId),
       queryFn: () => cardsApi.list(deck.id),
     })),
   })

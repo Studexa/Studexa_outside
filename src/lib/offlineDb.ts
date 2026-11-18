@@ -12,7 +12,7 @@ import { type DueCard } from './api'
  * same answer sent twice is only awarded XP once.
  */
 export class StudexaOfflineDb extends Dexie {
-  dueCards!: Dexie.Table<CachedDueCard, string>
+  dueQueue!: Dexie.Table<CachedDueQueue, string>
   pendingAnswers!: Dexie.Table<PendingAnswer, number>
 
   constructor() {
@@ -21,15 +21,15 @@ export class StudexaOfflineDb extends Dexie {
       dueCards: 'userId, updatedAt', // one cached queue per user
       pendingAnswers: '++id, userId, createdAt', // append-only queue
     })
+    this.version(2).stores({ dueCards: null, dueQueue: 'userId' })
   }
 }
 
 export const offlineDb = new StudexaOfflineDb()
 
-export type CachedDueCard = {
+type CachedDueQueue = {
   userId: string
-  card: DueCard
-  updatedAt: string
+  cards: DueCard[]
 }
 
 export type PendingAnswer = {
@@ -49,15 +49,18 @@ export type DueCardWithMeta = DueCard & {
 }
 
 export async function cacheDueCards(userId: string, cards: DueCard[]) {
-  await offlineDb.dueCards.where('userId').equals(userId).delete()
-  await offlineDb.dueCards.bulkAdd(
-    cards.map((card) => ({ userId, card, updatedAt: new Date().toISOString() }))
-  )
+  await offlineDb.dueQueue.put({ userId, cards })
 }
 
 export async function getCachedDueCards(userId: string): Promise<DueCard[]> {
-  const rows = await offlineDb.dueCards.where('userId').equals(userId).toArray()
-  return rows.map((r) => r.card)
+  return (await offlineDb.dueQueue.get(userId))?.cards ?? []
+}
+
+export async function clearOfflineAccount(userId: string) {
+  await offlineDb.transaction('rw', offlineDb.dueQueue, offlineDb.pendingAnswers, async () => {
+    await offlineDb.dueQueue.delete(userId)
+    await offlineDb.pendingAnswers.where('userId').equals(userId).delete()
+  })
 }
 
 export async function queuePendingAnswer(userId: string, cardId: string, rating: 'again' | 'hard' | 'good' | 'easy', clientReviewId: string) {

@@ -59,8 +59,17 @@ export type UpdateProfileInput = Partial<{
   dailyGoalMinutes: number
 }>
 
+export type RegisterInput = {
+  email: string
+  password: string
+  nickname: string
+  language?: 'en' | 'km'
+  inviteCode?: string
+  adultConfirmed?: boolean
+}
+
 export const authApi = {
-  register: (input: { email: string; password: string; nickname: string; language?: 'en' | 'km' }) =>
+  register: (input: RegisterInput) =>
     call<AuthResponse>(client.POST('/api/v1/auth/register', { body: input })),
 
   login: (input: { email: string; password: string }) =>
@@ -462,6 +471,19 @@ export const aiApi = {
 
   tutor: (input: AiTutorInput) =>
     call<AiTutorResponse>(client.POST('/api/v1/ai/tutor', { body: input })),
+  samples: () => call<StudySample[]>(client.GET('/api/v1/ai/samples')),
+  sampleGenerate: (input: { sampleId: string; task: AiGenerateInput['task']; count: number }) =>
+    call<{ items: AiCardItem[] }>(client.POST('/api/v1/ai/samples/generate', { body: input })),
+  sampleTutor: (input: { sampleId: string; promptId: string }) =>
+    call<AiTutorResponse>(client.POST('/api/v1/ai/samples/tutor', { body: input })),
+}
+
+export type StudySample = {
+  id: string
+  language: string
+  title: string
+  text: string
+  prompts: { id: string; question: string }[]
 }
 
 export { notesApi, examsApi, tasksApi } from './api/plan'

@@ -11,7 +11,10 @@ import { Spinner } from '../../components/Spinner'
 import { celebrate } from '../../lib/confetti'
 import { aiApi, cardsApi, type AiCardItem, type CardInput, type CardType } from '../../lib/api'
 import { studyKeys, useDeck, useDeckCards } from '../../lib/study'
-import { isGuestMode } from '../../lib/auth'
+import { isGuestMode, useAuth } from '../../lib/auth'
+import { betaEnabled, maxBetaAiItems } from '../../lib/beta'
+import { StudySamplePicker } from '../../components/StudySamplePicker'
+import { useStudySamples } from '../../lib/useStudySamples'
 import { useApp } from '../../lib/store'
 
 type EditorType = 'basic' | 'reverse' | 'cloze' | 'choice'
@@ -39,6 +42,7 @@ export function DeckEditorPage() {
   const deck = deckQuery.data
   const cards = cardsQuery.data ?? []
   const guestMode = isGuestMode()
+  const userId = useAuth((state) => state.user?.id)
 
   const [front, setFront] = useState('')
   const [back, setBack] = useState('')
@@ -49,17 +53,18 @@ export function DeckEditorPage() {
   const [aiOpen, setAiOpen] = useState(false)
   const [aiSource, setAiSource] = useState('')
   const [aiTitle, setAiTitle] = useState('')
-  const [aiCount, setAiCount] = useState(8)
+  const [aiCount, setAiCount] = useState(betaEnabled ? maxBetaAiItems : 8)
+  const [sampleId, setSampleId] = useState('')
+  const samplePicker = useStudySamples(betaEnabled && aiOpen, sampleId)
+  const maxAiCount = betaEnabled ? maxBetaAiItems : 15
   const [aiItems, setAiItems] = useState<AiCardItem[]>([])
   const [aiPicked, setAiPicked] = useState<number[]>([])
   const [notice, setNotice] = useState<string | null>(null)
 
   const refresh = () => {
     if (!deckId) return
-    void queryClient.invalidateQueries({ queryKey: studyKeys.deck(deckId) })
-    void queryClient.invalidateQueries({ queryKey: studyKeys.cards(deckId) })
-    void queryClient.invalidateQueries({ queryKey: studyKeys.decks() })
-    void queryClient.invalidateQueries({ queryKey: studyKeys.due() })
+    void queryClient.invalidateQueries({ queryKey: studyKeys.decks(userId) })
+    void queryClient.invalidateQueries({ queryKey: studyKeys.due(userId) })
   }
 
   const flash = (message: string) => {
@@ -114,8 +119,9 @@ export function DeckEditorPage() {
   })
 
   const generateCards = useMutation({
-    mutationFn: () =>
-      aiApi.generate({
+    mutationFn: () => betaEnabled
+      ? aiApi.sampleGenerate({ sampleId: samplePicker.sample!.id, task: 'FLASHCARDS', count: aiCount })
+      : aiApi.generate({
         task: 'FLASHCARDS',
         deckId,
         sourceText: aiSource.trim() || undefined,
@@ -409,6 +415,7 @@ export function DeckEditorPage() {
 
       <Modal open={aiOpen} title={t('decks.aiGeneratorTitle')} onClose={() => setAiOpen(false)}>
         <div className="space-y-3">
+          {betaEnabled ? <StudySamplePicker {...samplePicker} onChange={setSampleId} /> : <>
           <p className="text-sm text-[var(--color-muted)]">{t('decks.aiGeneratorHint')}</p>
           <div>
             <label className="text-sm font-bold" htmlFor="ai-source-title">{t('decks.sourceTitle')}</label>
@@ -431,19 +438,21 @@ export function DeckEditorPage() {
               className="mt-1 w-full resize-none rounded-2xl px-4 py-3 text-sm"
             />
           </div>
+          </>}
           <div className="flex items-center justify-between gap-3">
             <label className="text-sm font-bold" htmlFor="ai-count">{t('decks.cardCountLabel')}</label>
             <input
               id="ai-count"
               type="number"
               min={1}
-              max={15}
+              max={maxAiCount}
               value={aiCount}
-              onChange={(e) => setAiCount(Math.min(15, Math.max(1, Number(e.target.value) || 1)))}
+              onChange={(e) => setAiCount(Math.min(maxAiCount, Math.max(1, Math.trunc(Number(e.target.value)) || 1)))}
               className="w-24 rounded-2xl px-3 py-2 text-center font-bold"
             />
           </div>
-          <Button full onClick={() => generateCards.mutate()} disabled={generateCards.isPending}>
+          <Button full onClick={() => generateCards.mutate()}
+            disabled={generateCards.isPending || (betaEnabled && !samplePicker.sample)}>
             <Icon name="sparkles" size={18} />
             {generateCards.isPending ? t('decks.generating') : t('decks.generateAI')}
           </Button>

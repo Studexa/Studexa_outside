@@ -7,11 +7,14 @@ import { Icon } from '../../components/Icon'
 import { Mascot } from '../../components/Mascot'
 import { ProgressBar } from '../../components/ProgressBar'
 import { Spinner } from '../../components/Spinner'
+import { StudySamplePicker } from '../../components/StudySamplePicker'
+import { useStudySamples } from '../../lib/useStudySamples'
 import { celebrate } from '../../lib/confetti'
 import { playSound } from '../../lib/sound'
 import { aiApi, type DeckSummary, type StudyCard } from '../../lib/api'
 import { useDeckCards, useDecks } from '../../lib/study'
 import { useApp } from '../../lib/store'
+import { betaEnabled, maxBetaAiItems } from '../../lib/beta'
 
 type Question = {
   id: string
@@ -67,7 +70,10 @@ export function QuizPage() {
   const [selectedDeckId, setSelectedDeckId] = useState('')
   const [sourceTitle, setSourceTitle] = useState('')
   const [sourceText, setSourceText] = useState('')
-  const [count, setCount] = useState(8)
+  const [count, setCount] = useState(betaEnabled ? maxBetaAiItems : 8)
+  const [sampleId, setSampleId] = useState('')
+  const samplePicker = useStudySamples(betaEnabled, sampleId)
+  const maxAiCount = betaEnabled ? maxBetaAiItems : 15
   const [setupError, setSetupError] = useState<string | null>(null)
   const [questions, setQuestions] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
@@ -81,8 +87,9 @@ export function QuizPage() {
   const cardsQuery = useDeckCards(effectiveDeckId, Boolean(effectiveDeckId))
 
   const generate = useMutation({
-    mutationFn: () =>
-      aiApi.generate({
+    mutationFn: () => betaEnabled
+      ? aiApi.sampleGenerate({ sampleId: samplePicker.sample!.id, task: 'QUIZ', count })
+      : aiApi.generate({
         task: 'QUIZ',
         deckId: effectiveDeckId,
         sourceText: sourceText.trim() || undefined,
@@ -91,7 +98,7 @@ export function QuizPage() {
         language: i18n.language === 'km' ? 'km' : 'en',
       }),
     onSuccess: (data) => {
-      if (!selectedDeck) return
+      if (!betaEnabled && !selectedDeck) return
       const built = data.items
         .filter((item) => item.choices.length >= 2 && item.choices.includes(item.back))
         .map((item, itemIndex) => ({
@@ -99,8 +106,8 @@ export function QuizPage() {
           front: item.front,
           back: item.back,
           choices: shuffle(item.choices),
-          deckTitle: selectedDeck.title,
-          deckSubject: selectedDeck.subjectName ?? selectedDeck.title,
+          deckTitle: betaEnabled ? (item.sourceTitle ?? t('beta.sample')) : (selectedDeck?.title ?? ''),
+          deckSubject: betaEnabled ? t('beta.sample') : (selectedDeck?.subjectName ?? selectedDeck?.title ?? ''),
           explanation: item.explanation,
           sourceTitle: item.sourceTitle,
           sourceExcerpt: item.sourceExcerpt,
@@ -179,7 +186,7 @@ export function QuizPage() {
     return <div className="flex min-h-dvh items-center justify-center"><Spinner label={t('common.loading')} /></div>
   }
 
-  if (decks.length === 0) {
+  if (!betaEnabled && decks.length === 0) {
     return (
       <div className="mx-auto flex min-h-dvh max-w-lg flex-col items-center justify-center gap-4 p-6 text-center">
         <Mascot species={buddy} mood="sleepy" size={140} />
@@ -266,12 +273,12 @@ export function QuizPage() {
             <Mascot species={buddy} mood="happy" size={82} />
             <div>
               <h1 className="text-2xl font-black">{t('quiz.setupTitle')}</h1>
-              <p className="text-sm text-[var(--color-muted)]">{t('quiz.setupHint')}</p>
+              <p className="text-sm text-[var(--color-muted)]">{t(betaEnabled ? 'beta.quizHint' : 'quiz.setupHint')}</p>
             </div>
           </div>
 
           <div className="mt-5 space-y-3">
-            <div>
+            {decks.length > 0 && <div>
               <label className="text-sm font-bold" htmlFor="quiz-deck">{t('quiz.deck')}</label>
               <select
                 id="quiz-deck"
@@ -285,7 +292,8 @@ export function QuizPage() {
                   </option>
                 ))}
               </select>
-            </div>
+            </div>}
+            {betaEnabled ? <StudySamplePicker {...samplePicker} onChange={setSampleId} /> : <>
             <div>
               <label className="text-sm font-bold" htmlFor="quiz-source-title">{t('decks.sourceTitle')}</label>
               <input
@@ -307,15 +315,16 @@ export function QuizPage() {
                 className="mt-1 w-full resize-none rounded-2xl px-4 py-3 text-sm"
               />
             </div>
+            </>}
             <div className="flex items-center justify-between gap-3">
               <label className="text-sm font-bold" htmlFor="quiz-count">{t('quiz.questionCount')}</label>
               <input
                 id="quiz-count"
                 type="number"
                 min={1}
-                max={15}
+                max={maxAiCount}
                 value={count}
-                onChange={(e) => setCount(Math.min(15, Math.max(1, Number(e.target.value) || 1)))}
+                onChange={(e) => setCount(Math.min(maxAiCount, Math.max(1, Math.trunc(Number(e.target.value)) || 1)))}
                 className="w-24 rounded-2xl px-3 py-2 text-center font-bold"
               />
             </div>
@@ -331,7 +340,8 @@ export function QuizPage() {
               </p>
             )}
 
-            <Button full size="lg" onClick={() => generate.mutate()} disabled={generate.isPending || !effectiveDeckId}>
+            <Button full size="lg" onClick={() => generate.mutate()}
+              disabled={generate.isPending || (betaEnabled ? !samplePicker.sample : !effectiveDeckId)}>
               <Icon name="sparkles" size={19} />
               {generate.isPending ? t('decks.generating') : t('quiz.generateAI')}
             </Button>

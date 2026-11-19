@@ -21,6 +21,8 @@ const paths = {
   check: 'M5 13l4 4L19 7',
   chevronRight: 'M9 6l6 6-6 6',
   chevronLeft: 'M15 6l-6 6 6 6',
+  eye: 'M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z',
+  eyeOff: 'm3 3 18 18M10.2 6.2a10 10 0 0 1 1.8-.2c6.4 0 10 6 10 6a14 14 0 0 1-3 3.3M6 7.7a14 14 0 0 0-4 4.3s3.6 6 10 6a10 10 0 0 0 4.3-1M10 10a3 3 0 0 0 4 4',
   chevronUp: 'M18 15l-6-6-6 6',
   chevronDown: 'M6 9l6 6 6-6',
   maximize: 'M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7',

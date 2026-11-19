@@ -87,6 +87,31 @@ export namespace QuizDto {
   export interface RoomInfoResponse {
     session: SessionResponse
     players: SessionPlayerResponse[]
+    title: string
+    questionCount: number
+    timePerQuestion: number
+  }
+
+  export interface LiveQuestion {
+    id: string
+    text: string
+    options?: string
+    index: number
+    timeLimitSeconds: number
+    endsAt: number
+  }
+
+  export interface LiveState {
+    status: 'WAITING' | 'ACTIVE' | 'ENDED'
+    roomCode: string
+    host: boolean
+    playerId: string
+    question: LiveQuestion | null
+    answer: AnswerResponse | null
+    answeredCount: number
+    playerCount: number
+    questionCount: number
+    serverTime: number
   }
 
   export interface AnswerRequest {

@@ -84,6 +84,7 @@ export function PlanPage() {
   const language = i18n.resolvedLanguage ?? 'en'
   const monthLabel = formatStudyDate(cursor, language, 'month')
   const sortExams = [...exams].sort((a, b) => a.date.localeCompare(b.date))
+  const nextExamId = sortExams.find((exam) => exam.date >= localDateKey(now))?.id
 
   const createTask = async () => {
     if (!taskTitle.trim()) return
@@ -143,7 +144,7 @@ export function PlanPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="study-page-header study-feature-header flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-black">{t('plan.title')}</h1>
           <p className="text-sm text-[var(--color-muted)]">{t('plan.subtitle')}</p>
@@ -267,7 +268,7 @@ export function PlanPage() {
           </div>
         </section>
 
-        <section className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+        <section className="study-panel study-plan-today">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-extrabold">{t('plan.todayPlan')}</h2>
             <Badge tone="primary">
@@ -322,7 +323,7 @@ export function PlanPage() {
             const milestones = [t('plan.milestones.start'), t('plan.milestones.review'), t('plan.milestones.practice'), t('plan.milestones.exam')]
             const reached = Math.round((progress / 100) * milestones.length)
             return (
-              <div key={exam.id} className="rounded-[22px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+              <div key={exam.id} className={`study-panel${exam.id === nextExamId ? ' study-next-exam' : ''}`}>
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <div className="flex items-center gap-2">

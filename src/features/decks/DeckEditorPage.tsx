@@ -210,7 +210,7 @@ export function DeckEditorPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start gap-3">
+      <div className="study-feature-header flex flex-wrap items-start gap-3">
         <Link
           to="/study/decks"
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-muted)]"

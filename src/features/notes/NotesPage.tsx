@@ -33,7 +33,7 @@ export function NotesPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="study-page-header study-feature-header flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-black">{t('notes.title')}</h1>
           <p className="text-sm text-[var(--color-muted)]">{t('notes.subtitle')}</p>
@@ -66,7 +66,7 @@ export function NotesPage() {
             <Link
               key={note.id}
               to={`/notes/${note.id}`}
-              className="pressable flex flex-col rounded-[22px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]"
+              className="pressable study-panel study-notebook flex flex-col"
             >
               <div className="flex items-start justify-between gap-2">
                 <span className="rounded-full bg-[var(--color-primary-soft)] px-2.5 py-1 text-[10px] font-black text-[var(--color-primary)]">

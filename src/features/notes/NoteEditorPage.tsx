@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEditor, useEditorState, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { Button } from '../../components/Button'
@@ -12,8 +11,7 @@ import { useApp, type Note } from '../../lib/store'
 import { openStudyBuddy } from '../../lib/aiStudy'
 import { betaEnabled } from '../../lib/beta'
 import { isGuestMode, useAuth } from '../../lib/auth'
-import { cardsApi } from '../../lib/api'
-import { studyKeys, useDecks } from '../../lib/study'
+import { PassageTools } from '../passages/PassageTools'
 import { NoteAttachments } from './NoteAttachments'
 import { NoteStudy, type NoteStudySource } from './NoteStudy'
 
@@ -43,24 +41,18 @@ export function NoteEditorPage() {
 function NoteEditor({ note }: { note: Note }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { data: decks = [] } = useDecks()
-  const queryClient = useQueryClient()
   const userId = useAuth((state) => state.user?.id)
   const accountId = isGuestMode() ? undefined : userId
   const updateNote = useApp((s) => s.updateNote)
   const deleteNote = useApp((s) => s.deleteNote)
-  const addCard = useApp((s) => s.addCard)
 
   const [title, setTitle] = useState(note.title)
   const [status, setStatus] = useState<'saved' | 'saving' | 'error'>('saved')
   const [selectedText, setSelectedText] = useState('')
-  const [cardOpen, setCardOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
-  const [cardFront, setCardFront] = useState('')
-  const [cardBack, setCardBack] = useState('')
-  const [deckId, setDeckId] = useState(decks[0]?.id ?? '')
   const [flash, setFlash] = useState<string | null>(null)
   const [studySource, setStudySource] = useState<NoteStudySource>()
+  const passageSource = useRef<HTMLDivElement>(null)
   const saveTimer = useRef<number | null>(null)
   const initial = { title: note.title, content: note.content }
   const latest = useRef(initial)
@@ -112,33 +104,6 @@ function NoteEditor({ note }: { note: Note }) {
       if (saveTimer.current) window.clearTimeout(saveTimer.current)
     }
   }, [])
-
-  const openCardModal = () => {
-    setCardFront(selectedText)
-    setCardBack('')
-    setDeckId(decks[0]?.id ?? '')
-    setCardOpen(true)
-  }
-
-  const createCard = useMutation({
-    mutationFn: async () => {
-      const front = cardFront.trim()
-      const back = cardBack.trim()
-      if (isGuestMode()) {
-        addCard(deckId, front, back)
-      } else {
-        await cardsApi.create(deckId, { type: 'BASIC', front, back })
-      }
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: studyKeys.decks(userId) })
-      void queryClient.invalidateQueries({ queryKey: studyKeys.due(userId) })
-      setCardOpen(false)
-      setSelectedText('')
-      setFlash(t('notes.flashcardCreated'))
-      window.setTimeout(() => setFlash(null), 2600)
-    },
-  })
 
   const confirmDelete = async () => {
     if (saveTimer.current) window.clearTimeout(saveTimer.current)
@@ -223,7 +188,7 @@ function NoteEditor({ note }: { note: Note }) {
         </Button>
       </section>}
 
-      <div className="overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+      <div className="study-notebook study-editor-surface overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
         <div className="border-b border-[var(--color-border)] px-4 py-3 sm:px-6">
           <input
             value={title}
@@ -263,7 +228,7 @@ function NoteEditor({ note }: { note: Note }) {
           </div>
         </div>
 
-        <EditorContent editor={editor} />
+        <div ref={passageSource}><EditorContent editor={editor} /></div>
       </div>
     </>
   )
@@ -288,61 +253,7 @@ function NoteEditor({ note }: { note: Note }) {
         </p>
       )}
 
-      {selectedText.length > 2 && (
-        <button
-          onClick={openCardModal}
-          className="fixed bottom-[calc(var(--study-nav-inset,0px)+0.75rem)] left-1/2 z-30 flex min-h-12 w-max max-w-[calc(100vw-1.5rem)] -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--color-primary)] px-5 py-3 text-sm font-black text-white shadow-[0_14px_30px_rgba(37,99,235,0.35)] transition hover:-translate-y-0.5 active:scale-95"
-        >
-          <Icon name="cards" size={18} /> {t('notes.makeFlashcard')}
-        </button>
-      )}
-
-      <Modal open={cardOpen} title={t('notes.makeFlashcard')} onClose={() => setCardOpen(false)}>
-        <div className="space-y-3">
-          <div>
-            <label className="text-sm font-bold" htmlFor="flash-front">{t('decks.front')}</label>
-            <textarea
-              id="flash-front"
-              value={cardFront}
-              onChange={(e) => setCardFront(e.target.value)}
-              rows={2}
-              className="mt-1 w-full resize-none rounded-2xl px-4 py-3"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-bold" htmlFor="flash-back">{t('decks.back')}</label>
-            <textarea
-              id="flash-back"
-              value={cardBack}
-              onChange={(e) => setCardBack(e.target.value)}
-              rows={2}
-              placeholder={t('decks.backPlaceholder')}
-              className="mt-1 w-full resize-none rounded-2xl px-4 py-3"
-              autoFocus
-            />
-          </div>
-          <div>
-            <label className="text-sm font-bold" htmlFor="flash-deck">{t('notes.chooseDeck')}</label>
-            <select
-              id="flash-deck"
-              value={deckId}
-              onChange={(e) => setDeckId(e.target.value)}
-              className="mt-1 w-full rounded-2xl px-4 py-2.5"
-            >
-              {decks.map((deck) => (
-                <option key={deck.id} value={deck.id}>
-                  {deck.title}
-                </option>
-              ))}
-            </select>
-          </div>
-          {createCard.isError && <p role="alert" className="text-sm text-[var(--color-danger)]">{createCard.error.message}</p>}
-          <Button full onClick={() => createCard.mutate()}
-            disabled={!cardFront.trim() || !cardBack.trim() || !deckId || createCard.isPending}>
-            <Icon name="plus" size={18} /> {t('notes.createCard')}
-          </Button>
-        </div>
-      </Modal>
+      <PassageTools source={passageSource} title={title} />
 
       <Modal open={deleteOpen} title={t('notes.deleteNote')} onClose={() => setDeleteOpen(false)}>
         <p className="text-sm text-[var(--color-muted)]">{t('notes.deleteHint')}</p>

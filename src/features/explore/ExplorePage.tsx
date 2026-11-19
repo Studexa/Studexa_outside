@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Badge } from '../../components/Badge'
 import { Button } from '../../components/Button'
@@ -9,6 +10,8 @@ import { cardsApi, decksApi } from '../../lib/api'
 import { studyKeys } from '../../lib/study'
 import { isGuestMode } from '../../lib/auth'
 import { useApp } from '../../lib/store'
+import { betaEnabled } from '../../lib/beta'
+import { ReadingShelf } from './ReadingShelf'
 
 const publicDecks = [
   {
@@ -104,6 +107,27 @@ const subjects = ['Mathematics', 'Biology', 'Khmer', 'English', 'Physics', 'Hist
 
 export function ExplorePage() {
   const { t } = useTranslation()
+  const [search] = useSearchParams()
+  const starterDecks = !betaEnabled && search.get('view') === 'decks'
+  return <div className="reading-explore">
+    <header className="reading-hero">
+      <div>
+        <h1>{t('nav.explore')}</h1>
+        <p>{t('reading.subtitle')}</p>
+      </div>
+      <div className="reading-hero-links">
+        {!isGuestMode() && <Link to="/library"><Icon name="book" size={17} />{t('reading.textbooks')}</Link>}
+        {!betaEnabled && <Link to={starterDecks ? '/explore' : '/explore?view=decks'}>
+          <Icon name={starterDecks ? 'compass' : 'cards'} size={17} />{t(starterDecks ? 'reading.shelf' : 'reading.starterDecks')}
+        </Link>}
+      </div>
+    </header>
+    {starterDecks ? <StarterDecks /> : <ReadingShelf />}
+  </div>
+}
+
+function StarterDecks() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const guestMode = isGuestMode()
   const [query, setQuery] = useState('')
@@ -150,7 +174,7 @@ export function ExplorePage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-black">{t('explore.title')}</h1>
+        <h2 className="text-2xl font-black">{t('reading.starterDecks')}</h2>
         <p className="text-sm text-[var(--color-muted)]">{t('explore.subtitle')}</p>
       </div>
 

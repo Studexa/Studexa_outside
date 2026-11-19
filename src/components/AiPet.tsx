@@ -7,7 +7,7 @@ import { aiApi, type AiTutorInput } from '../lib/api'
 import { ApiError } from '../lib/api/client'
 import { isGuestMode, useAuth } from '../lib/auth'
 import { useApp } from '../lib/store'
-import { MAX_TUTOR_SOURCE, STUDY_SOURCE_EVENT, type StudySource } from '../lib/aiStudy'
+import { MAX_TUTOR_SOURCE, STUDY_COMPANION_EVENT, STUDY_SOURCE_EVENT, type StudySource } from '../lib/aiStudy'
 
 type Message = { role: 'pet' | 'user'; text: string; references?: { title: string; excerpt: string }[] }
 
@@ -31,6 +31,7 @@ function StudyBuddy() {
   const endRef = useRef<HTMLDivElement>(null)
   const questionRef = useRef<HTMLTextAreaElement>(null)
   const launcherRef = useRef<HTMLButtonElement>(null)
+  const homeOpener = useRef<HTMLButtonElement | null>(null)
   const sending = useRef(false)
   const guest = isGuestMode()
   const tutor = useMutation({
@@ -46,6 +47,10 @@ function StudyBuddy() {
     return () => { window.removeEventListener('online', connectivity); window.removeEventListener('offline', connectivity) }
   }, [])
   useEffect(() => {
+    const openCompanion = (event: Event) => {
+      homeOpener.current = (event as CustomEvent<HTMLButtonElement>).detail
+      setOpen(true)
+    }
     const attach = (event: Event) => {
       const source = (event as CustomEvent<StudySource>).detail
       setSourceTitle(source.title.slice(0, 200))
@@ -54,12 +59,21 @@ function StudyBuddy() {
       setSourceOpen(true)
       setOpen(true)
     }
+    window.addEventListener(STUDY_COMPANION_EVENT, openCompanion)
     window.addEventListener(STUDY_SOURCE_EVENT, attach)
-    return () => window.removeEventListener(STUDY_SOURCE_EVENT, attach)
+    return () => {
+      window.removeEventListener(STUDY_COMPANION_EVENT, openCompanion)
+      window.removeEventListener(STUDY_SOURCE_EVENT, attach)
+    }
   }, [])
   useEffect(() => { if (open) questionRef.current?.focus() }, [open])
   useEffect(() => { if (open) endRef.current?.scrollIntoView?.({ behavior: 'auto' }) }, [messages, open, tutor.isPending])
-  const close = () => { setOpen(false); window.setTimeout(() => launcherRef.current?.focus(), 0) }
+  const close = () => {
+    const opener = homeOpener.current
+    homeOpener.current = null
+    setOpen(false)
+    window.setTimeout(() => (opener?.isConnected ? opener : launcherRef.current)?.focus(), 0)
+  }
   const ask = () => {
     const text = question.trim()
     if (!text || text.length > 1200 || sending.current || guest || !online) return
@@ -86,7 +100,7 @@ function StudyBuddy() {
 
   return <>
     {!open && <button ref={launcherRef} onClick={() => setOpen(true)} aria-label={t('pet.open')} className="study-header-action">
-      <Icon name="sparkles" size={19} /><span className="study-header-label">{t('pet.button')}</span>
+      <Mascot species={buddy} size={28} /><span className="study-header-label">{t('pet.button')}</span>
     </button>}
     {open && <section aria-label={t('pet.title')} onKeyDown={(event) => { if (event.key === 'Escape') close() }}
       className={`fixed bottom-[calc(var(--study-nav-inset,0px)+0.75rem)] right-3 z-50 flex w-[calc(100%-1.5rem)] max-w-[420px] flex-col overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-lift)] md:right-6 ${expanded ? 'h-[80dvh]' : 'h-[65dvh]'} max-h-[calc(100dvh-var(--study-nav-inset,0px)-1.5rem)]`}>

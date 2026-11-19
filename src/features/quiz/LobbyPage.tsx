@@ -1,227 +1,122 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { QRCodeSVG } from 'qrcode.react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '../../components/Button'
-import { quizApi, sessionApi } from '../../lib/api/quiz'
+import { sessionApi } from '../../lib/api/quiz'
 import { useAuth } from '../../lib/auth'
+import { useRoomUpdates } from '../../lib/websocket'
+import { LiveRoomError, LiveRoomLayout } from './LiveRoomLayout'
 
-export function LobbyPage() {
-  const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
-  const params = useParams()
-  const { user } = useAuth()
+function RoomInvite({ roomCode }: { roomCode: string }) {
+  const { t } = useTranslation()
+  const input = useRef<HTMLInputElement>(null)
+  const [copied, setCopied] = useState(false)
+  const link = `${window.location.origin}/quiz/lobby/${roomCode}`
 
-  // The route is /quiz/lobby/:code — the code comes from the path, not the query.
-  const roomCode = (params.code ?? '').toUpperCase()
-
-  const [session, setSession] = useState<any>(null)
-  const [players, setPlayers] = useState<any[]>([])
-  const [playerId, setPlayerId] = useState<string | null>(null)
-  const [nickname, setNickname] = useState(searchParams.get('nickname') ?? '')
-  const [questionCount, setQuestionCount] = useState<number | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const isHost = Boolean(session && user?.id && session.hostId === user.id)
-
-  useEffect(() => {
-    if (!roomCode) return
-
-    let cancelled = false
-    const loadRoom = async () => {
-      try {
-        const room = await sessionApi.getRoom(roomCode)
-        if (cancelled) return
-        setSession(room.session)
-        setPlayers(room.players)
-
-        const mine = room.players.find((p) => p.userId && p.userId === user?.id)
-        if (mine) {
-          setPlayerId(mine.id)
-          if (room.session.status === 'ACTIVE') {
-            navigate(`/quiz/play/${room.session.id}?playerId=${encodeURIComponent(mine.id)}&roomCode=${encodeURIComponent(roomCode)}`, { replace: true })
-            return
-          }
-        }
-
-        try {
-          const quiz = await quizApi.getQuiz(room.session.quizId)
-          if (!cancelled) setQuestionCount(quiz.questions.length)
-        } catch {
-          // Non-fatal: the room is still usable, the start button stays guarded.
-          if (!cancelled) setQuestionCount(null)
-        }
-      } catch (err: any) {
-        if (!cancelled) setError(err.message || 'Failed to load room')
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    loadRoom()
-    return () => {
-      cancelled = true
-    }
-  }, [roomCode, user?.id, navigate])
-
-  useEffect(() => {
-    if (!roomCode || !playerId || session?.status === 'ACTIVE') return
-    let cancelled = false
-    const refresh = async () => {
-      try {
-        const room = await sessionApi.getRoom(roomCode)
-        if (cancelled) return
-        setSession(room.session)
-        setPlayers(room.players)
-        if (room.session.status === 'ACTIVE') {
-          navigate(`/quiz/play/${room.session.id}?playerId=${encodeURIComponent(playerId)}&roomCode=${encodeURIComponent(roomCode)}`, { replace: true })
-        }
-      } catch {
-        // Keep the lobby usable during brief network interruptions.
-      }
-    }
-    const timer = window.setInterval(() => void refresh(), 2000)
-    return () => {
-      cancelled = true
-      window.clearInterval(timer)
-    }
-  }, [roomCode, playerId, session?.status, navigate])
-
-  const handleStart = async () => {
-    if (questionCount === null) {
-      setError('Could not load the quiz questions. Refresh the lobby and try again.')
-      return
-    }
-    if (questionCount <= 0) {
-      setError('This quiz has no questions yet. Add questions before starting.')
-      return
-    }
+  const copyLink = async () => {
     try {
-      await sessionApi.startSession(session.id)
-      const query = new URLSearchParams({ playerId: playerId ?? '', roomCode })
-      navigate(`/quiz/play/${session.id}?${query.toString()}`)
-    } catch (err: any) {
-      setError(err.message || 'Failed to start session')
+      await navigator.clipboard.writeText(link)
+      setCopied(true)
+    } catch {
+      input.current?.focus()
+      input.current?.select()
     }
   }
 
-  const handleJoin = async () => {
-    const trimmed = nickname.trim()
-    if (!trimmed) {
-      setError('Please enter a nickname')
-      return
-    }
-    try {
-      const player = await sessionApi.joinSession(session.id, {
-        roomCode,
-        nickname: trimmed,
-      })
-      setPlayerId(player.id)
-      setPlayers((current) =>
-        current.some((p) => p.id === player.id) ? current : [...current, player],
-      )
-      navigate(`/quiz/lobby/${roomCode}?nickname=${encodeURIComponent(trimmed)}`, { replace: true })
-    } catch (err: any) {
-      setError(err.message || 'Failed to join room')
-    }
-  }
-
-  if (!roomCode) {
-    return <div className="flex min-h-screen items-center justify-center p-6">Missing room code.</div>
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--bg)]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--primary)]"></div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--bg)] p-6">
-        <div className="text-center p-6 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
-          <h2 className="text-lg font-medium mb-2">Error</h2>
-          <p className="text-[var(--danger-text)] mb-4">{error}</p>
-          <Button onClick={() => navigate('/')}>Back to Home</Button>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] p-6">
-      <div className="max-w-2xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <Link to="/" className="text-[var(--primary)] hover:underline">
-            ← Back
-          </Link>
-          <h1 className="text-2xl font-bold">Room {roomCode}</h1>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="p-6 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
-            <h2 className="font-semibold mb-4">Players ({players.length})</h2>
-            <ul className="space-y-2">
-              {players.map((p) => (
-                <li
-                  key={p.id}
-                  className="flex items-center justify-between p-3 rounded border border-[var(--border)]/50"
-                >
-                  <span className="font-medium">
-                    {p.nickname}
-                    {p.id === playerId ? ' (you)' : ''}
-                  </span>
-                  <span className="text-xs text-[var(--text-muted)]">
-                    {p.isHost ? 'Host' : p.isReady ? '✓ Ready' : 'Waiting'}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="p-6 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
-            <h2 className="font-semibold mb-4">Room Settings</h2>
-            <p className="text-sm text-[var(--text-muted)] mb-2">Mode: Live Race</p>
-            <p className="text-sm text-[var(--text-muted)] mb-2">
-              Questions: {questionCount ?? '…'}
-            </p>
-            <p className="text-sm text-[var(--text-muted)] mb-4">Time per question: 30s</p>
-
-            {questionCount === 0 && (
-              <p className="text-sm text-[var(--warning-text)] mb-3">
-                This quiz has no questions yet, so it cannot start.
-              </p>
-            )}
-
-            {isHost ? (
-              <Button className="w-full" onClick={handleStart}
-                disabled={players.length === 0 || questionCount === null || questionCount <= 0 || !session}>
-                Start Quiz
-              </Button>
-            ) : playerId ? (
-              <p className="text-center text-sm text-[var(--text-muted)]">Waiting for the host to start…</p>
-            ) : null}
-          </div>
-        </div>
-
-        {!playerId && (
-          <div className="mt-6 p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
-            <p className="text-sm text-[var(--text-muted)] mb-3">
-              Enter your nickname to join the room:
-            </p>
-            <input
-              type="text"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              maxLength={50}
-              placeholder="Your nickname"
-              className="w-full px-3 py-2 rounded border border-[var(--border)] bg-[var(--bg)]"
-            />
-            <Button className="w-full mt-3" onClick={handleJoin} disabled={!nickname.trim()}>
-              Join Room
-            </Button>
-          </div>
-        )}
+  return <section className="study-panel space-y-3">
+    <h2 className="text-lg font-bold">{t('quizRoom.shareTitle')}</h2>
+    <p className="text-sm text-[var(--color-muted)]">{t('quizRoom.shareSubtitle')}</p>
+    <div className="flex flex-wrap items-center gap-4">
+      <QRCodeSVG value={link} size={128} marginSize={4} role="img" aria-label={t('quizRoom.scanQR')} className="rounded-xl bg-white" />
+      <div className="min-w-0 flex-1 space-y-2">
+        <label className="block space-y-1 text-sm font-bold">
+          <span>{t('quizRoom.roomLink')}</span>
+          <input ref={input} readOnly value={link} className="w-full rounded-xl px-3 py-2 text-sm font-normal" />
+        </label>
+        <Button variant="secondary" onClick={() => void copyLink()}>{t('quizRoom.copyLink')}</Button>
+        {copied && <p className="text-sm" role="status">{t('quizRoom.linkCopied')}</p>}
       </div>
     </div>
-  )
+  </section>
+}
+
+export function LobbyPage() {
+  const { t } = useTranslation()
+  const { code = '' } = useParams()
+  const [params] = useSearchParams()
+  const roomCode = code.toUpperCase()
+  const navigate = useNavigate()
+  const accountId = useAuth((state) => state.user?.id)
+  const profileName = useAuth((state) => state.profile?.nickname)
+  const [nickname, setNickname] = useState(() => (params.get('nickname') ?? profileName ?? '').slice(0, 50))
+  const room = useQuery({
+    queryKey: ['live-room', accountId, roomCode],
+    queryFn: () => sessionApi.getRoom(roomCode),
+    enabled: /^[A-Z0-9]{6}$/.test(roomCode),
+    retry: false,
+    refetchInterval: (query) => query.state.data?.session.status === 'WAITING' ? 5_000 : false,
+  })
+  const data = room.data
+  const session = data?.session
+  const member = data?.players.find((player) => player.userId === accountId)
+  const host = !!accountId && session?.hostId === accountId
+
+  useRoomUpdates(member && session?.status === 'WAITING' ? roomCode : undefined, room.refetch)
+
+  useEffect(() => {
+    if (!member || !session) return
+    if (session.status === 'ACTIVE') void navigate(`/quiz/play/${session.id}`, { replace: true })
+    if (session.status === 'ENDED') void navigate(`/quiz/results/${session.id}`, { replace: true })
+  }, [member, session, navigate])
+
+  const join = useMutation({
+    mutationFn: (id: string) => sessionApi.joinSession(id, { roomCode, nickname: nickname.trim() }),
+    onSuccess: () => room.refetch(),
+  })
+  const start = useMutation({ mutationFn: sessionApi.startSession, onSuccess: () => room.refetch() })
+
+  return <LiveRoomLayout title={data?.title ?? t('quizRoom.lobby')}>
+    {!data && (room.isFetching ? <p role="status">{t('common.loading')}</p> : <div className="space-y-3">
+      {room.isError ? <LiveRoomError error={room.error} /> : <p role="alert">{t('quizRoom.roomMissing')}</p>}
+      <Link className="study-text-link" to="/quiz/join">{t('quizRoom.title')}</Link>
+    </div>)}
+    {data && <>
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="rounded-xl bg-[var(--color-primary-soft)] px-3 py-2 font-mono text-lg font-bold tracking-wider text-[var(--color-primary)]">
+          {t('quizRoom.roomCode', { code: roomCode })}
+        </span>
+        <p className="text-sm text-[var(--color-muted)]">{t('quizRoom.roomSettings', { count: data.questionCount, seconds: data.timePerQuestion })}</p>
+      </div>
+      <section className="study-panel space-y-3">
+        <h2 className="text-lg font-bold">{t('quizRoom.players', { count: data.players.length })}</h2>
+        <ul className="divide-y divide-[var(--color-border)]">
+          {data.players.map((player) => <li key={player.id} className="flex items-center justify-between gap-3 py-2">
+            <span className="min-w-0 font-semibold [overflow-wrap:anywhere]">{player.nickname}
+              {member?.id === player.id && <span className="ml-2 text-sm text-[var(--color-muted)]">{t('quizRoom.you')}</span>}
+            </span>
+            {player.isHost && <span className="text-sm font-bold text-[var(--color-primary)]">{t('quizRoom.host')}</span>}
+          </li>)}
+        </ul>
+        {data.session.status === 'WAITING' && (host ? <>
+          <LiveRoomError error={start.error} />
+          <Button disabled={!data.questionCount || start.isPending} onClick={() => start.mutate(data.session.id)}>
+            {t(start.isPending ? 'quizRoom.starting' : 'quizRoom.start')}
+          </Button>
+        </> : member ? <p role="status" className="text-sm text-[var(--color-muted)]">{t('quizRoom.waiting')}</p> : <form className="space-y-3"
+          onSubmit={(event) => { event.preventDefault(); join.mutate(data.session.id) }}>
+          <label className="block space-y-1 font-bold">
+            <span>{t('quizRoom.nicknameLabel')}</span>
+            <input type="text" required maxLength={50} value={nickname} disabled={join.isPending}
+              onChange={(event) => setNickname(event.target.value)} className="w-full rounded-xl px-3 py-2" />
+          </label>
+          <LiveRoomError error={join.error} />
+          <Button type="submit" disabled={!nickname.trim() || join.isPending}>{t(join.isPending ? 'quizRoom.joining' : 'quizRoom.joinButton')}</Button>
+        </form>)}
+        {data.session.status !== 'WAITING' && !member && <p role="alert">{t('quizRoom.roomClosed')}</p>}
+      </section>
+      {host && data.session.status === 'WAITING' && <RoomInvite roomCode={roomCode} />}
+    </>}
+  </LiveRoomLayout>
 }

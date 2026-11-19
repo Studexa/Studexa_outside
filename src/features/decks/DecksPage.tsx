@@ -74,7 +74,7 @@ export function DecksPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="study-page-header study-feature-header flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-black">{t('decks.title')}</h1>
           <p className="text-sm text-[var(--color-muted)]">{t('decks.subtitle')}</p>

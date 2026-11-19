@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Icon, type IconName } from '../components/Icon'
@@ -12,6 +12,7 @@ import { useApp, xpForNext } from '../lib/store'
 import { useGameState } from '../lib/study'
 import { isGuestMode } from '../lib/auth'
 import { betaEnabled } from '../lib/beta'
+import studexaLogo from '../assets/logo_studexa.png'
 
 type NavItem = { to: string; label: string; icon: IconName }
 
@@ -26,7 +27,7 @@ const secondaryNav: NavItem[] = [
   { to: '/subjects', label: 'nav.subjects', icon: 'layers' },
   { to: '/stats', label: 'nav.stats', icon: 'chart' },
   { to: '/profile', label: 'nav.profile', icon: 'user' },
-  ...(!betaEnabled ? [{ to: '/explore', label: 'nav.explore', icon: 'compass' as const }] : []),
+  { to: '/explore', label: 'nav.explore', icon: 'compass' },
 ]
 
 const immersiveRoutes = ['/study/review', '/study/boss', '/study/timer']
@@ -45,6 +46,9 @@ export function AppShell() {
   const { t } = useTranslation()
   const location = useLocation()
   const guest = isGuestMode()
+  const workspaceSecondaryNav: NavItem[] = guest ? secondaryNav : [
+    { to: '/library', label: 'library.title', icon: 'book' }, ...secondaryNav,
+  ]
   const game = useGameState(!guest).data
   const onboarded = useApp((state) => state.onboarded)
   const localStreak = useApp((state) => state.streak)
@@ -57,9 +61,22 @@ export function AppShell() {
   const [showProgress, setShowProgress] = useState(false)
   const mobileMore = useRef<HTMLDetailsElement>(null)
   const moreTrigger = useRef<HTMLElement>(null)
+  const shell = useRef<HTMLDivElement>(null)
+  const header = useRef<HTMLElement>(null)
 
   const immersive = immersiveRoutes.some((route) => location.pathname === route || location.pathname.startsWith(route + '/'))
   const hideTutor = location.pathname.startsWith('/study/quiz') || location.pathname.startsWith('/study/minigames')
+
+  useLayoutEffect(() => {
+    const shellElement = shell.current
+    const headerElement = header.current
+    if (!shellElement || !headerElement) return
+    const measure = () => shellElement.style.setProperty('--study-header-offset', `${headerElement.offsetHeight}px`)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(headerElement)
+    return () => observer.disconnect()
+  }, [immersive, onboarded])
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' })
@@ -86,13 +103,13 @@ export function AppShell() {
   ]
 
   return (
-    <div className="app-shell min-h-dvh">
+    <div className="app-shell min-h-dvh" ref={shell}>
       <a href="#main-content" className="skip-link">{t('shell.skipContent')}</a>
 
-      <header className="study-shell-header">
+      <header className="study-shell-header" ref={header}>
         <div className="study-shell-header-inner">
           <Link to="/" className="study-brand">
-            <span className="study-brand-mark"><Icon name="book" size={20} /></span>
+            <img className="study-brand-mark" src={studexaLogo} alt="" width={34} height={34} />
             <span>{t('app.name')}</span>
           </Link>
 
@@ -120,7 +137,7 @@ export function AppShell() {
               {primaryNav.map((item) => <WorkspaceNavLink key={item.to} item={item} />)}
             </div>
             <div className="mt-5 space-y-1 border-t border-(--study-border) pt-4">
-              {secondaryNav.map((item) => <WorkspaceNavLink key={item.to} item={item} />)}
+              {workspaceSecondaryNav.map((item) => <WorkspaceNavLink key={item.to} item={item} />)}
               <TelegramLink />
             </div>
           </nav>
@@ -146,7 +163,7 @@ export function AppShell() {
               <Icon name="layers" size={19} /><span>{t('shell.more')}</span>
             </summary>
             <div className="study-more-menu">
-              {secondaryNav.map((item) => <WorkspaceNavLink key={item.to} item={item} />)}
+              {workspaceSecondaryNav.map((item) => <WorkspaceNavLink key={item.to} item={item} />)}
               <TelegramLink />
             </div>
           </details>

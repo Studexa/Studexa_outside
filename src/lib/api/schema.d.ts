@@ -244,6 +244,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sessions/{id}/advance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["advance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/review/undo": {
         parameters: {
             query?: never;
@@ -398,6 +414,22 @@ export interface paths {
         get: operations["listNoteAttachments"];
         put?: never;
         post: operations["uploadNoteAttachment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/library/readings/{id}/ask": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["askReading"];
         delete?: never;
         options?: never;
         head?: never;
@@ -724,6 +756,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sessions/{id}/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getState"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sessions/{id}/leaderboard": {
         parameters: {
             query?: never;
@@ -876,6 +924,54 @@ export interface paths {
             cookie?: never;
         };
         get: operations["downloadNoteAttachment"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/library/readings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listReadings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/library/readings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getReading"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/library/books": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listLibraryBooks"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1386,6 +1482,10 @@ export interface components {
             isReady?: boolean;
             isHost?: boolean;
         };
+        AdvanceRequest: {
+            /** Format: uuid */
+            questionId?: string;
+        };
         ReviewUndoResponse: {
             /** Format: uuid */
             cardId?: string;
@@ -1529,6 +1629,29 @@ export interface components {
             textTruncated?: boolean;
             hasText?: boolean;
         };
+        AskRequest: {
+            /** Format: int64 */
+            revision: number;
+            /** Format: int32 */
+            startBlock: number;
+            /** Format: int32 */
+            startOffset: number;
+            /** Format: int32 */
+            endBlock: number;
+            /** Format: int32 */
+            endOffset: number;
+            language: string;
+            /** @enum {string} */
+            action: "EXPLAIN" | "SUMMARIZE" | "PRACTICE";
+        };
+        AiTutorReference: {
+            title?: string;
+            excerpt?: string;
+        };
+        AiTutorResponse: {
+            answer?: string;
+            references?: components["schemas"]["AiTutorReference"][];
+        };
         FocusSessionRequest: {
             /** Format: int32 */
             minutes: number;
@@ -1650,14 +1773,6 @@ export interface components {
             sourceText?: string;
             sourceTitle?: string;
         };
-        AiTutorReference: {
-            title?: string;
-            excerpt?: string;
-        };
-        AiTutorResponse: {
-            answer?: string;
-            references?: components["schemas"]["AiTutorReference"][];
-        };
         SampleTutorRequest: {
             sampleId: string;
             promptId: string;
@@ -1711,6 +1826,35 @@ export interface components {
             /** Format: date-time */
             purchasedAt?: string;
         };
+        LiveQuestion: {
+            /** Format: uuid */
+            id?: string;
+            text?: string;
+            options?: string;
+            /** Format: int32 */
+            index?: number;
+            /** Format: int32 */
+            timeLimitSeconds?: number;
+            /** Format: int64 */
+            endsAt?: number;
+        };
+        LiveState: {
+            status?: string;
+            roomCode?: string;
+            host?: boolean;
+            /** Format: uuid */
+            playerId?: string;
+            question?: components["schemas"]["LiveQuestion"];
+            answer?: components["schemas"]["AnswerResponse"];
+            /** Format: int32 */
+            answeredCount?: number;
+            /** Format: int32 */
+            playerCount?: number;
+            /** Format: int32 */
+            questionCount?: number;
+            /** Format: int64 */
+            serverTime?: number;
+        };
         LeaderboardEntry: {
             nickname?: string;
             /** Format: int32 */
@@ -1722,6 +1866,11 @@ export interface components {
         RoomInfoResponse: {
             session?: components["schemas"]["SessionResponse"];
             players?: components["schemas"]["SessionPlayerResponse"][];
+            title?: string;
+            /** Format: int32 */
+            questionCount?: number;
+            /** Format: int32 */
+            timePerQuestion?: number;
         };
         DailyReviewProgress: {
             /** Format: int64 */
@@ -1797,6 +1946,40 @@ export interface components {
         };
         TextContent: {
             text?: string;
+        };
+        Edition: {
+            id?: string;
+            title?: string;
+            author?: string;
+            section?: string;
+            /** @enum {string} */
+            subject?: "SCIENCE" | "HISTORY" | "LITERATURE";
+            /** Format: int64 */
+            revision?: number;
+            sourceUrl?: string;
+            previousId?: string;
+            nextId?: string;
+        };
+        Block: {
+            heading?: boolean;
+            text?: string;
+        };
+        ReadingResponse: {
+            edition?: components["schemas"]["Edition"];
+            blocks?: components["schemas"]["Block"][];
+            /** Format: int32 */
+            maxSourceChars?: number;
+        };
+        Book: {
+            slug?: string;
+            title?: string;
+            subjects?: ("SCIENCE" | "HISTORY" | "MATH" | "COMPUTING" | "HUMANITIES" | "SOCIAL_SCIENCES" | "BUSINESS" | "HEALTH" | "COLLEGE_SUCCESS")[];
+            readerUrl?: string;
+            publisherUrl?: string;
+        };
+        Catalog: {
+            books?: components["schemas"]["Book"][];
+            stale?: boolean;
         };
         HealthResponse: {
             status?: string;
@@ -2557,6 +2740,30 @@ export interface operations {
             };
         };
     };
+    advance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdvanceRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     undo: {
         parameters: {
             query: {
@@ -2844,6 +3051,32 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["Attachment"];
+                };
+            };
+        };
+    };
+    askReading: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AskRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AiTutorResponse"];
                 };
             };
         };
@@ -3424,6 +3657,28 @@ export interface operations {
             };
         };
     };
+    getState: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LiveState"];
+                };
+            };
+        };
+    };
     getLeaderboard: {
         parameters: {
             query?: never;
@@ -3634,6 +3889,68 @@ export interface operations {
                 };
                 content: {
                     "application/octet-stream": string;
+                };
+            };
+        };
+    };
+    listReadings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Edition"][];
+                };
+            };
+        };
+    };
+    getReading: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReadingResponse"];
+                };
+            };
+        };
+    };
+    listLibraryBooks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Catalog"];
                 };
             };
         };

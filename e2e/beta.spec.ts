@@ -37,6 +37,304 @@ test('the root route opens the sign-in form in a fresh browser session', async (
   await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('type', 'password')
 })
 
+test('Explore rotates daily picks and turns a reading selection into a review card', async ({ page }) => {
+  const { accessToken } = await register(page, 'Reading learner')
+  const headers = { Authorization: 'Bearer ' + accessToken }
+  const deckResponse = await page.request.post('/api/v1/decks', { headers, data: { title: 'Reading deck' } })
+  expect(deckResponse.ok()).toBeTruthy()
+  const { id: deckId } = await deckResponse.json()
+  await page.clock.setFixedTime(new Date(2026, 10, 19, 12))
+  await page.getByRole('link', { name: 'Explore', exact: true }).click()
+  const daily = page.getByRole('region', { name: 'Today’s reading picks' })
+  await expect(daily.getByRole('link')).toHaveCount(3)
+  const firstPick = await daily.getByRole('link').first().getAttribute('href')
+  const topics = await daily.getByRole('link').evaluateAll((links) => links.map((link) => link.getAttribute('data-subject')).sort())
+  expect(topics).toEqual(['HISTORY', 'LITERATURE', 'SCIENCE'])
+  await page.clock.setFixedTime(new Date(2026, 10, 20, 12))
+  await page.reload()
+  await expect(daily.getByRole('link').first()).not.toHaveAttribute('href', firstPick!)
+
+  const catalog = page.getByRole('region', { name: 'Reading catalog' })
+  await catalog.getByRole('button', { name: 'Literature', exact: true }).click()
+  await expect(catalog.getByRole('link')).toHaveCount(3)
+  await catalog.getByRole('searchbox').fill('Jane Austen')
+  await expect(catalog.getByRole('link')).toHaveCount(3)
+  await catalog.getByRole('searchbox').fill('Thomas Paine')
+  await expect(catalog.getByText('No readings match your search.')).toBeVisible()
+  await catalog.getByRole('searchbox').fill('')
+  const editions: { id: string }[] = await (await page.request.get('/api/v1/library/readings', { headers })).json()
+  await page.route('**/api/v1/library/readings/pride-chapter-*', (route) => {
+    const id = new URL(route.request().url()).pathname.split('/').at(-1)
+    return route.fulfill({ json: {
+      edition: editions.find((edition) => edition.id === id),
+      maxSourceChars: 12000,
+      blocks: [
+        { heading: false, text: 'It is a truth universally acknowledged.' },
+        { heading: false, text: 'This paragraph continues the reading.' },
+      ],
+    } })
+  })
+  await page.route('**/api/v1/library/readings/pride-chapter-1', (route) => route.fulfill({ status: 503 }), { times: 1 })
+  await catalog.getByRole('link', { name: /Chapter 1/ }).click()
+  await expect(page.getByRole('alert')).toContainText('This reading could not load.')
+  await expect(page.getByRole('link', { name: 'Open original edition on Wikisource' })).toHaveAttribute('href', /oldid=13055721$/)
+  await page.getByRole('button', { name: 'Retry' }).click()
+  const sentence = page.locator('.reading-paper p').filter({ hasText: /It is a truth universally acknowledged/ }).first()
+  await expect(sentence).toBeVisible()
+  const selectQuestion = async () => {
+    const { index, start, end, x1, x2, y } = await sentence.evaluate((element) => {
+      element.scrollIntoView({ block: 'center' })
+      const node = element.firstChild!
+      const start = node.textContent!.indexOf('It is a truth')
+      const end = start + 'It is a truth'.length
+      const range = document.createRange()
+      range.setStart(node, start)
+      range.setEnd(node, end)
+      const rect = range.getBoundingClientRect()
+      return { index: Number((element as HTMLElement).dataset.readingBlock), start, end,
+        x1: rect.left + 0.5, x2: rect.right - 0.5, y: rect.top + rect.height / 2 }
+    })
+    await page.mouse.move(x1, y)
+    await page.mouse.down()
+    await page.mouse.move(x2, y, { steps: 8 })
+    await page.mouse.up()
+    await expect(page.getByRole('toolbar', { name: 'Selected text actions' })).toBeVisible()
+    return { index, start, end }
+  }
+  const { index, start, end } = await selectQuestion()
+  await page.getByRole('button', { name: 'Ask AI', exact: true }).click()
+  const ask = page.getByRole('dialog', { name: 'Ask AI' })
+  await expect(ask.getByLabel('Selected passage')).toHaveValue('It is a truth')
+  await page.route('**/api/v1/library/readings/pride-chapter-1/ask', async (route) => {
+    expect(route.request().postDataJSON()).toEqual({
+      revision: 13055721, startBlock: index, startOffset: start, endBlock: index, endOffset: end,
+      language: 'en', action: 'SUMMARIZE',
+    })
+    await route.fulfill({ json: { answer: 'The passage begins with a claim.', references: [] } })
+  })
+  await ask.getByRole('button', { name: 'Summarize' }).click()
+  await expect(ask.getByText('The passage begins with a claim.')).toBeVisible()
+  await ask.getByRole('button', { name: 'Close' }).click()
+  await expect(ask).toBeHidden()
+
+  await selectQuestion()
+  await page.getByRole('button', { name: 'Make flashcard' }).click()
+  const draft = page.getByRole('dialog', { name: 'Make flashcard' })
+  await expect(draft.getByLabel('Question')).toHaveValue('It is a truth')
+  await draft.getByLabel('Question').fill('How does Pride and Prejudice open?')
+  await draft.getByRole('button', { name: 'Pick answer' }).click()
+  await expect(page.getByRole('region', { name: 'Pick answer' })).toContainText('Reading deck')
+  const useAnswer = page.getByRole('button', { name: 'Use selection as answer' })
+  await expect(useAnswer).toBeDisabled()
+  const expected = await sentence.evaluate((element) => {
+    const next = element.nextElementSibling!
+    const range = document.createRange()
+    range.setStart(element.firstChild!, 0)
+    range.setEnd(next.firstChild!, 18)
+    const selection = window.getSelection()!
+    selection.removeAllRanges()
+    selection.addRange(range)
+    return element.textContent + '\n\n' + next.textContent!.slice(0, 18)
+  })
+  await useAnswer.click()
+  await expect(draft.getByLabel('Answer')).toHaveValue(expected)
+  await page.route('**/api/v1/decks/' + deckId + '/cards', (route) => route.fulfill({ status: 503 }), { times: 1 })
+  await draft.getByRole('button', { name: 'Create card' }).click()
+  await expect(draft.getByRole('alert')).toContainText('could not be saved')
+  await expect(draft.getByLabel('Answer')).toHaveValue(expected)
+  await draft.getByRole('button', { name: 'Create card' }).click()
+  await expect(page.getByText('Flashcard created')).toBeVisible()
+  const cards = await (await page.request.get('/api/v1/decks/' + deckId + '/cards', { headers })).json()
+  expect(cards).toEqual([expect.objectContaining({ front: 'How does Pride and Prejudice open?', back: expected,
+    sourceTitle: 'Pride and Prejudice · Chapter 1', sourceExcerpt: expected })])
+
+  await page.getByRole('link', { name: 'Next chapter' }).click()
+  await expect(page.getByRole('link', { name: 'Open original edition on Wikisource' })).toHaveAttribute('href', /oldid=13055726$/)
+  await expect(page.getByRole('article', { name: 'Chapter 2' })).toBeVisible()
+  await page.goto('/study/review')
+  const reviewCard = page.getByRole('button', { name: 'Flip the flashcard' })
+  await expect(reviewCard).toContainText('How does Pride and Prejudice open?')
+  await reviewCard.press('Space')
+  await expect(reviewCard).toContainText('It is a truth universally acknowledged')
+})
+
+test.describe('passage tools with mobile touch', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
+
+  test('a keyboard-selected private note can become a card and stays out of beta AI', async ({ page }) => {
+    const { accessToken } = await register(page, 'Note learner')
+    const headers = { Authorization: 'Bearer ' + accessToken }
+    const deck = await page.request.post('/api/v1/decks', { headers, data: { title: 'Note deck' } })
+    expect(deck.ok()).toBeTruthy()
+    const { id } = await deck.json()
+    const aiRequests: string[] = []
+    page.on('request', (request) => {
+      if (request.method() === 'POST' && /\/ai\/|\/ask$/.test(request.url())) aiRequests.push(request.url())
+    })
+    await page.goto('/notes')
+    await page.getByRole('button', { name: 'New note' }).first().tap()
+    await page.waitForURL('**/notes/*')
+    const note = page.locator('.tiptap')
+    await note.fill('What should I review?')
+    await note.press('End')
+    await note.press('Shift+Home')
+    const toolbar = page.getByRole('toolbar', { name: 'Selected text actions' })
+    await toolbar.getByRole('button', { name: 'Ask AI' }).tap()
+    const ask = page.getByRole('dialog', { name: 'Ask AI' })
+    await expect(ask.getByLabel('Selected passage')).toHaveValue('What should I review?')
+    await expect(ask.getByText(/During beta, AI can study public readings/)).toBeVisible()
+    await expect(ask.getByRole('button', { name: 'Summarize' })).toHaveCount(0)
+    await ask.getByRole('button', { name: 'Close' }).tap()
+    await note.press('End')
+    await note.press('Enter')
+    await page.keyboard.insertText('Read the chapter again.')
+    await note.press('Control+Home')
+    await note.press('Shift+End')
+    await toolbar.getByRole('button', { name: 'Make flashcard' }).tap()
+    const draft = page.getByRole('dialog', { name: 'Make flashcard' })
+    await expect(draft.getByLabel('Question')).toHaveValue('What should I review?')
+    await draft.getByRole('button', { name: 'Pick answer' }).tap()
+    await note.press('Control+End')
+    await note.press('Shift+Home')
+    await page.getByRole('button', { name: 'Use selection as answer' }).tap()
+    await expect(draft.getByLabel('Answer')).toHaveValue('Read the chapter again.')
+    await draft.getByRole('button', { name: 'Create card' }).tap()
+    await expect(page.getByText('Flashcard created')).toBeVisible()
+    const cards = await (await page.request.get('/api/v1/decks/' + id + '/cards', { headers })).json()
+    expect(cards).toEqual([expect.objectContaining({ front: 'What should I review?', back: 'Read the chapter again.' })])
+    expect(aiRequests).toEqual([])
+  })
+})
+
+test('sign-in and registration fit on screen and the book slides change', async ({ page }) => {
+  for (const viewport of [{ width: 1280, height: 720 }, { width: 390, height: 667 }, { width: 667, height: 375 }]) {
+    await page.setViewportSize(viewport)
+    for (const path of ['/login', '/register']) {
+      await page.goto(path)
+      await expect(page.locator('#auth-title')).toBeVisible()
+      const overflow = await page.locator('.auth-form-pane').evaluate((pane) => ({
+        page: document.documentElement.scrollHeight - window.innerHeight,
+        form: pane.scrollHeight - pane.clientHeight,
+      }))
+      expect(overflow).toEqual({ page: 0, form: 0 })
+    }
+  }
+
+  await expect(page.getByRole('heading', { name: 'Turn the page.' })).toBeVisible()
+  await page.getByRole('button', { name: 'Next slide' }).click()
+  await expect(page.getByRole('heading', { name: 'Make it stick.' })).toBeVisible()
+  await page.getByRole('button', { name: 'Next slide' }).click()
+  await expect(page.getByRole('heading', { name: 'Study together.' })).toBeVisible()
+  await page.getByRole('button', { name: 'Previous slide' }).click()
+  await expect(page.getByRole('heading', { name: 'Make it stick.' })).toBeVisible()
+  await expect.poll(() => page.locator('.auth-screen').evaluate((screen) => getComputedStyle(screen, '::before').animationName)).toBe('auth-library-light')
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await expect.poll(() => page.locator('.auth-screen').evaluate((screen) => getComputedStyle(screen, '::before').animationName)).toBe('none')
+})
+
+test('two invited players can join and finish a live quiz after a refresh', async ({ browser, baseURL }) => {
+  const options = { baseURL, viewport: { width: 390, height: 844 }, serviceWorkers: 'block' as const }
+  const hostContext = await browser.newContext(options)
+  const playerContext = await browser.newContext(options)
+  try {
+    const host = await hostContext.newPage()
+    const player = await playerContext.newPage()
+    await register(host, 'Live host')
+    await register(player, 'Live learner')
+
+    await host.goto('/study')
+    await host.getByRole('link', { name: 'Live Rooms' }).click()
+    await host.getByRole('link', { name: 'Create Room' }).click()
+    await host.getByLabel('Quiz title', { exact: true }).fill('Water cycle live room')
+    await host.getByLabel('Question 1', { exact: true }).fill('What forms when water vapor cools?')
+    await host.getByLabel('Choices for question 1').fill('Clouds\nSand')
+    await host.getByLabel('Correct answer for question 1').selectOption('Clouds')
+    await host.getByRole('button', { name: 'Add question' }).click()
+    await host.getByLabel('Question 2', { exact: true }).fill('Where can rain collect?')
+    await host.getByLabel('Choices for question 2').fill('Rivers\nStars')
+    await host.getByLabel('Correct answer for question 2').selectOption('Rivers')
+    let roomUpdates = 0
+    host.on('websocket', (socket) => {
+      if (new URL(socket.url()).pathname !== '/ws/quiz') return
+      socket.on('framereceived', ({ payload }) => {
+        if (String(payload).includes('ROOM_UPDATED')) roomUpdates += 1
+      })
+    })
+    await host.getByRole('button', { name: 'Create Room' }).click()
+    const invite = host.getByLabel('Room link')
+    await expect(invite).toHaveValue(/\/quiz\/lobby\/[A-Z0-9]{6}$/)
+    await expect(host.getByRole('img', { name: 'Scan to join' })).toBeVisible()
+    const inviteUrl = await invite.inputValue()
+    await player.goto(inviteUrl)
+    await expect(player.getByLabel('Your Nickname')).toHaveValue('Live learner')
+    await player.goto('/quiz/join')
+    const code = new URL(inviteUrl).pathname.split('/').at(-1)!
+    await player.getByLabel('Room Code (6 characters)').fill(code.toLowerCase())
+    await player.getByRole('button', { name: 'Join Room' }).click()
+    await expect(player.getByText('Waiting for the host to start…')).toBeVisible()
+    await expect(host.getByText('Live learner', { exact: true })).toBeVisible()
+    await expect(player.getByRole('button', { name: 'Start Quiz' })).toHaveCount(0)
+
+    await host.getByRole('button', { name: 'Start Quiz' }).click()
+    await expect(player.getByRole('heading', { name: 'What forms when water vapor cools?' })).toBeVisible()
+    await host.getByRole('button', { name: 'Clouds' }).click()
+    await expect(host.getByRole('button', { name: 'Next question' })).toBeDisabled()
+    await player.getByRole('button', { name: 'Clouds' }).click()
+    await expect(player.getByText('Correct!', { exact: true })).toBeVisible()
+    await player.reload()
+    await expect(player.getByText('Correct!', { exact: true })).toBeVisible()
+    await host.getByRole('button', { name: 'Next question' }).click()
+    await expect(player.getByRole('heading', { name: 'Where can rain collect?' })).toBeVisible()
+    await player.getByRole('button', { name: 'Rivers' }).click()
+    await host.getByRole('button', { name: 'Rivers' }).click()
+    await host.getByRole('button', { name: 'Finish quiz' }).click()
+    await expect(player.getByRole('heading', { name: 'Leaderboard' })).toBeVisible()
+    await expect(host.getByRole('heading', { name: 'Leaderboard' })).toBeVisible()
+    await expect(player.getByRole('listitem').filter({ hasText: 'Live learner' })).toContainText(/\d+ points/)
+    await expect.poll(() => roomUpdates).toBeGreaterThan(0)
+  } finally {
+    await hostContext.close()
+    await playerContext.close()
+  }
+})
+
+test('the study pet waits for a request and library books can become notes', async ({ page }) => {
+  let studyRequests = 0
+  page.on('request', (request) => { if (request.url().includes('/api/v1/ai/')) studyRequests += 1 })
+  await register(page, 'Library learner')
+  const companion = page.getByRole('button', { name: 'Ask your study pet' })
+  await expect(companion).toBeVisible()
+  expect(studyRequests).toBe(0)
+  await companion.click()
+  const tutor = page.getByRole('dialog', { name: 'AI tutor' })
+  await expect(tutor).toHaveCount(1)
+  await tutor.getByRole('button', { name: 'Close' }).click()
+  await expect(companion).toBeFocused()
+  await page.getByRole('button', { name: 'AI tutor' }).click()
+  await expect(tutor).toHaveCount(1)
+  await tutor.getByRole('button', { name: 'Close' }).click()
+
+  await page.route('**/api/v1/library/books', (route) => route.fulfill({ json: {
+    stale: false,
+    books: [
+      { slug: 'biology', title: 'Biology', subjects: ['SCIENCE'], readerUrl: 'https://openstax.org/books/biology/pages/1-introduction', publisherUrl: 'https://openstax.org/books/biology' },
+      { slug: 'us-history', title: 'U.S. History', subjects: ['HISTORY', 'HUMANITIES'], readerUrl: 'https://openstax.org/books/us-history/pages/1-introduction', publisherUrl: 'https://openstax.org/books/us-history' },
+    ],
+  } }))
+  await page.getByRole('link', { name: 'Book Library' }).click()
+  await page.getByRole('button', { name: 'History', exact: true }).click()
+  await expect(page.getByRole('link', { name: 'Biology' })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'U.S. History' })).toHaveAttribute('href', 'https://openstax.org/books/us-history/pages/1-introduction')
+  await page.getByRole('button', { name: 'Save to Notes' }).click()
+  const bookNote = page.getByRole('dialog', { name: 'Save to Notes' })
+  await bookNote.getByLabel('Passage to study (optional)').fill('A reading passage to review later.')
+  await bookNote.getByRole('button', { name: 'Save to Notes' }).click()
+  await expect(page).toHaveURL(/\/notes\/[^/]+$/)
+  await expect(page.getByLabel('Note title')).toHaveValue('U.S. History')
+  await expect(page.locator('.tiptap')).toContainText('A reading passage to review later.')
+  await expect(page.locator('.tiptap').getByRole('link', { name: 'U.S. History' })).toHaveAttribute('href', 'https://openstax.org/books/us-history')
+})
+
 test('the study queue can recover from a failed deck request', async ({ page }) => {
   await register(page, 'Sophea')
   await page.route('**/api/v1/decks', (route) => route.fulfill({ status: 503 }))
@@ -73,6 +371,18 @@ test('the workspace fits narrow phones and uses compact navigation on tablets', 
   await expect.poll(() => page.locator('.study-dashboard-grid').evaluate((grid) =>
     getComputedStyle(grid).gridTemplateColumns.split(' ').length,
   )).toBe(2)
+
+  await page.setViewportSize({ width: 820, height: 540 })
+  const sidebar = page.locator('.study-sidebar')
+  const getSidebarOffset = () => sidebar.evaluate((element) => getComputedStyle(element).position === 'fixed'
+    && Math.abs(element.getBoundingClientRect().top - document.querySelector('.study-shell-header')!.getBoundingClientRect().bottom) < 1)
+  await expect.poll(getSidebarOffset).toBe(true)
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
+  await expect.poll(getSidebarOffset).toBe(true)
+  await page.evaluate(() => window.dispatchEvent(new Event('offline')))
+  await expect(page.locator('.study-shell-header').getByRole('status')).toBeVisible()
+  await expect.poll(getSidebarOffset).toBe(true)
 })
 
 test('invited students can save study data, use AI samples, and switch accounts', async ({ browser, baseURL }) => {

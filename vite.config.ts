@@ -12,8 +12,8 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
-        navigateFallbackDenylist: [/^\/api(?:\/|$)/, /^\/actuator(?:\/|$)/, /^\/quiz(?:\/|$)/],
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        navigateFallbackDenylist: [/^\/api(?:\/|$)/, /^\/actuator(?:\/|$)/, /^\/ws(?:\/|$)/],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
       },
       manifest: {
         name: 'Studexa',
@@ -46,7 +46,7 @@ export default defineConfig({
         changeOrigin: true,
       },
       // STOMP endpoint (handshake + WebSocket upgrade) for live quiz rooms.
-      '/quiz': {
+      '/ws/quiz': {
         target: backendOrigin,
         changeOrigin: true,
         ws: true,

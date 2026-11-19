@@ -4,8 +4,11 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '../../components/Button'
 import { DailyReviewGoal } from '../../components/DailyReviewGoal'
 import { Icon, type IconName } from '../../components/Icon'
+import { Mascot } from '../../components/Mascot'
 import { ProgressBar } from '../../components/ProgressBar'
 import { StudyQueue } from '../../components/StudyQueue'
+import { openStudyCompanion } from '../../lib/aiStudy'
+import { betaEnabled } from '../../lib/beta'
 import { examsApi } from '../../lib/api/plan'
 import { isGuestMode, useAuth } from '../../lib/auth'
 import { useApp } from '../../lib/store'
@@ -27,6 +30,7 @@ export function HomePage() {
   const todayKey = localDateKey(now)
   const userId = useAuth((state) => state.user?.id)
   const nickname = useApp((state) => state.nickname)
+  const buddy = useApp((state) => state.buddy)
   const localExams = useApp((state) => state.exams)
   const localQuests = useApp((state) => state.quests)
   const localStreak = useApp((state) => state.streak)
@@ -51,10 +55,15 @@ export function HomePage() {
 
   return (
     <div className="study-workspace">
-      <header className="study-page-header study-dashboard-header">
-        <div>
+      <header className="study-page-header study-dashboard-header study-home-welcome">
+        <Mascot species={buddy} size={84} className="study-welcome-pet" />
+        <div className="study-welcome-copy">
           <time className="study-date block" dateTime={todayKey}>{today}</time>
           <h1>{t('home.greeting', { name: nickname })}</h1>
+          <p className="study-muted">{t(`pet.encouragement.${now.getDay()}`)}</p>
+          {(!betaEnabled || !guest) && <button type="button" className="study-text-link" onClick={(event) => openStudyCompanion(event.currentTarget)}>
+            <Icon name="sparkles" size={16} />{t('pet.askBuddy')}
+          </button>}
         </div>
         {streak !== undefined && streak > 0 && (
           <Link to="/stats" className="study-streak">

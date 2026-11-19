@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Icon, type IconName } from '../../components/Icon'
 import { StudyQueue } from '../../components/StudyQueue'
 import { useDecks } from '../../lib/study'
+import { isGuestMode } from '../../lib/auth'
 
 const tools: { to: string; icon: IconName; mode: string }[] = [
   { to: '/study/quiz', icon: 'target', mode: 'quiz' },
@@ -19,7 +20,7 @@ export function StudyPage() {
 
   return (
     <div className="study-workspace">
-      <header className="study-page-header">
+      <header className="study-page-header study-feature-header">
         <h1>{t('study.title')}</h1>
         <p className="study-muted">{t('workspace.studyDescription')}</p>
       </header>
@@ -61,6 +62,8 @@ export function StudyPage() {
           {tools.map(({ to, icon, mode }) => (
             <Link key={to} to={to}><Icon name={icon} size={20} />{t('study.modes.' + mode)}</Link>
           ))}
+          {!isGuestMode() && <Link to="/quiz"><Icon name="users" size={20} />{t('quizRoom.liveRooms')}</Link>}
+          {!isGuestMode() && <Link to="/library"><Icon name="book" size={20} />{t('library.title')}</Link>}
         </div>
       </section>
     </div>

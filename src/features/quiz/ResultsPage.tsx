@@ -1,89 +1,30 @@
-import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { sessionApi } from '../../lib/api/quiz'
+import { useQuery } from '@tanstack/react-query'
+import { Link, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Button } from '../../components/Button'
+import { sessionApi } from '../../lib/api/quiz'
+import { useAuth } from '../../lib/auth'
+import { LiveRoomError, LiveRoomLayout } from './LiveRoomLayout'
 
 export function ResultsPage() {
-  const { sessionId } = useParams()
-  const navigate = useNavigate()
-  const [leaderboard, setLeaderboard] = useState<any[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { t } = useTranslation()
+  const { sessionId = '' } = useParams()
+  const accountId = useAuth((state) => state.user?.id)
+  const results = useQuery({ queryKey: ['live-results', accountId, sessionId], queryFn: () => sessionApi.getLeaderboard(sessionId), retry: false })
 
-  useEffect(() => {
-    const loadResults = async () => {
-      try {
-        const board = await sessionApi.getLeaderboard(sessionId as string)
-        setLeaderboard(board)
-      } catch (err: any) {
-        setError(err.message || 'Failed to load results')
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadResults()
-  }, [sessionId])
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--bg)]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--primary)]"></div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--bg)] p-6">
-        <div className="text-center p-6 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
-          <h2 className="text-lg font-medium mb-2">Error</h2>
-          <p className="text-[var(--danger-text)] mb-4">{error}</p>
-          <Button onClick={() => navigate('/quiz')}>Back to Quiz</Button>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] p-6">
-      <div className="max-w-md mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">Results</h1>
-          <p className="text-[var(--text-muted)]">Quiz session complete</p>
-        </div>
-
-        <div className="p-6 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
-          <h2 className="font-semibold mb-4">Leaderboard</h2>
-          <ol className="space-y-3">
-            {leaderboard.map((entry: any, idx: number) => (
-              <li
-                key={idx}
-                className={`flex items-center justify-between p-3 rounded ${
-                  idx === 0
-                    ? 'bg-[var(--accent-fill)]/20 border border-[var(--accent-fill)]/50'
-                    : 'border border-[var(--border)]/50'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className={`font-bold ${idx < 3 ? 'text-[var(--accent-text)]' : 'text-[var(--text-muted)]'}`}>
-                    #{idx + 1}
-                  </span>
-                  <span className="font-medium">{entry.nickname}</span>
-                  {entry.isHost && <span className="text-xs text-[var(--text-muted)]">(host)</span>}
-                </div>
-                <span className="font-mono font-bold">{entry.totalScore} pts</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-
-        <div className="mt-6 flex gap-3">
-          <Button onClick={() => navigate('/')}>Back to Home</Button>
-          <Button variant="secondary" onClick={() => navigate('/quiz')}>
-            Create or join another room
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
+  return <LiveRoomLayout title={t('quizRoom.results')}>
+    {results.isPending && <p role="status">{t('common.loading')}</p>}
+    {results.isError && <><LiveRoomError error={results.error} />
+      <Button variant="secondary" onClick={() => void results.refetch()}>{t('common.retry')}</Button></>}
+    {results.data && <section className="study-panel space-y-3">
+      <h2 className="text-lg font-bold">{t('quizRoom.leaderboard')}</h2>
+      <ol className="divide-y divide-[var(--color-border)]">
+        {results.data.map((entry, index) => <li key={entry.nickname} className="flex flex-wrap justify-between gap-2 py-3">
+          <span className="min-w-0 font-semibold [overflow-wrap:anywhere]">#{entry.finalRank ?? index + 1} {entry.nickname}</span>
+          <span className="font-bold tabular-nums">{t('quizRoom.points', { score: entry.totalScore })}</span>
+        </li>)}
+      </ol>
+    </section>}
+    <Link className="study-text-link" to="/quiz">{t('quizRoom.liveRooms')}</Link>
+  </LiveRoomLayout>
 }

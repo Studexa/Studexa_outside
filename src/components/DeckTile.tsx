@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Icon } from './Icon'
@@ -9,7 +9,8 @@ export const DeckTile = memo(function DeckTile({ deck }: { deck: DeckSummary }) 
   return (
     <Link
       to={`/study/decks/${deck.id}`}
-      className="pressable surface-card block p-5 sm:p-6"
+      className="pressable surface-card study-deck-tile block p-4 sm:p-5"
+      style={{ '--deck-tile-color': deck.color } as CSSProperties}
     >
       <div className="flex items-start gap-3">
         <span

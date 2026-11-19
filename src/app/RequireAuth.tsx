@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../lib/auth'
+import { isGuestMode, useAuth } from '../lib/auth'
 import { PageSkeleton } from '../components/Skeleton'
 
 function AppAuthSkeleton() {
@@ -29,7 +29,7 @@ function AppAuthSkeleton() {
   )
 }
 
-export function RequireAuth({ children }: { children: ReactNode }) {
+export function RequireAuth({ children, accountOnly = false }: { children: ReactNode; accountOnly?: boolean }) {
   const location = useLocation()
   const status = useAuth((s) => s.status)
   const bootstrap = useAuth((s) => s.bootstrap)
@@ -45,6 +45,8 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   if (status === 'unauthenticated') {
     return <Navigate to="/login" replace state={{ from: location.pathname + location.search + location.hash }} />
   }
+
+  if (accountOnly && isGuestMode()) return <Navigate to="/study/quiz" replace />
 
   return <>{children}</>
 }

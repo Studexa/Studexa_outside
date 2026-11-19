@@ -357,6 +357,7 @@ export type AiGenerateInput = {
   sourceTitle?: string
   count?: number
   language?: 'en' | 'km'
+  basicOnly?: boolean
 }
 
 export type AiTutorInput = {
@@ -409,6 +410,8 @@ export const cardsApi = {
 }
 
 export const reviewApi = {
+  today: () => call<{ reviewedCards: number; resetsAt: string }>(client.GET('/api/v1/review/today')),
+
   queue: (deckId?: string | null) =>
     call<ReviewQueueResponse>(
       client.GET('/api/v1/review/queue', { params: { query: { deckId: deckId ?? undefined } } }),
@@ -466,6 +469,7 @@ export const questApi = {
 }
 
 export const aiApi = {
+  sourceLimit: () => call<{ maxSourceChars: number }>(client.GET('/api/v1/ai/source-limit')),
   generate: (input: AiGenerateInput) =>
     call<{ items: AiCardItem[] }>(client.POST('/api/v1/ai/generate', { body: asBody(input) })),
 
@@ -476,6 +480,39 @@ export const aiApi = {
     call<{ items: AiCardItem[] }>(client.POST('/api/v1/ai/samples/generate', { body: input })),
   sampleTutor: (input: { sampleId: string; promptId: string }) =>
     call<AiTutorResponse>(client.POST('/api/v1/ai/samples/tutor', { body: input })),
+}
+
+export type NoteAttachment = {
+  id: string
+  filename: string
+  sizeBytes: number
+  createdAt: string
+  hasText: boolean
+  textTruncated: boolean
+}
+
+export const noteAttachmentsApi = {
+  list: (noteId: string) => call<NoteAttachment[]>(
+    client.GET('/api/v1/notes/{noteId}/attachments', { params: { path: { noteId } } }),
+  ),
+  upload: (noteId: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file, file.name)
+    return call<NoteAttachment>(client.POST('/api/v1/notes/{noteId}/attachments', {
+      params: { path: { noteId } }, body: asBody({ file }), bodySerializer: () => form,
+    }))
+  },
+  text: (noteId: string, attachmentId: string) => call<{ text: string }>(
+    client.GET('/api/v1/notes/{noteId}/attachments/{attachmentId}/text', { params: { path: { noteId, attachmentId } } }),
+  ),
+  download: (noteId: string, attachmentId: string) => call<Blob>(
+    client.GET('/api/v1/notes/{noteId}/attachments/{attachmentId}/download', {
+      params: { path: { noteId, attachmentId } }, parseAs: 'blob',
+    }),
+  ),
+  remove: (noteId: string, attachmentId: string) => call<void>(
+    client.DELETE('/api/v1/notes/{noteId}/attachments/{attachmentId}', { params: { path: { noteId, attachmentId } } }),
+  ),
 }
 
 export type StudySample = {

@@ -13,7 +13,7 @@ export const router = createBrowserRouter([
     element: (
       <ErrorBoundary>
         <LazyRoute>
-          <AuthPage mode="login" />
+          <AuthPage key="login" mode="login" />
         </LazyRoute>
       </ErrorBoundary>
     ),
@@ -23,7 +23,7 @@ export const router = createBrowserRouter([
     element: (
       <ErrorBoundary>
         <LazyRoute>
-          <AuthPage mode="register" />
+          <AuthPage key="register" mode="register" />
         </LazyRoute>
       </ErrorBoundary>
     ),

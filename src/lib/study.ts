@@ -1,9 +1,11 @@
+import { useEffect, useState } from 'react'
 import { useQueries, useQuery } from '@tanstack/react-query'
 import {
   cardsApi,
   decksApi,
   gameApi,
   questApi,
+  reviewApi,
   type DeckSummary,
   type DueCard,
   type StudyCard,
@@ -58,6 +60,7 @@ export const studyKeys = {
   gameXpHistory: (userId?: string) => ['game', 'xp-history', userId ?? 'current'] as const,
   questsToday: (userId?: string) => ['quests', 'today', userId ?? 'current'] as const,
   reviewQueue: (userId?: string) => ['review', 'queue', userId ?? 'current'] as const,
+  dailyReviewProgress: (userId?: string) => ['review', 'today', userId ?? 'current'] as const,
   subjects: (userId?: string) => ['subjects', userId ?? 'current'] as const,
   shopItems: (userId?: string) => ['shop', 'items', userId ?? 'current'] as const,
   shopOwned: (userId?: string) => ['shop', 'owned', userId ?? 'current'] as const,
@@ -167,6 +170,34 @@ export function useTodayQuests(enabled = true) {
     staleTime: 1000 * 60,
     enabled,
   })
+}
+
+export function useDailyReviewProgress() {
+  const userId = useAuth((state) => state.user?.id)
+  return useQuery({
+    queryKey: studyKeys.dailyReviewProgress(userId),
+    queryFn: reviewApi.today,
+    enabled: Boolean(userId) && !isGuestMode(),
+    refetchInterval: (query) => {
+      const resetsAt = query.state.data?.resetsAt
+      if (!resetsAt || query.state.status === 'error') return false
+      return Math.max(1000, Date.parse(resetsAt) - Date.now() + 1000)
+    },
+  })
+}
+
+export function useStudyDate() {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const refreshTime = () => setNow(new Date())
+    const timer = window.setInterval(refreshTime, 30_000)
+    window.addEventListener('focus', refreshTime)
+    return () => {
+      window.clearInterval(timer)
+      window.removeEventListener('focus', refreshTime)
+    }
+  }, [])
+  return now
 }
 
 export type StudyCardWithDeck = { card: StudyCard; deck: DeckSummary }

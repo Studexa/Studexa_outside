@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import { notesApi, examsApi, tasksApi } from './api/plan'
 import { focusSessionsApi } from './api/focus'
 import { bossFightsApi } from './api/boss'
+import { localDateKey } from './studyDate'
 
 export type BuddySpecies = 'owl' | 'cat' | 'fox' | 'elephant'
 export type LevelOfStudy = 'middle' | 'highschool' | 'university' | 'self'
@@ -288,6 +289,7 @@ type State = {
   levelOfStudy: LevelOfStudy
   dailyGoal: number
   cardsToday: number
+  cardsTodayDate: string | null
   level: number
   xp: number
   coins: number
@@ -363,6 +365,7 @@ const initialState = {
   levelOfStudy: 'highschool' as LevelOfStudy,
   dailyGoal: 10,
   cardsToday: 0,
+  cardsTodayDate: null,
   level: 1,
   xp: 0,
   coins: 0,
@@ -423,8 +426,9 @@ export const useApp = create<State>()(
       recordReviewSession: (cards, correct) => {
         const state = get()
         const xp = cards * 3 + correct * 2 + (cards >= 5 ? 20 : 0)
+        const date = localDateKey(new Date())
         state.addXp(xp)
-        set({ cardsToday: state.cardsToday + cards })
+        set({ cardsToday: (state.cardsTodayDate === date ? state.cardsToday : 0) + cards, cardsTodayDate: date })
         get().addQuestProgress('warmup', cards)
       },
 

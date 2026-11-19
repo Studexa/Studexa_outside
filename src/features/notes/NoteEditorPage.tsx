@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEditor, EditorContent } from '@tiptap/react'
+import { useEditor, useEditorState, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { Button } from '../../components/Button'
 import { EmptyState } from '../../components/EmptyState'
@@ -14,6 +14,8 @@ import { betaEnabled } from '../../lib/beta'
 import { isGuestMode, useAuth } from '../../lib/auth'
 import { cardsApi } from '../../lib/api'
 import { studyKeys, useDecks } from '../../lib/study'
+import { NoteAttachments } from './NoteAttachments'
+import { NoteStudy, type NoteStudySource } from './NoteStudy'
 
 export function NoteEditorPage() {
   const { t } = useTranslation()
@@ -44,6 +46,7 @@ function NoteEditor({ note }: { note: Note }) {
   const { data: decks = [] } = useDecks()
   const queryClient = useQueryClient()
   const userId = useAuth((state) => state.user?.id)
+  const accountId = isGuestMode() ? undefined : userId
   const updateNote = useApp((s) => s.updateNote)
   const deleteNote = useApp((s) => s.deleteNote)
   const addCard = useApp((s) => s.addCard)
@@ -57,6 +60,7 @@ function NoteEditor({ note }: { note: Note }) {
   const [cardBack, setCardBack] = useState('')
   const [deckId, setDeckId] = useState(decks[0]?.id ?? '')
   const [flash, setFlash] = useState<string | null>(null)
+  const [studySource, setStudySource] = useState<NoteStudySource>()
   const saveTimer = useRef<number | null>(null)
   const initial = { title: note.title, content: note.content }
   const latest = useRef(initial)
@@ -98,7 +102,7 @@ function NoteEditor({ note }: { note: Note }) {
     onUpdate: ({ editor: current }) => queueSave({ content: current.getHTML() }),
     onSelectionUpdate: ({ editor: current }) => {
       const { from, to } = current.state.selection
-      const text = current.state.doc.textBetween(from, to, ' ').trim()
+      const text = current.state.doc.textBetween(from, to, '\n').trim()
       setSelectedText(text)
     },
   })
@@ -144,7 +148,22 @@ function NoteEditor({ note }: { note: Note }) {
     navigate('/notes')
   }
 
-  const words = (editor?.getText() ?? '').trim().split(/\s+/).filter(Boolean).length
+  const bodyText = useEditorState({ editor, selector: ({ editor }) => editor?.getText({ blockSeparator: '\n' }).trim() ?? '' }) ?? ''
+  const words = bodyText.split(/\s+/).filter(Boolean).length
+  const canStudy = !!accountId && !betaEnabled
+
+  const insertSummary = (summary: string) => {
+    if (!editor) return
+    const paragraphs = summary.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+    const inserted = editor.commands.insertContentAt(editor.state.doc.content.size, [
+      { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: t('notes.study.summary') }] },
+      ...paragraphs.map((line) => ({ type: 'paragraph', content: [{ type: 'text', text: line }] })),
+    ])
+    if (inserted) {
+      setStudySource(undefined)
+      void flush().catch(() => undefined)
+    }
+  }
 
   const tools = [
     { icon: 'bold' as const, label: t('notes.bold'), active: editor?.isActive('bold'), run: () => editor?.chain().focus().toggleBold().run() },
@@ -155,8 +174,8 @@ function NoteEditor({ note }: { note: Note }) {
     { icon: 'undo' as const, label: t('common.undo'), active: false, run: () => editor?.chain().focus().undo().run() },
   ]
 
-  return (
-    <div className="space-y-3">
+  const noteEditor = (
+    <>
       <div className="flex items-center gap-2">
         <button
           onClick={() => {
@@ -192,6 +211,17 @@ function NoteEditor({ note }: { note: Note }) {
           <Icon name="trash" size={19} />
         </button>
       </div>
+
+      {canStudy && <section aria-label={t('notes.study.title')} className="flex flex-wrap items-center gap-2">
+        <Button variant="secondary" size="sm" disabled={!bodyText}
+          onClick={() => setStudySource({ kind: 'note', title, text: bodyText })}>
+          <Icon name="sparkles" size={16} /> {t('notes.study.useNote')}
+        </Button>
+        <Button variant="secondary" size="sm" disabled={!selectedText}
+          onClick={() => setStudySource({ kind: 'selection', title, text: selectedText })}>
+          {t('notes.study.useSelection')}
+        </Button>
+      </section>}
 
       <div className="overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
         <div className="border-b border-[var(--color-border)] px-4 py-3 sm:px-6">
@@ -235,9 +265,25 @@ function NoteEditor({ note }: { note: Note }) {
 
         <EditorContent editor={editor} />
       </div>
+    </>
+  )
+
+  return (
+    <div className="space-y-3">
+      {accountId ? <NoteAttachments key={accountId} noteId={note.id} userId={accountId}
+        onStudy={canStudy ? (file) => setStudySource({ kind: 'attachment', file }) : undefined}>
+        {noteEditor}
+      </NoteAttachments> : noteEditor}
+
+      {studySource && accountId && canStudy && <NoteStudy noteId={note.id} userId={accountId} source={studySource}
+        onClose={() => setStudySource(undefined)} onInsertSummary={insertSummary} onCardsSaved={(count) => {
+          setStudySource(undefined)
+          setFlash(t('notes.study.savedCards', { count }))
+          window.setTimeout(() => setFlash(null), 2600)
+        }} />}
 
       {flash && (
-        <p className="rounded-xl bg-[var(--color-success-soft)] px-3 py-2 text-center text-sm font-bold text-[var(--color-success)]">
+        <p role="status" className="rounded-xl bg-[var(--color-success-soft)] px-3 py-2 text-center text-sm font-bold text-[var(--color-success)]">
           {flash}
         </p>
       )}

@@ -40,6 +40,7 @@ function shuffle<T>(items: T[]): T[] {
 export function ReviewPage() {
   const { t } = useTranslation()
   const userId = useAuth((state) => state.user?.id)
+  const queryClient = useQueryClient()
   const dueQuery = useDueCards()
 
   // Replay pending offline answers when the component mounts or comes back online
@@ -61,6 +62,7 @@ export function ReviewPage() {
             msTaken: 0,
             clientReviewId: p.clientReviewId,
           })
+          if (isCurrent()) void queryClient.invalidateQueries({ queryKey: studyKeys.dailyReviewProgress(userId) })
           if (p.id !== undefined) await removePendingAnswer(p.id)
         }
       } finally {
@@ -75,7 +77,7 @@ export function ReviewPage() {
       disposed = true
       window.removeEventListener('online', retryPending)
     }
-  }, [userId])
+  }, [queryClient, userId])
 
   if (dueQuery.data) {
     return <ReviewSession key={userId} dueQuery={dueQuery} initialCards={dueQuery.data} userId={userId} />
@@ -165,6 +167,7 @@ function ReviewSession({ dueQuery, initialCards, userId }: {
 
       // Report quest progress: warmup counts reviewed cards toward daily quest
       if (response && userId) {
+        void queryClient.invalidateQueries({ queryKey: studyKeys.dailyReviewProgress(userId) })
         void questApi.progress({ code: 'warmup', source: 'review_card', referenceId: variables.clientReviewId })
           .then(() => queryClient.invalidateQueries({ queryKey: studyKeys.questsToday(userId) }))
           .catch(() => undefined)
@@ -254,6 +257,7 @@ function ReviewSession({ dueQuery, initialCards, userId }: {
       setFlipped(false)
       void queryClient.invalidateQueries({ queryKey: studyKeys.due(userId) })
       void queryClient.invalidateQueries({ queryKey: studyKeys.decks(userId) })
+      void queryClient.invalidateQueries({ queryKey: studyKeys.dailyReviewProgress(userId) })
     } catch {
       setActionError('undo')
     } finally {

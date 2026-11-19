@@ -6,6 +6,7 @@ import { Modal } from '../components/Modal'
 import { ProgressBar } from '../components/ProgressBar'
 import { AiPet } from '../components/AiPet'
 import { BetaTutor } from '../components/BetaTutor'
+import { TelegramLink } from '../components/TelegramLink'
 import { useOnline } from '../lib/useSettings'
 import { useApp, xpForNext } from '../lib/store'
 import { useGameState } from '../lib/study'
@@ -120,11 +121,15 @@ export function AppShell() {
             </div>
             <div className="mt-5 space-y-1 border-t border-(--study-border) pt-4">
               {secondaryNav.map((item) => <WorkspaceNavLink key={item.to} item={item} />)}
+              <TelegramLink />
             </div>
           </nav>
         </aside>
         <main id="main-content" tabIndex={-1} className="app-content study-shell-main">
-          <div className="mx-auto w-full max-w-5xl"><Outlet /></div>
+          <div className="mx-auto w-full max-w-5xl">
+            <Outlet />
+            <footer className="study-shell-footer"><TelegramLink footer /></footer>
+          </div>
         </main>
       </div>
 
@@ -142,6 +147,7 @@ export function AppShell() {
             </summary>
             <div className="study-more-menu">
               {secondaryNav.map((item) => <WorkspaceNavLink key={item.to} item={item} />)}
+              <TelegramLink />
             </div>
           </details>
         </div>

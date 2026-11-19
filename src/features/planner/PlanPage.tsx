@@ -2,17 +2,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '../../components/Button'
+import { DailyReviewGoal } from '../../components/DailyReviewGoal'
 import { Icon } from '../../components/Icon'
 import { Modal } from '../../components/Modal'
 import { Badge } from '../../components/Badge'
 import { ProgressBar } from '../../components/ProgressBar'
-import { daysUntil, todayISO, useApp, type Importance } from '../../lib/store'
+import { daysUntil, useApp, type Importance } from '../../lib/store'
+import { formatStudyDate, localDateKey } from '../../lib/studyDate'
 import { isGuestMode, useAuth } from '../../lib/auth'
-import { useDueCards, useGameState } from '../../lib/study'
-
-function dateKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-}
+import { useGameState, useStudyDate } from '../../lib/study'
 
 const importanceTone: Record<Importance, 'danger' | 'accent' | 'primary'> = {
   high: 'danger',
@@ -32,17 +30,20 @@ export function PlanPage() {
   const loadTasks = useApp((s) => s.loadTasks)
   const dailyGoal = useApp((s) => s.dailyGoal)
 
-  const cardsDueQuery = useDueCards()
+  const now = useStudyDate()
+  const today = localDateKey(now)
   const gameQuery = useGameState(!isGuestMode())
 
-  const cardsDue = cardsDueQuery.data ?? []
   const gameState = gameQuery.data
   const streak = gameState?.streakCurrent ?? 0
 
   useEffect(() => {
-    loadExams()
-    loadTasks(todayISO())
-  }, [loadExams, loadTasks])
+    void loadExams()
+  }, [loadExams])
+
+  useEffect(() => {
+    void loadTasks(today)
+  }, [loadTasks, today])
 
   const [cursor, setCursor] = useState(() => {
     const now = new Date()
@@ -53,15 +54,16 @@ export function PlanPage() {
   const [savingEntry, setSavingEntry] = useState(false)
   const [entryError, setEntryError] = useState(false)
   const [goalOpen, setGoalOpen] = useState(false)
+  const [savingGoal, setSavingGoal] = useState(false)
+  const [goalSaveError, setGoalSaveError] = useState(false)
   const [taskTitle, setTaskTitle] = useState('')
   const [examTitle, setExamTitle] = useState('')
   const [examSubject, setExamSubject] = useState('')
-  const [examDate, setExamDate] = useState(todayISO())
+  const [examDate, setExamDate] = useState(today)
   const [importance, setImportance] = useState<Importance>('high')
   const [goalCards, setGoalCards] = useState(profile?.dailyGoalCards ?? dailyGoal)
   const [goalMinutes, setGoalMinutes] = useState(profile?.dailyGoalMinutes ?? 30)
 
-  const today = todayISO()
   const todaysTasks = tasks.filter((task) => task.date === today)
   const doneToday = todaysTasks.filter((task) => task.done).length
   const examDates = useMemo(() => new Set(exams.map((exam) => exam.date)), [exams])
@@ -79,8 +81,8 @@ export function PlanPage() {
     })
   }, [cursor])
 
-  const locale = i18n.language === 'km' ? 'km-KH' : 'en-US'
-  const monthLabel = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(cursor)
+  const language = i18n.resolvedLanguage ?? 'en'
+  const monthLabel = formatStudyDate(cursor, language, 'month')
   const sortExams = [...exams].sort((a, b) => a.date.localeCompare(b.date))
 
   const createTask = async () => {
@@ -119,17 +121,24 @@ export function PlanPage() {
     }
   }
 
+  const openGoals = () => {
+    setGoalCards(dailyGoal)
+    setGoalMinutes(profile?.dailyGoalMinutes ?? 30)
+    setGoalSaveError(false)
+    setGoalOpen(true)
+  }
+
   const saveGoals = async () => {
-    const cards = Math.max(1, Math.min(500, goalCards))
-    const minutes = Math.max(1, Math.min(600, goalMinutes))
-    setGoalCards(cards)
-    setGoalMinutes(minutes)
+    setSavingGoal(true)
+    setGoalSaveError(false)
     try {
-      await updateProfile({ dailyGoalCards: cards, dailyGoalMinutes: minutes })
+      await updateProfile({ dailyGoalCards: goalCards, dailyGoalMinutes: goalMinutes })
+      setGoalOpen(false)
     } catch {
-      // updateProfile already falls back to local state on error
+      setGoalSaveError(true)
+    } finally {
+      setSavingGoal(false)
     }
-    setGoalOpen(false)
   }
 
   return (
@@ -146,7 +155,7 @@ export function PlanPage() {
           <Button size="sm" onClick={() => setExamOpen(true)}>
             <Icon className="shrink-0" name="calendar" size={17} /> {t('plan.addExam')}
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => setGoalOpen(true)}>
+          <Button variant="ghost" size="sm" onClick={openGoals}>
             <Icon className="shrink-0" name="target" size={17} /> {t('plan.setGoals')}
           </Button>
         </div>
@@ -156,7 +165,7 @@ export function PlanPage() {
       <section className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-extrabold">{t('plan.dailyGoals')}</h2>
-          <Button size="sm" onClick={() => setGoalOpen(true)}>
+          <Button size="sm" onClick={openGoals}>
             {t('plan.edit')}
           </Button>
         </div>
@@ -168,26 +177,17 @@ export function PlanPage() {
             <p className="text-[10px] font-bold text-[var(--color-muted)] uppercase">
               {t('plan.cardsPerDay')}
             </p>
-            <p className="text-2xl font-black">{goalCards}</p>
+            <p className="text-2xl font-black">{dailyGoal}</p>
           </div>
           <div className="rounded-2xl bg-[var(--color-surface-alt)]/60 p-3">
             <p className="text-[10px] font-bold text-[var(--color-muted)] uppercase">
               {t('plan.minutesPerDay')}
             </p>
-            <p className="text-2xl font-black">{goalMinutes}</p>
+            <p className="text-2xl font-black">{profile?.dailyGoalMinutes ?? 30}</p>
           </div>
         </div>
-        <div className="mt-3">
-          <ProgressBar
-            value={Math.min(cardsDue.length, goalCards)}
-            max={goalCards}
-            size="sm"
-            tone="primary"
-          />
-          <div className="mt-1 flex justify-between text-[10px] font-bold text-[var(--color-muted)]">
-            <span>{cardsDue.length} {t('plan.cardsDueToday')}</span>
-            <span>{t('plan.ofGoal', { count: goalCards })}</span>
-          </div>
+        <div className="study-goal mt-3 border-t border-(--study-border) pt-3">
+          <DailyReviewGoal now={now} />
         </div>
       </section>
 
@@ -218,7 +218,7 @@ export function PlanPage() {
               </span>
             ))}
             {cells.map((date) => {
-              const key = dateKey(date)
+              const key = localDateKey(date)
               const inMonth = date.getMonth() === cursor.getMonth()
               const isToday = key === today
               const hasExam = examDates.has(key)
@@ -330,7 +330,7 @@ export function PlanPage() {
                       <Badge tone={importanceTone[exam.importance]}>{t(`plan.importance.${exam.importance}`)}</Badge>
                     </div>
                     <p className="text-xs font-semibold text-[var(--color-muted)]">
-                      {exam.subject} · {new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' }).format(new Date(`${exam.date}T12:00:00`))}
+                      {exam.subject} · {formatStudyDate(new Date(`${exam.date}T12:00:00`), language, 'monthDay')}
                     </p>
                   </div>
                   <div className="text-right">
@@ -441,7 +441,7 @@ export function PlanPage() {
         </div>
       </Modal>
 
-      <Modal open={goalOpen} title={t('plan.dailyGoals')} onClose={() => setGoalOpen(false)}>
+      <Modal open={goalOpen} title={t('plan.dailyGoals')} onClose={() => { if (!savingGoal) setGoalOpen(false) }}>
         <div className="space-y-4">
           <p className="text-sm text-[var(--color-muted)]">
             {t('plan.goalsDescription')}
@@ -454,7 +454,7 @@ export function PlanPage() {
               min="1"
               max="500"
               value={goalCards}
-              onChange={(e) => setGoalCards(Math.max(1, Math.min(500, Number(e.target.value) || 1)))}
+              onChange={(e) => setGoalCards(Math.max(1, Math.min(500, Math.trunc(e.target.valueAsNumber) || 1)))}
               className="mt-1 w-full rounded-2xl px-4 py-2.5"
             />
           </div>
@@ -466,15 +466,16 @@ export function PlanPage() {
               min="1"
               max="600"
               value={goalMinutes}
-              onChange={(e) => setGoalMinutes(Math.max(1, Math.min(600, Number(e.target.value) || 1)))}
+              onChange={(e) => setGoalMinutes(Math.max(1, Math.min(600, Math.trunc(e.target.valueAsNumber) || 1)))}
               className="mt-1 w-full rounded-2xl px-4 py-2.5"
             />
           </div>
+          {goalSaveError && <p role="alert" className="text-sm text-(--color-danger-text)">{t('plan.saveError')}</p>}
           <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setGoalOpen(false)}>
+            <Button variant="secondary" onClick={() => setGoalOpen(false)} disabled={savingGoal}>
               {t('common.cancel')}
             </Button>
-            <Button onClick={saveGoals}>{t('plan.save')}</Button>
+            <Button onClick={saveGoals} disabled={savingGoal}>{t(savingGoal ? 'common.saving' : 'plan.save')}</Button>
           </div>
         </div>
       </Modal>

@@ -388,6 +388,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notes/{noteId}/attachments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listNoteAttachments"];
+        put?: never;
+        post: operations["uploadNoteAttachment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/game/streak-freeze/consume": {
         parameters: {
             query?: never;
@@ -740,6 +756,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/review/today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["dailyReviewProgress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/review/queue": {
         parameters: {
             query?: never;
@@ -812,6 +844,38 @@ export interface paths {
             cookie?: never;
         };
         get: operations["pet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notes/{noteId}/attachments/{attachmentId}/text": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getNoteAttachmentText"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notes/{noteId}/attachments/{attachmentId}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["downloadNoteAttachment"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1012,6 +1076,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ai/source-limit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["sourceLimit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ai/samples": {
         parameters: {
             query?: never;
@@ -1023,6 +1103,22 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notes/{noteId}/attachments/{attachmentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["removeNoteAttachment"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1422,6 +1518,17 @@ export interface components {
         EquipAccessoryRequest: {
             accessoryType?: string;
         };
+        Attachment: {
+            /** Format: uuid */
+            id?: string;
+            filename?: string;
+            /** Format: int32 */
+            sizeBytes?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            textTruncated?: boolean;
+            hasText?: boolean;
+        };
         FocusSessionRequest: {
             /** Format: int32 */
             minutes: number;
@@ -1585,6 +1692,7 @@ export interface components {
             /** Format: int32 */
             count?: number;
             language?: string;
+            basicOnly?: boolean;
         };
         ShopItemDto: {
             id?: string;
@@ -1614,6 +1722,12 @@ export interface components {
         RoomInfoResponse: {
             session?: components["schemas"]["SessionResponse"];
             players?: components["schemas"]["SessionPlayerResponse"][];
+        };
+        DailyReviewProgress: {
+            /** Format: int64 */
+            reviewedCards?: number;
+            /** Format: date-time */
+            resetsAt?: string;
         };
         ReviewQueueCard: {
             /** Format: uuid */
@@ -1680,6 +1794,9 @@ export interface components {
             /** Format: date */
             questDate?: string;
             completed?: boolean;
+        };
+        TextContent: {
+            text?: string;
         };
         HealthResponse: {
             status?: string;
@@ -1751,6 +1868,10 @@ export interface components {
             tags?: string[];
             sourceTitle?: string;
             sourceExcerpt?: string;
+        };
+        SourceLimit: {
+            /** Format: int32 */
+            maxSourceChars?: number;
         };
         Prompt: {
             id?: string;
@@ -2676,6 +2797,57 @@ export interface operations {
             };
         };
     };
+    listNoteAttachments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                noteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Attachment"][];
+                };
+            };
+        };
+    };
+    uploadNoteAttachment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                noteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Attachment"];
+                };
+            };
+        };
+    };
     consumeStreakFreeze: {
         parameters: {
             query?: never;
@@ -3296,6 +3468,26 @@ export interface operations {
             };
         };
     };
+    dailyReviewProgress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DailyReviewProgress"];
+                };
+            };
+        };
+    };
     queue: {
         parameters: {
             query?: {
@@ -3396,6 +3588,52 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PetDto"];
+                };
+            };
+        };
+    };
+    getNoteAttachmentText: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                noteId: string;
+                attachmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TextContent"];
+                };
+            };
+        };
+    };
+    downloadNoteAttachment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                noteId: string;
+                attachmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
                 };
             };
         };
@@ -3700,6 +3938,26 @@ export interface operations {
             };
         };
     };
+    sourceLimit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SourceLimit"];
+                };
+            };
+        };
+    };
     samples: {
         parameters: {
             query?: never;
@@ -3717,6 +3975,27 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["StudySample"][];
                 };
+            };
+        };
+    };
+    removeNoteAttachment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                noteId: string;
+                attachmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

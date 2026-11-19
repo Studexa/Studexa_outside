@@ -22,6 +22,7 @@ export function AuthPage({ mode }: { mode: Mode }) {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [nickname, setNickname] = useState('')
   const [inviteCode, setInviteCode] = useState('')
   const [adultConfirmed, setAdultConfirmed] = useState(false)
@@ -29,14 +30,15 @@ export function AuthPage({ mode }: { mode: Mode }) {
   const [error, setError] = useState<string | null>(null)
   const [fields, setFields] = useState<Record<string, string>>({})
 
-  const from = (location.state as { from?: string } | null)?.from ?? '/'
+  const returnPath = (location.state as { from?: string } | null)?.from
+  const from = returnPath?.startsWith('/') && !returnPath.startsWith('//') && !returnPath.startsWith('/\\') ? returnPath : '/'
 
   useEffect(() => {
     if (status === 'idle') void bootstrap()
   }, [status, bootstrap])
 
   if (status === 'authenticated') {
-    return <Navigate to="/" replace />
+    return <Navigate to={from} replace />
   }
 
   const onSubmit = async (event: FormEvent) => {
@@ -72,15 +74,20 @@ export function AuthPage({ mode }: { mode: Mode }) {
   }
 
   const fieldError = (name: string) =>
-    fields[name] ? <p className="mt-1 text-xs font-bold text-[var(--color-danger)]">{fields[name]}</p> : null
+    fields[name] ? <p id={name + '-error'} className="mt-1 text-xs font-semibold text-(--color-danger-text)">{fields[name]}</p> : null
+
+  const fieldErrorAttributes = (name: string) => ({
+    'aria-invalid': fields[name] ? true : undefined,
+    'aria-describedby': fields[name] ? name + '-error' : undefined,
+  })
 
   return (
-    <div className="min-h-dvh bg-[var(--color-bg)] text-[var(--color-text)]">
+    <main className="min-h-dvh bg-[var(--color-bg)] text-[var(--color-text)]">
       <div className="mx-auto grid min-h-dvh w-full max-w-6xl items-center gap-8 px-4 py-8 md:grid-cols-[1fr_1fr] md:px-8 lg:gap-16">
         <section className="premium-hero relative hidden min-h-[620px] overflow-hidden rounded-[28px] p-10 text-white md:flex md:flex-col md:justify-between">
           <div className="relative flex items-center gap-2">
             <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25">
-              <Icon name="sparkles" size={24} />
+              <Icon name="book" size={24} />
             </span>
             <span className="text-xl font-black">{t('app.name')}</span>
           </div>
@@ -104,10 +111,10 @@ export function AuthPage({ mode }: { mode: Mode }) {
         </section>
 
         <section className="mx-auto w-full max-w-md">
-          <div className="mb-6 flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="mb-6 flex items-center justify-between md:justify-end">
+            <div className="flex items-center gap-2 md:hidden">
               <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] text-white">
-                <Icon name="sparkles" size={22} />
+                <Icon name="book" size={22} />
               </span>
               <span className="text-lg font-black">{t('app.name')}</span>
             </div>
@@ -121,10 +128,7 @@ export function AuthPage({ mode }: { mode: Mode }) {
           </div>
 
           <div className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-6 shadow-[var(--shadow-md)]">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-primary)]">
-              {mode === 'login' ? t('auth.welcomeBack') : t('auth.start')}
-            </p>
-            <h1 className="mt-2 text-2xl font-black sm:text-3xl">
+            <h1 className="text-2xl font-bold sm:text-3xl">
               {mode === 'login' ? t('auth.loginTitle') : t('auth.registerTitle')}
             </h1>
             <p className="mt-2 text-sm text-[var(--color-muted)]">
@@ -143,6 +147,7 @@ export function AuthPage({ mode }: { mode: Mode }) {
                     onChange={(e) => setNickname(e.target.value)}
                     placeholder={t('auth.nicknamePlaceholder')}
                     autoComplete="nickname"
+                    {...fieldErrorAttributes('nickname')}
                     maxLength={50}
                     required
                     className="mt-1 w-full rounded-[16px] px-4 py-3 font-semibold"
@@ -162,6 +167,7 @@ export function AuthPage({ mode }: { mode: Mode }) {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={t('auth.emailPlaceholder')}
                   autoComplete="email"
+                  {...fieldErrorAttributes('email')}
                   required
                   className="mt-1 w-full rounded-[16px] px-4 py-3 font-semibold"
                 />
@@ -172,17 +178,26 @@ export function AuthPage({ mode }: { mode: Mode }) {
                 <label className="block text-sm font-bold" htmlFor="password">
                   {t('auth.password')}
                 </label>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={t('auth.passwordPlaceholder')}
-                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                  minLength={8}
-                  required
-                  className="mt-1 w-full rounded-[16px] px-4 py-3 font-semibold"
-                />
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={t('auth.passwordPlaceholder')}
+                    autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    {...fieldErrorAttributes('password')}
+                    minLength={8}
+                    required
+                    className="min-w-0 flex-[1_1_8rem] rounded-[16px] px-4 py-3 font-semibold"
+                  />
+                  <button type="button" aria-controls="password" onClick={() => setShowPassword((visible) => !visible)}
+                    className="min-h-11 rounded-xl px-2 text-sm font-semibold text-(--color-primary-text) hover:bg-(--color-surface-alt)">
+                    {t(showPassword ? 'auth.hidePassword' : 'auth.showPassword')}
+                  </button>
+                </div>
                 {fieldError('password')}
               </div>
 
@@ -245,6 +260,7 @@ export function AuthPage({ mode }: { mode: Mode }) {
               {mode === 'login' ? t('auth.noAccount') : t('auth.haveAccount')}{' '}
               <Link
                 to={mode === 'login' ? '/register' : '/login'}
+                state={location.state}
                 className="font-black text-[var(--color-primary)]"
               >
                 {mode === 'login' ? t('auth.toRegister') : t('auth.toLogin')}
@@ -259,15 +275,8 @@ export function AuthPage({ mode }: { mode: Mode }) {
             )}
           </div>
 
-          <button
-            onClick={() => i18n.changeLanguage(i18n.language === 'km' ? 'en' : 'km')}
-            className="mx-auto mt-4 hidden min-h-11 items-center gap-2 rounded-full px-3 text-sm font-bold text-[var(--color-muted)] hover:bg-[var(--color-surface-alt)] md:flex"
-          >
-            <Icon name="compass" size={16} />
-            {i18n.language === 'km' ? t('common.english') : t('common.khmer')}
-          </button>
         </section>
       </div>
-    </div>
+    </main>
   )
 }

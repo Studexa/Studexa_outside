@@ -2,24 +2,17 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Icon, type IconName } from '../../components/Icon'
 import { Badge } from '../../components/Badge'
+import { Button } from '../../components/Button'
+import { Spinner } from '../../components/Spinner'
 import { gameApi, reviewApi } from '../../lib/api'
-import { isGuestMode } from '../../lib/auth'
+import { isGuestMode, useAuth } from '../../lib/auth'
 import { useApp } from '../../lib/store'
-import { useDecks, useGameState } from '../../lib/study'
+import { formatStudyDate, localDateKey } from '../../lib/studyDate'
+import { studyKeys, useDecks, useGameState } from '../../lib/study'
 
-const DEFAULT_COLORS = [
-  '#6366f1',
-  '#10b981',
-  '#f59e0b',
-  '#f87171',
-  '#3b82f6',
-  '#ec4899',
-  '#8b5cf6',
-  '#14b8a6',
-]
+const ACTIVITY_LIMIT = 100
 
 function heatLevel(count: number) {
   if (count <= 0) return 0
@@ -30,7 +23,8 @@ function heatLevel(count: number) {
 }
 
 export function StatsPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const userId = useAuth((state) => state.user?.id)
   const guestMode = isGuestMode()
   const localDecks = useApp((s) => s.decks)
   const localStreak = useApp((s) => s.streak)
@@ -39,53 +33,47 @@ export function StatsPage() {
 
   const gameQuery = useGameState(!guestMode)
   const xpQuery = useQuery({
-    queryKey: ['game', 'xp-history'],
-    queryFn: () => gameApi.xpHistory(100),
+    queryKey: [...studyKeys.gameXpHistory(userId), ACTIVITY_LIMIT],
+    queryFn: () => gameApi.xpHistory(ACTIVITY_LIMIT),
     enabled: !guestMode,
   })
-  const decksQuery = useDecks(!guestMode)
+  const decksQuery = useDecks()
   const queueQuery = useQuery({
-    queryKey: ['review', 'queue'],
+    queryKey: studyKeys.reviewQueue(userId),
     queryFn: () => reviewApi.queue(null),
     enabled: !guestMode,
   })
 
   const gameState = gameQuery.data
   const xpEvents = xpQuery.data ?? []
-  const decks = guestMode
-    ? localDecks.map((deck) => ({
-        id: deck.id,
-        title: deck.title,
-        subjectName: deck.subject,
-        color: deck.color,
-        cardCount: deck.cards.length,
-        dueCount: deck.cards.filter((card) => card.due).length,
-      }))
-    : (decksQuery.data ?? [])
+  const decks = decksQuery.data ?? []
   const queueCards = queueQuery.data?.cards ?? []
 
-  const isLoading =
-    gameQuery.isLoading || xpQuery.isLoading || decksQuery.isLoading || queueQuery.isLoading
-  const error =
-    gameQuery.error ?? xpQuery.error ?? decksQuery.error ?? queueQuery.error
+  const queries = [gameQuery, xpQuery, decksQuery, queueQuery]
+  const isLoading = queries.some((query) => query.isLoading)
+  const unavailable = queries.filter((query) => query.data === undefined && (query.isError || query.isPaused))
 
   // ---- derived stats from real backend data ----
   const streakCurrent = guestMode ? localStreak : (gameState?.streakCurrent ?? 0)
   const streakBest = guestMode ? localBestStreak : (gameState?.streakBest ?? 0)
 
-  // study sessions recorded in the last 7 days (window fixed at mount;
-  // backend timestamps are ISO-8601 UTC so strings compare chronologically)
-  const [weekWindow] = useState(() => {
-    const now = new Date()
-    const weekAgo = new Date(now)
-    weekAgo.setDate(now.getDate() - 7)
-    return { start: weekAgo.toISOString(), end: now.toISOString(), nowDate: now }
+  const [todayStart] = useState(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return today
   })
-  const sessionsThisWeek = guestMode
-    ? localFocus.filter((session) => session.completedAt >= weekWindow.start && session.completedAt <= weekWindow.end).length
-    : xpEvents.filter(
-    (e) => e.createdAt >= weekWindow.start && e.createdAt <= weekWindow.end,
-  ).length
+  const weekStart = new Date(todayStart)
+  weekStart.setDate(todayStart.getDate() - 6)
+  const weekStartKey = localDateKey(weekStart)
+  const todayKey = localDateKey(todayStart)
+
+  const dayCounts = new Map<string, number>()
+  const timestamps = guestMode ? localFocus.map((session) => session.completedAt) : xpEvents.map((event) => event.createdAt)
+  for (const timestamp of timestamps) {
+    const dateKey = localDateKey(new Date(timestamp))
+    dayCounts.set(dateKey, (dayCounts.get(dateKey) ?? 0) + 1)
+  }
+  const activeDays = [...dayCounts.keys()].filter((date) => date >= weekStartKey && date <= todayKey).length
 
   // total cards due across all decks
   const cardsDue = decks.reduce((sum, d) => sum + (d.dueCount ?? 0), 0)
@@ -94,13 +82,13 @@ export function StatsPage() {
     {
       icon: 'calendar',
       value: String(streakCurrent),
-      key: 'stats.studyDays',
+      key: 'stats.currentStreak',
       tone: 'bg-[var(--color-primary-soft)] text-[var(--color-primary)]',
     },
     {
       icon: 'clock',
-      value: String(sessionsThisWeek),
-      key: 'stats.thisWeek',
+      value: String(activeDays),
+      key: 'stats.activeDays',
       tone: 'bg-[var(--color-success-soft)] text-[var(--color-success)]',
     },
     {
@@ -117,47 +105,29 @@ export function StatsPage() {
     },
   ]
 
-  // ---- study heatmap (12 weeks) from real XP events ----
-  const dayCounts = new Map<string, number>()
-  for (const e of xpEvents) {
-    const dateKey = new Date(e.createdAt).toISOString().slice(0, 10)
-    dayCounts.set(dateKey, (dayCounts.get(dateKey) ?? 0) + 1)
-  }
-
   const weeks = 12
-  const todayStart = new Date(weekWindow.nowDate)
-  todayStart.setHours(0, 0, 0, 0)
+  const language = i18n.resolvedLanguage ?? 'en'
 
   const columns = Array.from({ length: weeks }, (_, w) =>
     Array.from({ length: 7 }, (_, d) => {
       const index = w * 7 + d
       const date = new Date(todayStart)
       date.setDate(todayStart.getDate() - (weeks * 7 - 1 - index))
-      const dateKey = date.toISOString().slice(0, 10)
-      const count = dayCounts.get(dateKey) ?? 0
-      return { date, level: heatLevel(count) }
+      const count = dayCounts.get(localDateKey(date)) ?? 0
+      return { date, count, level: heatLevel(count) }
     }),
   )
 
-  // ---- time by subject from real decks ----
-  const subjectMap = new Map<
-    string,
-    { minutes: number; color: string }
-  >()
+  const subjectMap = new Map<string, number>()
   for (const deck of decks) {
     const subject = deck.subjectName ?? t('stats.uncategorized')
-    const existing = subjectMap.get(subject) ?? {
-      minutes: 0,
-      color: deck.color ?? DEFAULT_COLORS[0],
-    }
-    existing.minutes += deck.cardCount ?? 0
-    subjectMap.set(subject, existing)
+    if (deck.cardCount > 0) subjectMap.set(subject, (subjectMap.get(subject) ?? 0) + deck.cardCount)
   }
 
   const subjectData = Array.from(subjectMap.entries())
-    .map(([subject, { minutes, color }]) => ({ subject, minutes, color }))
-    .sort((a, b) => b.minutes - a.minutes)
-    .slice(0, 6)
+    .sort(([, first], [, second]) => second - first)
+
+  const topSubjectCount = subjectData[0]?.[1] ?? 0
 
   // ---- weak cards from real review queue (cards with lapses) ----
   const weakCards = (guestMode
@@ -174,79 +144,47 @@ export function StatsPage() {
       deck: c.deckTitle ?? c.deckSubject ?? '',
     }))
 
-  if (isLoading) {
+  if (isLoading || unavailable.length > 0) {
     return (
-      <div className="space-y-4">
-        <div>
-          <h1 className="text-2xl font-black">{t('stats.title')}</h1>
-          <p className="text-sm text-[var(--color-muted)]">{t('stats.subtitle')}</p>
+      <div className="study-workspace">
+        <header className="study-page-header"><h1>{t('stats.title')}</h1></header>
+        <div className="study-panel flex min-h-36 flex-col items-center justify-center gap-3">
+          {isLoading ? <Spinner label={t('common.loading')} /> : (
+            <>
+              <p className="study-muted" role="status">{t('stats.loadError')}</p>
+              <Button variant="secondary" onClick={() => unavailable.forEach((query) => void query.refetch())} disabled={unavailable.some((query) => query.isPaused)}>
+                {t('common.retry')}
+              </Button>
+            </>
+          )}
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              className="rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 animate-pulse"
-            />
-          ))}
-        </div>
-        <section className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-lg font-extrabold">{t('stats.heatmap')}</h2>
-          </div>
-          <div className="mt-3 h-40 flex items-center justify-center text-[var(--color-muted)]">
-            {t('stats.heatmapTakeaway')}
-          </div>
-        </section>
-        <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-          <section className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 h-56 flex items-center justify-center text-[var(--color-muted)]">
-            {t('stats.timeBySubject')} …
-          </section>
-          <section className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-extrabold">{t('stats.weakCards')}</h2>
-            </div>
-            <div className="mt-3 h-32 flex items-center justify-center text-[var(--color-muted)]">
-              {t('stats.weakHint')}
-            </div>
-          </section>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="rounded-[24px] border border-dashed border-[var(--color-border)] p-8 text-center">
-        <p className="font-bold">{t('stats.loadError') ?? 'Failed to load stats.'}</p>
-        <p className="mt-1 text-sm text-[var(--color-muted)]">
-          {error instanceof Error ? error.message : String(error)}
-        </p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-black">{t('stats.title')}</h1>
-        <p className="text-sm text-[var(--color-muted)]">{t('stats.subtitle')}</p>
-      </div>
+    <div className="study-workspace">
+      <header className="study-page-header">
+        <h1>{t('stats.title')}</h1>
+      </header>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {statsCards.map((card) => (
-          <div key={card.key} className="rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
-            <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${card.tone}`}>
-              <Icon name={card.icon} size={18} />
-            </span>
-            <p className="mt-2 text-2xl font-black">{card.value}</p>
-            <p className="text-[11px] font-bold text-[var(--color-muted)]">{t(card.key)}</p>
+          <div key={card.key} className="study-panel grid gap-1">
+            <dt className="study-muted grid gap-2 [overflow-wrap:anywhere]">
+              <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${card.tone}`}>
+                <Icon name={card.icon} size={18} />
+              </span>
+              {t(card.key)}
+            </dt>
+            <dd className="text-2xl font-semibold tabular-nums">{card.value}</dd>
           </div>
         ))}
-      </div>
+      </dl>
 
-      <section className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+      <section className="study-panel">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-extrabold">{t('stats.heatmap')}</h2>
+          <h2 className="study-section-title">{t('stats.heatmap')}</h2>
           <div className="flex items-center gap-1.5 text-[10px] font-bold text-[var(--color-muted)]">
             <span>{t('stats.less')}</span>
             {[0, 1, 2, 3, 4].map((level) => (
@@ -262,7 +200,7 @@ export function StatsPage() {
             <span>{t('stats.more')}</span>
           </div>
         </div>
-        <p className="mt-1 text-xs font-semibold text-[var(--color-muted)]">{t('stats.heatmapTakeaway')}</p>
+        <p className="study-muted mt-1">{guestMode ? t('stats.focusActivity') : t('stats.xpActivity', { count: ACTIVITY_LIMIT })}</p>
 
         <div className="mt-3 overflow-x-auto pb-1">
           <div className="flex gap-1.5">
@@ -271,7 +209,7 @@ export function StatsPage() {
                 {week.map((day) => (
                   <span
                     key={day.date.toISOString()}
-                    title={`${day.date.toDateString()} · ${t('stats.studyLevel', { level: day.level })}`}
+                    title={`${formatStudyDate(day.date, language, 'medium')} · ${t('stats.activityCount', { count: day.count })}`}
                     className="h-4 w-4 rounded-[4px] sm:h-5 sm:w-5"
                     style={{
                       background: day.level === 0 ? 'var(--color-surface-alt)' : 'var(--color-primary)',
@@ -290,51 +228,30 @@ export function StatsPage() {
       </section>
 
       <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <section className="min-w-0 rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-          <h2 className="text-lg font-extrabold">{t('stats.timeBySubject')}</h2>
-          <p className="text-xs font-semibold text-[var(--color-muted)]">{t('stats.timeTakeaway')}</p>
-          <div className="mt-2 h-56 w-full min-w-0 overflow-clip">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-              <BarChart
-                data={subjectData}
-                margin={{ top: 8, right: 4, left: -18, bottom: 0 }}
-              >
-                <XAxis
-                  dataKey="subject"
-                  tick={{ fontSize: 10, fill: 'var(--color-muted)', fontWeight: 700 }}
-                  axisLine={false}
-                  tickLine={false}
-                  interval="preserveStartEnd"
-                  minTickGap={12}
-                />
-                <YAxis tick={{ fontSize: 10, fill: 'var(--color-muted)' }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  cursor={{ fill: 'var(--color-surface-alt)', opacity: 0.5 }}
-                  contentStyle={{
-                    background: 'var(--color-surface)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: 14,
-                    fontSize: 12,
-                    color: 'var(--color-text)',
-                  }}
-                  formatter={(value) => [
-                    `${value} ${t('stats.minutes')}`,
-                    t('stats.timeBySubject'),
-                  ]}
-                />
-                <Bar dataKey="minutes" radius={[8, 8, 0, 0]}>
-                  {subjectData.map((entry) => (
-                    <Cell key={entry.subject} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+        <section className="study-panel">
+          <h2 className="study-section-title">{t('stats.cardsBySubject')}</h2>
+          {subjectData.length === 0 ? (
+            <p className="study-muted mt-2">{t('stats.noSubjectCards')}</p>
+          ) : (
+            <ul className="mt-3 space-y-3">
+              {subjectData.map(([subject, count]) => (
+                <li key={subject}>
+                  <div className="mb-1 flex justify-between gap-3 text-sm">
+                    <span className="min-w-0 font-medium [overflow-wrap:anywhere]">{subject}</span>
+                    <span className="study-muted shrink-0 tabular-nums">{t('stats.cardCount', { count })}</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-(--color-surface-alt)" aria-hidden="true">
+                    <div className="h-full rounded-full bg-(--study-ring)" style={{ width: (count / topSubjectCount * 100) + '%' }} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
-        <section className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+        <section className="study-panel">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-extrabold">{t('stats.weakCards')}</h2>
+            <h2 className="study-section-title">{t('stats.weakCards')}</h2>
             <Badge tone="danger">{weakCards.length}</Badge>
           </div>
           <p className="text-xs font-semibold text-[var(--color-muted)]">{t('stats.weakHint')}</p>
@@ -357,9 +274,11 @@ export function StatsPage() {
               </p>
             )}
           </div>
-          <Link to="/study/review" className="mt-3 flex min-h-11 items-center justify-center gap-1.5 rounded-2xl bg-[var(--color-primary-soft)] text-sm font-bold text-[var(--color-primary)]">
-            <Icon name="cards" size={16} /> {t('stats.reviewWeak')}
-          </Link>
+          {cardsDue > 0 && (
+            <Link to="/study/review" className="study-text-link mt-2">
+              <Icon name="cards" size={16} /> {t('study.startReview')}
+            </Link>
+          )}
         </section>
       </div>
     </div>

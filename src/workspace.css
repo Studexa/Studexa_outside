@@ -152,6 +152,10 @@
   padding: clamp(1rem, 3.25vw, 3rem) clamp(.625rem, 3vw, 3rem) clamp(1rem, 3vw, 2.5rem);
 }
 
+.study-shell-footer { margin-top: 1.25rem; }
+.study-shell-footer:empty { display: none; }
+.study-shell-footer svg { flex-shrink: 0; }
+
 .study-bottom-bar {
   position: sticky;
   z-index: 35;
@@ -281,12 +285,36 @@ html:has(.app-shell) { scroll-padding-block: 4rem 5.5rem; }
 
 .study-page-header .study-muted { margin-top: .45rem; }
 
+.study-dashboard-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: .75rem;
+}
+
+.study-streak {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: .45rem;
+  padding-inline: .75rem;
+  border: 1px solid var(--study-border);
+  border-radius: .75rem;
+  background: var(--color-surface);
+  color: var(--study-ink);
+  font-size: .875rem;
+  font-weight: 650;
+}
+
+.study-streak:hover { background: var(--study-fill); }
+
 .study-dashboard-grid {
   display: grid;
   gap: inherit;
 }
 @container (min-width: 34rem) {
-  .study-dashboard-grid { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); }
+  .study-dashboard-grid { grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr); }
 }
 
 .study-panel {
@@ -325,6 +353,51 @@ html:has(.app-shell) { scroll-padding-block: 4rem 5.5rem; }
   font-weight: 650;
 }
 
+.study-queue-featured {
+  position: relative;
+  min-height: 12rem;
+  align-content: center;
+  gap: 1rem;
+  isolation: isolate;
+  overflow: hidden;
+  border-top-width: 1px;
+  background: linear-gradient(119deg, var(--study-fill), var(--color-surface));
+}
+
+.study-queue-featured .study-queue-count { font-size: clamp(1.65rem, 3.2vw, 2.5rem); }
+.study-queue-featured .study-icon { background: var(--color-surface); }
+.study-queue-featured :is(.study-queue-count, .study-muted) { overflow-wrap: anywhere; }
+
+.study-card-art {
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 0 auto;
+  display: none;
+  width: 34%;
+  place-items: center;
+  background: repeating-radial-gradient(circle at 52% 52%, transparent 0 19px, var(--study-border) 20px 21px);
+  mask-image: linear-gradient(to right, transparent, black 38%);
+  pointer-events: none;
+}
+
+.study-card-art svg {
+  box-sizing: content-box;
+  padding: .75rem;
+  transform: rotate(-10deg);
+  border: 1px solid var(--study-border);
+  border-radius: 1rem;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  color: var(--study-ink);
+}
+
+@container (min-width: 48rem) {
+  .study-card-art { display: grid; }
+  .study-queue-featured .study-queue-content { max-width: 70%; }
+}
+
+.study-panel-heading { display: flex; align-items: center; gap: .625rem; }
+
 .study-exam {
   display: flex;
   flex-direction: column;
@@ -334,13 +407,13 @@ html:has(.app-shell) { scroll-padding-block: 4rem 5.5rem; }
 
 .study-goal {
   display: grid;
-  width: 100%;
-  gap: .5rem;
-  margin-top: .25rem;
-  padding-top: .875rem;
-  border-top: 1px solid var(--study-border);
-  font-size: .875rem;
+  align-content: center;
+  gap: .625rem;
 }
+
+.study-goal-count { font-size: clamp(1.2rem, 2vw, 1.5rem); font-weight: 650; }
+.study-goal-complete { color: var(--color-success-text); font-size: .875rem; font-weight: 650; }
+.study-exam .study-icon { background: var(--color-surface-alt); }
 
 :is(.study-workspace, .review-workspace) { --progress-bar-primary: var(--study-ring); }
 :root[data-reduced-motion='true'] :is(.study-workspace, .review-workspace) [role='progressbar'] > div { transition: none; }
@@ -388,6 +461,18 @@ html:has(.app-shell) { scroll-padding-block: 4rem 5.5rem; }
   font-weight: 600;
 }
 
+.study-dashboard-tools .study-shortcuts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.study-dashboard-tools .study-shortcuts a { min-width: 0; overflow-wrap: anywhere; }
+.study-shortcut-arrow { margin-inline-start: auto; }
+
+@container (max-width: 25rem) {
+  .study-shortcut-arrow { display: none; }
+}
+
+@container (max-width: 19rem) {
+  .study-dashboard-tools .study-shortcuts { grid-template-columns: 1fr; }
+}
+
 .study-shortcuts svg,
 .study-rewards summary svg { flex-shrink: 0; color: var(--study-ink); }
 .study-shortcuts a:hover,
@@ -423,6 +508,7 @@ html:has(.app-shell) { scroll-padding-block: 4rem 5.5rem; }
 
 @container (max-width: 20rem) {
   .study-queue .study-action { width: 100%; }
+  .study-queue-featured .study-queue-content > .study-icon { display: none; }
   .study-deck-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; }
   .study-deck-count { max-width: none; grid-column: 2; justify-self: start; }
   .study-deck-row > svg { grid-column: 3; grid-row: 1 / span 2; }

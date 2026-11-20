@@ -1,9 +1,11 @@
 import { useEffect, type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { isGuestMode, useAuth } from '../lib/auth'
 import { PageSkeleton } from '../components/Skeleton'
 
 function AppAuthSkeleton() {
+  const { t } = useTranslation()
   return (
     <div className="min-h-dvh bg-[var(--color-bg)] text-[var(--color-text)]" aria-busy="true">
       {/* Synchronized Header skeleton */}
@@ -23,6 +25,7 @@ function AppAuthSkeleton() {
 
       {/* Synchronized Main page skeleton */}
       <main className="mx-auto max-w-5xl px-3 py-6 sm:px-5">
+        <p role="status" className="mb-4 text-sm text-[var(--color-muted)]">{t('common.loading')}</p>
         <PageSkeleton />
       </main>
     </div>

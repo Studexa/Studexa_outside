@@ -6,11 +6,11 @@ import { Icon, type IconName } from '../../components/Icon'
 import { Badge } from '../../components/Badge'
 import { Button } from '../../components/Button'
 import { Spinner } from '../../components/Spinner'
-import { gameApi, reviewApi } from '../../lib/api'
+import { gameApi } from '../../lib/api'
 import { isGuestMode, useAuth } from '../../lib/auth'
 import { useApp } from '../../lib/store'
 import { formatStudyDate, localDateKey } from '../../lib/studyDate'
-import { studyKeys, useDecks, useGameState } from '../../lib/study'
+import { studyKeys, useDecks, useGameState, useWeakCards } from '../../lib/study'
 
 const ACTIVITY_LIMIT = 100
 
@@ -26,7 +26,6 @@ export function StatsPage() {
   const { t, i18n } = useTranslation()
   const userId = useAuth((state) => state.user?.id)
   const guestMode = isGuestMode()
-  const localDecks = useApp((s) => s.decks)
   const localStreak = useApp((s) => s.streak)
   const localBestStreak = useApp((s) => s.bestStreak)
   const localFocus = useApp((s) => s.focusSessions)
@@ -38,18 +37,13 @@ export function StatsPage() {
     enabled: !guestMode,
   })
   const decksQuery = useDecks()
-  const queueQuery = useQuery({
-    queryKey: studyKeys.reviewQueue(userId),
-    queryFn: () => reviewApi.queue(null),
-    enabled: !guestMode,
-  })
+  const { cards: weakCards, query: weakCardsQuery } = useWeakCards()
 
   const gameState = gameQuery.data
   const xpEvents = xpQuery.data ?? []
   const decks = decksQuery.data ?? []
-  const queueCards = queueQuery.data?.cards ?? []
 
-  const queries = [gameQuery, xpQuery, decksQuery, queueQuery]
+  const queries = [gameQuery, xpQuery, decksQuery, weakCardsQuery]
   const isLoading = queries.some((query) => query.isLoading)
   const unavailable = queries.filter((query) => query.data === undefined && (query.isError || query.isPaused))
 
@@ -128,21 +122,6 @@ export function StatsPage() {
     .sort(([, first], [, second]) => second - first)
 
   const topSubjectCount = subjectData[0]?.[1] ?? 0
-
-  // ---- weak cards from real review queue (cards with lapses) ----
-  const weakCards = (guestMode
-    ? localDecks.flatMap((deck) => deck.cards.filter((card) => card.lapses > 0).map((card) => ({ ...card, deckTitle: deck.title, deckSubject: deck.subject, deck: deck.title })))
-    : queueCards)
-    .filter((c) => (c.lapses ?? 0) > 0)
-    .sort((a, b) => (b.lapses ?? 0) - (a.lapses ?? 0))
-    .slice(0, 5)
-    .map((c) => ({
-      id: c.id,
-      front: c.front,
-      back: c.back,
-      lapses: c.lapses ?? 0,
-      deck: c.deckTitle ?? c.deckSubject ?? '',
-    }))
 
   if (isLoading || unavailable.length > 0) {
     return (
@@ -261,7 +240,7 @@ export function StatsPage() {
                 <p className="text-sm font-extrabold">{card.front}</p>
                 <p className="truncate text-xs text-[var(--color-muted)]">{card.back}</p>
                 <div className="mt-1.5 flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-[var(--color-muted)]">{card.deck}</span>
+                  <span className="text-[10px] font-bold text-[var(--color-muted)]">{card.deckTitle}</span>
                   <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-danger-soft)] px-2 py-0.5 text-[10px] font-black text-[#b91c1c] dark:text-[var(--color-danger)]">
                     <Icon name="undo" size={10} /> {t('stats.lapses', { count: card.lapses })}
                   </span>
@@ -274,11 +253,18 @@ export function StatsPage() {
               </p>
             )}
           </div>
-          {cardsDue > 0 && (
-            <Link to="/study/review" className="study-text-link mt-2">
-              <Icon name="cards" size={16} /> {t('study.startReview')}
-            </Link>
-          )}
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
+            {weakCards.length > 0 && (
+              <Link to="/study/practice" className="study-text-link">
+                <Icon name="cards" size={16} /> {t('practice.title')}
+              </Link>
+            )}
+            {cardsDue > 0 && (
+              <Link to="/study/review" className="study-text-link">
+                {t('study.startReview')}
+              </Link>
+            )}
+          </div>
         </section>
       </div>
     </div>

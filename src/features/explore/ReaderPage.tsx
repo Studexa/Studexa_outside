@@ -51,7 +51,7 @@ export function ReaderPage() {
           <PassageTools key={readingId} source={source} title={reading.data.edition.title + ' · ' + reading.data.edition.section} reading={reading.data} />
         </>}
     {!!(edition?.previousId || edition?.nextId) && <nav className="reading-chapters" aria-label={t('reading.chapters')}>
-      {adjacent.map((item) => item.id && <Link key={item.id} to={'/explore/read/' + item.id}>
+      {adjacent.map((item) => item.id && <Link key={item.id} to={'/explore/read/' + item.id} data-direction={item.direction}>
         <Icon name={item.direction} size={17} />{item.name}
       </Link>)}
     </nav>}

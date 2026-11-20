@@ -5,6 +5,8 @@ import { Button } from '../../components/Button'
 import { Icon } from '../../components/Icon'
 import { Modal } from '../../components/Modal'
 import { SubjectCardSkeleton } from '../../components/Skeleton'
+import { useAuth } from '../../lib/auth'
+import { studyKeys } from '../../lib/study'
 import {
   ApiError,
   subjectsApi,
@@ -32,6 +34,7 @@ function errorMessage(err: unknown, fallback: string) {
 export function SubjectsPage() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const userId = useAuth((state) => state.user?.id)
   const [includeArchived, setIncludeArchived] = useState(false)
   const [editor, setEditor] = useState<{ subject?: Subject; draft?: Partial<SubjectInput> } | null>(null)
   const [pendingDelete, setPendingDelete] = useState<Subject | null>(null)
@@ -43,6 +46,7 @@ export function SubjectsPage() {
     onSuccess: () => {
       setActionError(null)
       void queryClient.invalidateQueries({ queryKey: ['subjects'] })
+      void queryClient.invalidateQueries({ queryKey: studyKeys.weakCards(userId) })
     },
     onError: (err) => setActionError(errorMessage(err, t('subjects.actionError'))),
   })
@@ -53,6 +57,7 @@ export function SubjectsPage() {
       setActionError(null)
       setPendingDelete(null)
       void queryClient.invalidateQueries({ queryKey: ['subjects'] })
+      void queryClient.invalidateQueries({ queryKey: studyKeys.weakCards(userId) })
     },
     onError: (err) => setActionError(errorMessage(err, t('subjects.actionError'))),
   })

@@ -23,7 +23,7 @@ export function NoteEditorPage() {
   const note = notes.find((n) => n.id === noteId)
 
   useEffect(() => {
-    loadNotes()
+    void loadNotes().catch(() => undefined)
   }, [loadNotes])
 
   if (!note) {
@@ -165,7 +165,7 @@ function NoteEditor({ note }: { note: Note }) {
           )}
         </div>
         {!betaEnabled && <Button variant="secondary" size="sm" disabled={!editor?.getText().trim()}
-          onClick={() => openStudyBuddy({ title, text: selectedText || editor?.getText({ blockSeparator: '\n' }) || '' })}>
+          onClick={(event) => openStudyBuddy({ title, text: selectedText || editor?.getText({ blockSeparator: '\n' }) || '' }, event.currentTarget)}>
           <Icon name="sparkles" size={16} /> {t('pet.studyNote')}
         </Button>}
         <button
@@ -188,7 +188,7 @@ function NoteEditor({ note }: { note: Note }) {
         </Button>
       </section>}
 
-      <div className="study-notebook study-editor-surface overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+      <div className="study-editor-surface study-panel">
         <div className="border-b border-[var(--color-border)] px-4 py-3 sm:px-6">
           <input
             value={title}
@@ -197,24 +197,24 @@ function NoteEditor({ note }: { note: Note }) {
               queueSave({ title: e.target.value })
             }}
             placeholder={t('notes.titlePlaceholder')}
-            className="w-full border-0 bg-transparent px-0 py-1 text-2xl font-black outline-none focus:outline-none"
+            className="w-full border-0 bg-transparent px-0 py-1 text-2xl font-semibold"
             aria-label={t('notes.titlePlaceholder')}
           />
-          <div className="mt-1 flex items-center gap-3 text-[11px] font-semibold text-[var(--color-muted)]">
+          <div className="study-muted mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
             <span>{t('notes.wordCount', { count: words })}</span>
             <span>·</span>
             <span>{t('notes.autosaveHint')}</span>
           </div>
         </div>
 
-        <div className="sticky top-16 z-10 flex flex-wrap items-center gap-1 border-b border-[var(--color-border)] bg-[var(--color-surface)]/95 px-2 py-2 backdrop-blur">
+        <div className="study-note-tools flex flex-wrap items-center gap-1 px-2 py-2" role="group" aria-label={t('notes.formatting')}>
           {tools.map((tool) => (
             <button
               key={tool.label}
               onClick={tool.run}
               aria-label={tool.label}
               aria-pressed={!!tool.active}
-              className={`flex h-10 w-10 items-center justify-center rounded-xl transition ${
+              className={`flex h-11 w-11 items-center justify-center rounded-xl transition ${
                 tool.active
                   ? 'bg-[var(--color-primary-soft)] text-[var(--color-primary)]'
                   : 'text-[var(--color-muted)] hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)]'

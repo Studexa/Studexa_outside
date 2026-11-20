@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '../../components/Button'
 import { EmptyState } from '../../components/EmptyState'
 import { Icon } from '../../components/Icon'
+import { formatStudyDate } from '../../lib/studyDate'
 import { useApp } from '../../lib/store'
 
 function plainText(html: string) {
@@ -17,75 +18,89 @@ export function NotesPage() {
   const addNote = useApp((s) => s.addNote)
   const loadNotes = useApp((s) => s.loadNotes)
   const [query, setQuery] = useState('')
+  const [attempt, setAttempt] = useState(0)
+  const [listStatus, setListStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [creating, setCreating] = useState(false)
+  const [createFailed, setCreateFailed] = useState(false)
 
   useEffect(() => {
-    loadNotes()
-  }, [loadNotes])
+    let active = true
+    void loadNotes().then(
+      () => { if (active) setListStatus('ready') },
+      () => { if (active) setListStatus('error') },
+    )
+    return () => { active = false }
+  }, [attempt, loadNotes])
 
-  const filtered = notes.filter((note) =>
-    `${note.title} ${plainText(note.content)} ${note.subject}`.toLowerCase().includes(query.toLowerCase()),
-  )
+  const search = query.trim().toLowerCase()
+  const filtered = notes.map((note) => ({ ...note, excerpt: plainText(note.content) }))
+    .filter((note) => `${note.title} ${note.excerpt} ${note.subject}`.toLowerCase().includes(search))
+    .sort((first, second) => Date.parse(second.updatedAt) - Date.parse(first.updatedAt))
 
   const create = async () => {
-    const id = await addNote({ title: t('notes.untitled'), content: '', subject: t('notes.general') })
-    navigate(`/notes/${id}`)
+    setCreating(true)
+    setCreateFailed(false)
+    try {
+      const id = await addNote({ title: t('notes.untitled'), content: '', subject: t('notes.general') })
+      navigate(`/notes/${id}`)
+    } catch {
+      setCreateFailed(true)
+      setCreating(false)
+    }
   }
 
   return (
-    <div className="space-y-4">
-      <div className="study-page-header study-feature-header flex flex-wrap items-center justify-between gap-3">
+    <div className="study-workspace">
+      <header className="study-page-header study-list-header">
         <div>
           <h1 className="text-2xl font-black">{t('notes.title')}</h1>
-          <p className="text-sm text-[var(--color-muted)]">{t('notes.subtitle')}</p>
+          <p className="study-muted">{t('notes.subtitle')}</p>
         </div>
-        <Button onClick={create}>
+        <Button onClick={create} disabled={creating}>
           <Icon name="plus" size={18} /> {t('notes.newNote')}
         </Button>
-      </div>
-
-      <div className="relative">
+      <label className="study-list-search relative">
         <Icon name="search" size={18} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-muted)]" />
         <input
+          type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t('notes.searchPlaceholder')}
           className="w-full rounded-2xl py-3 pl-11 pr-4 text-sm font-semibold"
           aria-label={t('common.search')}
         />
-      </div>
+      </label>
+      </header>
 
-      {filtered.length === 0 ? (
-        <EmptyState
-          title={t('notes.empty')}
-          hint={t('notes.emptyHint')}
-          action={<Button onClick={create}>{t('notes.newNote')}</Button>}
-        />
+      {createFailed && <p role="alert" className="study-panel">{t('notes.createFailed')}</p>}
+      {listStatus === 'error' && (
+        <div className="study-panel flex flex-wrap items-center gap-3">
+          <p role="alert">{t('notes.loadFailed')}</p>
+          <Button size="sm" variant="secondary" onClick={() => {
+            setListStatus('loading')
+            setAttempt(attempt + 1)
+          }}>{t('common.retry')}</Button>
+        </div>
+      )}
+      {listStatus === 'loading' && !notes.length ? (
+        <p role="status" className="study-panel study-muted">{t('common.loading')}</p>
+      ) : listStatus === 'error' && !notes.length ? null : filtered.length === 0 ? (
+        search && notes.length ? <p role="status" className="study-panel study-muted">{t('notes.noMatches')}</p>
+          : <EmptyState title={t('notes.empty')} hint={t('notes.emptyHint')} />
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="study-note-grid">
           {filtered.map((note) => (
             <Link
               key={note.id}
               to={`/notes/${note.id}`}
-              className="pressable study-panel study-notebook flex flex-col"
+              className="study-panel study-note-card"
             >
-              <div className="flex items-start justify-between gap-2">
-                <span className="rounded-full bg-[var(--color-primary-soft)] px-2.5 py-1 text-[10px] font-black text-[var(--color-primary)]">
-                  {note.subject}
-                </span>
-                <span className="text-[10px] font-bold text-[var(--color-muted)]">
-                  {new Intl.DateTimeFormat(i18n.language === 'km' ? 'km-KH' : 'en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                  }).format(new Date(note.updatedAt))}
-                </span>
+              <h2 className="study-section-title line-clamp-2">{note.title}</h2>
+              <p className="study-muted line-clamp-2">{note.excerpt || t('notes.emptyNote')}</p>
+              <div className="study-note-meta study-muted">
+                <span>{note.subject}</span>
+                <time dateTime={note.updatedAt}>{formatStudyDate(new Date(note.updatedAt), i18n.resolvedLanguage ?? 'en', 'medium')}</time>
               </div>
-              <p className="mt-2 line-clamp-1 text-base font-extrabold">{note.title}</p>
-              <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[var(--color-muted)]">
-                {plainText(note.content) || t('notes.emptyNote')}
-              </p>
-              <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[var(--color-primary)]">
-                {t('notes.open')} <Icon name="arrowRight" size={13} />
-              </span>
             </Link>
           ))}
         </div>

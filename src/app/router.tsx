@@ -1,13 +1,14 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom'
+import { TutorLayout } from '../components/AiPet'
 import { betaEnabled } from '../lib/beta'
 import {
   AppShell, AuthCallbackPage, AuthPage, BossPage, CreateRoomPage, DeckEditorPage, DecksPage, DesignPage,
   ErrorBoundary, ExplorePage, HomePage, JoinRoomPage, LandingPage, LazyRoute, LibraryPage, LobbyPage, MinigamesPage, ReaderPage,
-  NoteEditorPage, NotesPage, OnboardingPage, PlanPage, PlayPage, ProfilePage, QuizPage, RequireAuth,
+  NoteEditorPage, NotesPage, OnboardingPage, PlanPage, PlayPage, PracticePage, ProfilePage, QuizPage, RequireAuth,
   ResultsPage, ReviewPage, SettingsPage, StatsPage, StudexaHeroDemoPage, StudyPage, SubjectsPage, TimerPage,
 } from './routeComponents'
 
-export const router = createBrowserRouter([
+const routes: RouteObject[] = [
   {
     path: '/login',
     element: (
@@ -125,6 +126,10 @@ export const router = createBrowserRouter([
             <ReviewPage />
           </LazyRoute>
         ),
+      },
+      {
+        path: 'study/practice',
+        element: <LazyRoute><PracticePage /></LazyRoute>,
       },
       {
         path: 'study/boss',
@@ -245,4 +250,6 @@ export const router = createBrowserRouter([
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },
-])
+]
+
+export const router = createBrowserRouter([{ element: <TutorLayout />, children: routes }])

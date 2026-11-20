@@ -10,6 +10,7 @@ import { EmptyState } from '../../components/EmptyState'
 import { Spinner } from '../../components/Spinner'
 import { celebrate } from '../../lib/confetti'
 import { aiApi, cardsApi, type AiCardItem, type CardInput, type CardType } from '../../lib/api'
+import { aiErrorMessage } from '../../lib/aiErrors'
 import { studyKeys, useDeck, useDeckCards } from '../../lib/study'
 import { isGuestMode, useAuth } from '../../lib/auth'
 import { betaEnabled, maxBetaAiItems } from '../../lib/beta'
@@ -65,6 +66,7 @@ export function DeckEditorPage() {
     if (!deckId) return
     void queryClient.invalidateQueries({ queryKey: studyKeys.decks(userId) })
     void queryClient.invalidateQueries({ queryKey: studyKeys.due(userId) })
+    void queryClient.invalidateQueries({ queryKey: studyKeys.weakCards(userId) })
   }
 
   const flash = (message: string) => {
@@ -457,8 +459,8 @@ export function DeckEditorPage() {
             {generateCards.isPending ? t('decks.generating') : t('decks.generateAI')}
           </Button>
           {generateCards.isError && (
-            <p className="rounded-xl bg-[var(--color-danger-soft)] px-3 py-2 text-sm font-bold text-[var(--color-danger)]">
-              {generateCards.error.message}
+            <p role="alert" className="rounded-xl bg-[var(--color-danger-soft)] px-3 py-2 text-sm font-bold text-[var(--color-danger)]">
+              {aiErrorMessage(t, generateCards.error)}
             </p>
           )}
           {generateCards.isPending && (

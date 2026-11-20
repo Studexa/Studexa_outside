@@ -8,6 +8,7 @@ import { Mascot } from '../../components/Mascot'
 import { ProgressBar } from '../../components/ProgressBar'
 import { StudyQueue } from '../../components/StudyQueue'
 import { openStudyCompanion } from '../../lib/aiStudy'
+import { HomeNews } from './HomeNews'
 import { betaEnabled } from '../../lib/beta'
 import { examsApi } from '../../lib/api/plan'
 import { isGuestMode, useAuth } from '../../lib/auth'
@@ -38,6 +39,7 @@ export function HomePage() {
   const decks = useDecks()
   const game = useGameState(!guest)
   const quests = useTodayQuests(!guest)
+  const tutorAvailable = !betaEnabled || !guest
   const exams = useQuery({
     queryKey: ['upcoming-exams', userId],
     queryFn: examsApi.list,
@@ -52,23 +54,27 @@ export function HomePage() {
     ? localQuests.map((quest) => ({ ...quest, code: quest.id }))
     : quests.data ?? []
   const streak = guest ? localStreak : game.data?.streakCurrent
+  const showStreak = streak !== undefined && streak > 0
 
   return (
-    <div className="study-workspace">
-      <header className="study-page-header study-dashboard-header study-home-welcome">
-        <Mascot species={buddy} size={84} className="study-welcome-pet" />
-        <div className="study-welcome-copy">
-          <time className="study-date block" dateTime={todayKey}>{today}</time>
-          <h1>{t('home.greeting', { name: nickname })}</h1>
-          <p className="study-muted">{t(`pet.encouragement.${now.getDay()}`)}</p>
-          {(!betaEnabled || !guest) && <button type="button" className="study-text-link" onClick={(event) => openStudyCompanion(event.currentTarget)}>
-            <Icon name="sparkles" size={16} />{t('pet.askBuddy')}
-          </button>}
-        </div>
-        {streak !== undefined && streak > 0 && (
-          <Link to="/stats" className="study-streak">
-            <Icon name="flame" size={18} />{t('home.streakChip', { count: streak })}
-          </Link>
+    <div className="study-workspace study-home">
+      <header className="study-page-header study-home-welcome">
+        <Mascot species={buddy} size={48} className="study-welcome-pet" />
+        <time className="study-date block" dateTime={todayKey}>{today}</time>
+        <h1>{t('home.greeting', { name: nickname })}</h1>
+        {(tutorAvailable || showStreak) && (
+          <div className="study-welcome-actions">
+            {tutorAvailable && (
+              <button type="button" className="study-text-link" aria-haspopup="dialog" onClick={(event) => openStudyCompanion(event.currentTarget)}>
+                <Icon name="sparkles" size={16} />{t('beta.tutor')}
+              </button>
+            )}
+            {showStreak && (
+              <Link to="/stats" className="study-streak">
+                <Icon name="flame" size={18} />{t('home.streakChip', { count: streak })}
+              </Link>
+            )}
+          </div>
         )}
       </header>
 
@@ -85,12 +91,11 @@ export function HomePage() {
 
         <section className="study-panel study-dashboard-tools" aria-labelledby="study-shortcuts-title">
           <h2 className="study-section-title" id="study-shortcuts-title">{t('workspace.studyTools')}</h2>
-          <div className="study-shortcuts mt-3">
+          <div className="study-shortcuts mt-2">
             {shortcuts.map(({ to, title, icon }) => (
               <Link key={to} to={to}>
                 <span className="study-icon study-icon-small"><Icon name={icon} size={18} /></span>
                 <span>{t(title)}</span>
-                <Icon className="study-shortcut-arrow" name="chevronRight" size={16} />
               </Link>
             ))}
           </div>
@@ -126,9 +131,11 @@ export function HomePage() {
             )}
           </div>
           <Link className="study-text-link mt-auto" to="/plan">
-            {t('workspace.openPlanner')} <Icon name="arrowRight" size={16} />
+            {t('workspace.openPlanner')}
           </Link>
         </section>
+
+        <HomeNews date={now} tutorAvailable={tutorAvailable} />
       </div>
 
       <details className="study-panel study-rewards">
@@ -148,7 +155,7 @@ export function HomePage() {
             </div>
           ))}
           {quests.isLoading && <p className="study-muted" role="status">{t('common.loading')}</p>}
-          <Link className="study-text-link" to="/stats">{t('home.seeStats')} <Icon name="arrowRight" size={16} /></Link>
+          <Link className="study-text-link" to="/stats">{t('home.seeStats')}</Link>
         </div>
       </details>
     </div>

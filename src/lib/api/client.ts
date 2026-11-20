@@ -3,6 +3,7 @@ import type { paths } from './schema'
 
 const API_ORIGIN = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
 const API_PREFIX = '/api/v1'
+export const SESSION_REQUEST_TIMEOUT_MS = 8000
 
 export { API_PREFIX as API_URL }
 
@@ -53,6 +54,7 @@ async function requestSessionRefresh(generation: number): Promise<string | null>
     const response = await fetch(`${API_ORIGIN}${API_PREFIX}/auth/refresh`, {
       method: 'POST',
       credentials: 'include',
+      signal: AbortSignal.timeout(SESSION_REQUEST_TIMEOUT_MS),
     })
     const data = response.ok
       ? (await response.json()) as { accessToken?: string; user?: { id: string } }

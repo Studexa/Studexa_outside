@@ -39,6 +39,7 @@ export type PendingAnswer = {
   rating: 'again' | 'hard' | 'good' | 'easy'
   clientReviewId: string
   createdAt: string
+  unavailable?: boolean
 }
 
 export type DueCardWithMeta = DueCard & {
@@ -52,8 +53,8 @@ export async function cacheDueCards(userId: string, cards: DueCard[]) {
   await offlineDb.dueQueue.put({ userId, cards })
 }
 
-export async function getCachedDueCards(userId: string): Promise<DueCard[]> {
-  return (await offlineDb.dueQueue.get(userId))?.cards ?? []
+export async function getCachedDueCards(userId: string): Promise<DueCard[] | undefined> {
+  return (await offlineDb.dueQueue.get(userId))?.cards
 }
 
 export async function clearOfflineAccount(userId: string) {
@@ -74,13 +75,13 @@ export async function queuePendingAnswer(userId: string, cardId: string, rating:
 }
 
 export async function getPendingAnswers(userId: string): Promise<PendingAnswer[]> {
-  return offlineDb.pendingAnswers.where('userId').equals(userId).toArray()
+  return offlineDb.pendingAnswers.where('userId').equals(userId).sortBy('id')
 }
 
 export async function removePendingAnswer(id: number) {
   await offlineDb.pendingAnswers.delete(id)
 }
 
-export async function countPendingAnswers(userId: string): Promise<number> {
-  return offlineDb.pendingAnswers.where('userId').equals(userId).count()
+export async function markPendingAnswerUnavailable(id: number) {
+  await offlineDb.pendingAnswers.update(id, { unavailable: true })
 }

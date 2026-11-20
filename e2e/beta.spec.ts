@@ -37,6 +37,228 @@ test('the root route opens the sign-in form in a fresh browser session', async (
   await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('type', 'password')
 })
 
+test('a stalled session request still lets Chrome reach sign-in', async ({ page }) => {
+  await page.route('**/api/v1/auth/refresh', () => {
+    // Leave the request pending to simulate a backend that accepted the connection.
+  })
+  await page.goto('/')
+  await expect(page.getByRole('status', { name: '' }).filter({ hasText: 'Loading' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible({ timeout: 15_000 })
+})
+
+test('offline reviews sync from Home with an explicit retry and no duplicate rewards', async ({ page, context }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  const { accessToken } = await register(page, 'Offline learner')
+  const headers = { Authorization: 'Bearer ' + accessToken }
+  const deck = await page.request.post('/api/v1/decks', { headers, data: { title: 'Offline practice deck' } })
+  expect(deck.ok()).toBeTruthy()
+  const { id: deckId } = await deck.json()
+  const cards = new Map<string, string>()
+  for (const front of ['First prompt', 'Second prompt', 'Third prompt']) {
+    const result = await page.request.post(`/api/v1/decks/${deckId}/cards`, {
+      headers, data: { type: 'BASIC', front, back: 'Answer' },
+    })
+    expect(result.ok()).toBeTruthy()
+    cards.set(front, (await result.json()).id)
+  }
+
+  await page.goto('/study/review')
+  const flashcard = page.getByRole('button', { name: 'Flip the flashcard' })
+  let committedReviewId: string | undefined
+  await page.route('**/api/v1/review/answer', async (route) => {
+    committedReviewId = route.request().postDataJSON().clientReviewId
+    const saved = await route.fetch()
+    expect(saved.ok()).toBeTruthy()
+    await route.abort()
+  }, { times: 1 })
+  await flashcard.click()
+  await page.getByRole('button', { name: /^Good/ }).click()
+  await expect(page.getByText('1 answer waiting to sync.')).toBeVisible()
+  await expect(page.locator('.review-position')).toHaveText(/2.*3/)
+  const missingCard = cards.get(await flashcard.locator('.review-card-text').innerText())
+  expect(missingCard).toBeDefined()
+
+  await context.setOffline(true)
+  for (const count of [2, 3]) {
+    await flashcard.click()
+    await page.getByRole('button', { name: /^Good/ }).click()
+    await expect(page.getByText(`${count} answers waiting to sync.`)).toBeVisible()
+  }
+  await page.getByRole('link', { name: 'Back to home' }).click()
+  const removed = await page.request.delete(`/api/v1/cards/${missingCard}`, { headers })
+  expect(removed.ok()).toBeTruthy()
+  await page.route('**/api/v1/review/answer', (route) => route.fulfill({ status: 503 }), { times: 1 })
+  await context.setOffline(false)
+  await expect(page.getByText('Could not sync your review answers.')).toBeVisible()
+
+  const duplicate = page.waitForResponse((response) => response.url().endsWith('/review/answer') && response.status() === 409)
+  const refreshedQueue = page.waitForResponse((response) => new URL(response.url()).pathname.endsWith('/cards/due') && response.ok())
+  await page.getByRole('button', { name: 'Retry sync' }).click()
+  const duplicateResponse = await duplicate
+  expect((await duplicateResponse.json()).code).toBe('DUPLICATE_REVIEW')
+  expect(await (await refreshedQueue).json()).toEqual([])
+  await expect(page.getByText(/^2 of \d+ cards$/)).toBeVisible()
+  await expect(page.getByText('1 answer could not sync because its card or deck is gone.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Retry sync' })).toBeHidden()
+  await page.getByRole('button', { name: 'Dismiss', exact: true }).click()
+  await expect(page.getByText(/could not sync because/)).toBeHidden()
+  const history = await page.request.get('/api/v1/game/xp-history', { headers })
+  expect(history.ok()).toBeTruthy()
+  const events: { referenceId: string; source: string }[] = await history.json()
+  expect(events.filter((event) => event.source === 'review_card')).toHaveLength(2)
+  expect(events.filter((event) => event.source === 'review_card' && event.referenceId === committedReviewId)).toHaveLength(1)
+})
+
+test('weak-card practice includes cards not due and makes no review writes', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  const { accessToken } = await register(page, 'Practice learner')
+  const headers = { Authorization: 'Bearer ' + accessToken }
+  const deck = await page.request.post('/api/v1/decks', { headers, data: { title: 'Language deck' } })
+  expect(deck.ok()).toBeTruthy()
+  const { id: deckId } = await deck.json()
+  for (const [front, back] of [['A hard prompt', 'Recall this answer'], ['សំណួរ', 'ចម្លើយ']]) {
+    const created = await page.request.post(`/api/v1/decks/${deckId}/cards`, {
+      headers, data: { type: 'BASIC', front, back },
+    })
+    expect(created.ok()).toBeTruthy()
+    const { id: cardId } = await created.json()
+    for (const rating of ['AGAIN', 'GOOD']) {
+      const result = await page.request.post('/api/v1/review/answer', { headers, data: { cardId, rating, msTaken: 1000 } })
+      expect(result.ok()).toBeTruthy()
+    }
+  }
+  const weak = await page.request.get('/api/v1/review/weak-cards', { headers })
+  expect(weak.ok()).toBeTruthy()
+  expect(await weak.json()).toMatchObject([{ due: false, lapses: 1 }, { due: false, lapses: 1 }])
+  const dailyBefore = await (await page.request.get('/api/v1/review/today', { headers })).json()
+  const writes: string[] = []
+  page.on('request', (request) => {
+    if (/\/api\/v1\/(review|game|quests)\//.test(request.url()) && request.method() !== 'GET') writes.push(request.url())
+  })
+
+  await page.goto('/stats')
+  await page.getByRole('link', { name: 'Practice weak cards' }).click()
+  const flashcard = page.getByRole('button', { name: 'Flip the flashcard' })
+  await flashcard.press('Space')
+  await expect(flashcard).toHaveAttribute('aria-pressed', 'true')
+  await page.getByRole('button', { name: 'Next' }).click()
+  await expect(flashcard).toBeFocused()
+  await expect(flashcard).toHaveAttribute('aria-pressed', 'false')
+  await flashcard.press('Enter')
+  await page.getByRole('button', { name: 'Finish' }).click()
+  await expect(page.getByRole('heading', { name: 'Practice complete' })).toBeFocused()
+  await page.getByRole('link', { name: 'Back to Stats' }).click()
+  await expect(page).toHaveURL(/\/stats$/)
+
+  await page.evaluate(() => localStorage.setItem('lang', 'km'))
+  await page.goto('/study/practice')
+  await expect(page.getByRole('heading', { name: 'ហាត់រំលឹកកាតដែលពិបាកចងចាំ' })).toBeVisible()
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(390)
+  expect(writes).toEqual([])
+  expect(await (await page.request.get('/api/v1/review/today', { headers })).json()).toEqual(dailyBefore)
+})
+
+test('review sync stays with the original account when a student signs out', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  const { accessToken } = await register(page, 'First sync account')
+  const headers = { Authorization: 'Bearer ' + accessToken }
+  const deck = await page.request.post('/api/v1/decks', { headers, data: { title: 'Private deck' } })
+  expect(deck.ok()).toBeTruthy()
+  const { id: deckId } = await deck.json()
+  const created = await page.request.post(`/api/v1/decks/${deckId}/cards`, {
+    headers, data: { type: 'BASIC', front: 'Private prompt', back: 'Answer' },
+  })
+  expect(created.ok()).toBeTruthy()
+
+  await page.goto('/study/review')
+  await page.route('**/api/v1/review/answer', (route) => route.abort(), { times: 1 })
+  await page.getByRole('button', { name: 'Flip the flashcard' }).click()
+  await page.getByRole('button', { name: /^Good/ }).click()
+  await page.getByRole('link', { name: 'Back to home' }).click()
+  await page.getByRole('link', { name: 'Settings' }).click()
+  await page.getByRole('button', { name: /ភាសាខ្មែរ/ }).click()
+  await expect(page.getByText('ចម្លើយ 1 កំពុងរង់ចាំការធ្វើសមកាលកម្ម។')).toBeVisible()
+
+  const replayHeaders: (string | undefined)[] = []
+  await page.route('**/api/v1/review/answer', (route) => {
+    replayHeaders.push(route.request().headers().authorization)
+    return route.abort()
+  })
+  await page.getByRole('button', { name: /English/ }).click()
+  await page.getByRole('button', { name: 'Sign out' }).click()
+  await expect(page).toHaveURL(/\/login$/)
+  const second = await register(page, 'Second sync account')
+  await page.evaluate(() => window.dispatchEvent(new Event('online')))
+  await expect(page.getByRole('region', { name: "Today's goal" }).getByText(/^0 of \d+ cards$/)).toBeVisible()
+  await expect(page.getByText(/waiting to sync/)).toBeHidden()
+  expect(replayHeaders).toEqual([])
+  const otherCards = await page.request.get('/api/v1/review/weak-cards', {
+    headers: { Authorization: 'Bearer ' + second.accessToken },
+  })
+  expect(await otherCards.json()).toEqual([])
+  await page.goto('/study/practice')
+  await expect(page.getByText('No cards to revisit right now.')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Back to Stats' })).toBeVisible()
+})
+
+test('Home news opens books and the guided tutor keeps its thread across pages', async ({ page }) => {
+  const catalog = page.waitForResponse((response) => response.url().endsWith('/api/v1/library/readings') && response.ok())
+  await register(page, 'Tutor learner')
+  await catalog
+  const news = page.getByRole('region', { name: 'What’s new' })
+  await expect(news.getByRole('heading', { name: 'Meet the new AI tutor' })).toBeVisible()
+  await news.getByRole('button', { name: 'Next slide' }).click()
+  await expect(news.getByRole('link', { name: 'See cards in Stats' })).toHaveAttribute('href', '/stats')
+  await news.getByRole('button', { name: 'Next slide' }).click()
+  const read = news.getByRole('link', { name: 'Read passage' })
+  await expect(read).toHaveAttribute('href', /\/explore\/read\/.+/)
+  await read.click()
+  await expect(page).toHaveURL(/\/explore\/read\/.+/)
+  await page.locator('.study-brand').click()
+
+  const requests: unknown[] = []
+  await page.route('**/api/v1/ai/samples/tutor', async (route) => {
+    requests.push(route.request().postDataJSON())
+    await route.fulfill({ json: { answer: `Study answer ${requests.length}`, references: [] } })
+  })
+  const open = news.getByRole('button', { name: 'Open tutor' })
+  await open.click()
+  const tutor = page.getByRole('dialog', { name: 'AI tutor' })
+  await expect(tutor).toBeVisible()
+  expect((await tutor.boundingBox())!.width).toBeLessThan(750)
+  await tutor.getByRole('button', { name: 'Ask Gemini' }).click()
+  await expect(tutor.getByText('Study answer 1')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(open).toBeFocused()
+  await page.getByRole('link', { name: 'Study', exact: true }).first().click()
+  await page.getByRole('link', { name: 'Live Rooms' }).click()
+  await expect(page).toHaveURL(/\/quiz$/)
+  await page.goBack()
+  await page.getByRole('link', { name: 'Notes', exact: true }).first().click()
+  await page.locator('.study-shell-header').getByRole('button', { name: 'AI tutor' }).click()
+  await expect(tutor.getByText('Study answer 1')).toBeVisible()
+  await tutor.getByRole('button', { name: 'Ask Gemini' }).click()
+  await expect(tutor.getByText('Study answer 2')).toBeVisible()
+  expect(requests).toEqual([
+    { sampleId: 'water-cycle-en', promptId: 'explain' },
+    { sampleId: 'water-cycle-en', promptId: 'compare', previousPromptIds: ['explain'] },
+  ])
+
+  await page.setViewportSize({ width: 390, height: 430 })
+  await tutor.getByRole('combobox').first().selectOption('water-cycle-km')
+  await expect(tutor.getByText('Study answer 1')).toBeHidden()
+  await tutor.getByRole('button', { name: 'Ask Gemini' }).click()
+  await expect(tutor.getByText('Study answer 3')).toBeVisible()
+  expect(requests[2]).toEqual({ sampleId: 'water-cycle-km', promptId: 'explain' })
+  await expect(tutor.getByRole('button', { name: 'Ask Gemini' })).toBeInViewport()
+  await expect.poll(async () => (await tutor.boundingBox())?.width).toBe(390)
+  await page.keyboard.press('Escape')
+  await page.evaluate(() => localStorage.setItem('lang', 'km'))
+  await page.goto('/')
+  await expect(page.getByRole('region', { name: 'ព័ត៌មានថ្មីៗ' })).toBeVisible()
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(390)
+})
+
 test('Explore rotates daily picks and turns a reading selection into a review card', async ({ page }) => {
   const { accessToken } = await register(page, 'Reading learner')
   const headers = { Authorization: 'Bearer ' + accessToken }
@@ -151,7 +373,8 @@ test('Explore rotates daily picks and turns a reading selection into a review ca
   await page.getByRole('link', { name: 'Next chapter' }).click()
   await expect(page.getByRole('link', { name: 'Open original edition on Wikisource' })).toHaveAttribute('href', /oldid=13055726$/)
   await expect(page.getByRole('article', { name: 'Chapter 2' })).toBeVisible()
-  await page.goto('/study/review')
+  await page.goto('/')
+  await page.getByRole('link', { name: 'Start review' }).click()
   const reviewCard = page.getByRole('button', { name: 'Flip the flashcard' })
   await expect(reviewCard).toContainText('How does Pride and Prejudice open?')
   await reviewCard.press('Space')
@@ -185,6 +408,8 @@ test.describe('passage tools with mobile touch', () => {
     await expect(ask.getByText(/During beta, AI can study public readings/)).toBeVisible()
     await expect(ask.getByRole('button', { name: 'Summarize' })).toHaveCount(0)
     await ask.getByRole('button', { name: 'Close' }).tap()
+    await expect(ask).toBeHidden()
+    await note.press('ArrowRight')
     await note.press('End')
     await note.press('Enter')
     await page.keyboard.insertText('Read the chapter again.')
@@ -302,7 +527,7 @@ test('the study pet waits for a request and library books can become notes', asy
   let studyRequests = 0
   page.on('request', (request) => { if (request.url().includes('/api/v1/ai/')) studyRequests += 1 })
   await register(page, 'Library learner')
-  const companion = page.getByRole('button', { name: 'Ask your study pet' })
+  const companion = page.getByRole('main').getByRole('button', { name: 'AI tutor' })
   await expect(companion).toBeVisible()
   expect(studyRequests).toBe(0)
   await companion.click()
@@ -310,7 +535,7 @@ test('the study pet waits for a request and library books can become notes', asy
   await expect(tutor).toHaveCount(1)
   await tutor.getByRole('button', { name: 'Close' }).click()
   await expect(companion).toBeFocused()
-  await page.getByRole('button', { name: 'AI tutor' }).click()
+  await page.locator('.study-shell-header').getByRole('button', { name: 'AI tutor' }).click()
   await expect(tutor).toHaveCount(1)
   await tutor.getByRole('button', { name: 'Close' }).click()
 
@@ -346,8 +571,71 @@ test('the study queue can recover from a failed deck request', async ({ page }) 
   await expect(queue.getByRole('link', { name: 'Create deck' })).toBeVisible()
 })
 
+test('Notes shows loading, retry, empty, and no-match states', async ({ page }) => {
+  await register(page, 'Notes learner')
+  let release!: () => void
+  const pending = new Promise<void>((resolve) => { release = resolve })
+  await page.route('**/api/v1/notes', async (route) => {
+    await pending
+    await route.fulfill({ status: 503 })
+  })
+  await page.goto('/notes')
+  await expect(page.getByRole('status')).toContainText('Loading')
+  release()
+  await expect(page.getByRole('alert')).toContainText('Your notes could not load.')
+  await page.unroute('**/api/v1/notes')
+  await page.getByRole('button', { name: 'Retry', exact: true }).click()
+  await expect(page.getByText('Capture a thought, a formula, or a lesson summary.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'New note', exact: true })).toHaveCount(1)
+  await page.getByRole('button', { name: 'New note', exact: true }).click()
+  await page.waitForURL('**/notes/*')
+  await page.goto('/notes')
+  await page.getByRole('searchbox').fill('no matching note')
+  await expect(page.getByRole('status')).toContainText('No notes match your search.')
+})
+
 test('the workspace fits narrow phones and uses compact navigation on tablets', async ({ page }) => {
-  await register(page, 'Responsive learner')
+  await page.setViewportSize({ width: 390, height: 844 })
+  const { accessToken } = await register(page, 'Responsive learner')
+  const home = page.locator('.study-home')
+  const queue = home.getByRole('region', { name: 'Review queue' })
+  const dashboard = home.locator('.study-dashboard-grid')
+  const shortcuts = dashboard.locator('.study-shortcuts')
+  const bottomBar = page.locator('.study-bottom-bar')
+
+  await expect(home.locator('h2, .study-rewards summary')).toHaveText([
+    'Review queue', "Today's goal", 'Study tools', 'Upcoming exam', 'What’s new', 'Study habits',
+  ])
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(390)
+  await expect(dashboard).toHaveCSS('grid-template-columns', /^\S+$/)
+  await expect(shortcuts).toHaveCSS('grid-template-columns', /^\S+ \S+$/)
+
+  const createDeck = queue.getByRole('link', { name: 'Create deck' })
+  await expect(createDeck).toHaveAttribute('href', '/study/decks?create=1')
+  await home.getByRole('button', { name: 'AI tutor', exact: true }).focus()
+  await page.keyboard.press('Tab')
+  await expect(createDeck).toBeFocused()
+
+  const headers = { Authorization: 'Bearer ' + accessToken }
+  const deck = await page.request.post('/api/v1/decks', { headers, data: { title: 'Responsive study deck' } })
+  expect(deck.ok()).toBeTruthy()
+  const { id: deckId } = await deck.json()
+  await page.reload()
+  await expect(queue.getByRole('link', { name: 'Browse decks' })).toHaveAttribute('href', '/study/decks')
+
+  const card = await page.request.post(`/api/v1/decks/${deckId}/cards`, {
+    headers, data: { type: 'BASIC', front: 'Mobile review prompt', back: 'Answer' },
+  })
+  expect(card.ok()).toBeTruthy()
+  await page.reload()
+  const startReview = queue.getByRole('link', { name: 'Start review' })
+  await expect(startReview).toBeInViewport({ ratio: 1 })
+  const reviewBox = (await startReview.boundingBox())!
+  expect(reviewBox.height).toBeGreaterThanOrEqual(44)
+  expect(reviewBox.y + reviewBox.height).toBeLessThan((await bottomBar.boundingBox())!.y)
+  await startReview.click()
+  await expect(page).toHaveURL(/\/study\/review$/)
+
   await page.evaluate(() => {
     localStorage.setItem('lang', 'km')
     localStorage.setItem('studexa_settings', JSON.stringify({ fontSize: 'lg' }))
@@ -356,16 +644,25 @@ test('the workspace fits narrow phones and uses compact navigation on tablets', 
   await page.goto('/plan')
   await expect(page.locator('html')).toHaveAttribute('lang', 'km')
   expect(await page.evaluate(async () => (await document.fonts.load('600 16px "Noto Sans Khmer"', 'ខ្មែរ')).length)).toBeGreaterThan(0)
-  await expect(page.locator('.study-bottom-bar')).toBeInViewport({ ratio: 1 })
+  await expect(bottomBar).toBeInViewport({ ratio: 1 })
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(280)
   await page.locator('.mobile-more summary').click()
   await expect(page.locator('.study-more-menu')).toBeInViewport({ ratio: 1 })
   await page.keyboard.press('Escape')
   await expect(page.locator('.mobile-more summary')).toBeFocused()
 
+  await page.goto('/')
+  await expect(home.getByRole('heading', { level: 1 })).toContainText('Responsive learner')
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(280)
+  await expect(shortcuts).toHaveCSS('grid-template-columns', /^\S+$/)
+  const narrowReview = home.locator('a[href="/study/review"]')
+  await expect(narrowReview).toBeInViewport({ ratio: 1 })
+  const narrowReviewBox = (await narrowReview.boundingBox())!
+  expect(narrowReviewBox.y + narrowReviewBox.height).toBeLessThan((await bottomBar.boundingBox())!.y)
+
   await page.setViewportSize({ width: 820, height: 1180 })
   await page.goto('/')
-  await expect(page.locator('.study-bottom-bar')).toBeHidden()
+  await expect(bottomBar).toBeHidden()
   await expect(page.locator('.study-date')).toContainText(/[ក-អ]/)
   await expect.poll(() => page.locator('.study-sidebar').evaluate((sidebar) => sidebar.clientWidth)).toBeLessThan(100)
   await expect.poll(() => page.locator('.study-dashboard-grid').evaluate((grid) =>
@@ -448,10 +745,11 @@ test('invited students can save study data, use AI samples, and switch accounts'
       })
     })
 
-    await learner.getByRole('button', { name: 'AI tutor' }).click()
+    await learner.locator('.study-shell-header').getByRole('button', { name: 'AI tutor' }).click()
     const tutor = learner.getByRole('dialog')
     await tutor.getByRole('button', { name: 'Ask Gemini' }).click()
     await expect(tutor.getByText('Clouds form from liquid droplets.')).toBeVisible()
+    await tutor.getByText('Source excerpts (1)').click()
     await expect(tutor.locator('blockquote')).toContainText('tiny liquid droplets')
     await tutor.getByRole('button', { name: 'Close' }).click()
 
@@ -488,8 +786,9 @@ test('invited students can save study data, use AI samples, and switch accounts'
     await expect(learner.getByRole('alert')).toHaveText("We couldn't save that rating. Try again.")
     await expect(flashcard).toHaveAttribute('aria-pressed', 'true')
     const review = learner.waitForResponse((response) => response.url().endsWith('/review/answer') && response.ok())
+    const quest = learner.waitForResponse((response) => response.url().endsWith('/quests/progress') && response.status() === 204)
     await learner.keyboard.press('3')
-    await review
+    await Promise.all([review, quest])
     await expect(learner.getByRole('heading', { name: 'You showed up today' })).toBeFocused()
     await expect(learner.getByText('cards reviewed', { exact: true }).locator('..').getByText('1', { exact: true })).toBeVisible()
     await learner.getByRole('link', { name: 'Back to home' }).click()

@@ -2,18 +2,19 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import '../lib/i18n'
-import { AiPet } from './AiPet'
+import { AiPet, TutorLauncher } from './AiPet'
 import { openStudyBuddy } from '../lib/aiStudy'
 
 const state = vi.hoisted(() => ({ tutor: vi.fn(), guest: false, user: { id: 'a' } }))
 vi.mock('../lib/api', () => ({ aiApi: { tutor: state.tutor } }))
+vi.mock('../lib/beta', () => ({ betaEnabled: false }))
 vi.mock('../lib/auth', () => ({ isGuestMode: () => state.guest, useAuth: (select: (value: unknown) => unknown) => select({ user: state.user }) }))
 vi.mock('../lib/store', () => ({ useApp: (select: (value: unknown) => unknown) => select({ buddy: 'cat' }) }))
 vi.mock('./Mascot', () => ({ Mascot: () => <span /> }))
 
 function setup() {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
-  const view = render(<QueryClientProvider client={client}><AiPet /></QueryClientProvider>)
+  const view = render(<QueryClientProvider client={client}><TutorLauncher /><AiPet /></QueryClientProvider>)
   return { ...view, client }
 }
 beforeEach(() => {
@@ -21,6 +22,10 @@ beforeEach(() => {
   state.guest = false
   state.user = { id: 'a' }
   Object.defineProperty(navigator, 'onLine', { configurable: true, value: true })
+  if (!HTMLDialogElement.prototype.showModal) {
+    HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', '') }
+    HTMLDialogElement.prototype.close = function () { this.removeAttribute('open') }
+  }
 })
 afterEach(cleanup)
 
@@ -54,7 +59,7 @@ describe('AI study buddy', () => {
   it('makes no AI requests in guest mode', () => {
     state.guest = true
     setup()
-    fireEvent.click(screen.getByRole('button', { name: 'Open AI study pet' }))
+    fireEvent.click(screen.getByRole('button', { name: 'AI tutor' }))
     expect((screen.getByRole('button', { name: 'Send' }) as HTMLButtonElement).disabled).toBe(true)
     fireEvent.click(screen.getByRole('button', { name: 'Send' }))
     expect(state.tutor).not.toHaveBeenCalled()
@@ -63,7 +68,7 @@ describe('AI study buddy', () => {
   it('keeps the draft offline and allows submission after reconnecting', async () => {
     state.tutor.mockResolvedValue({ answer: 'Online answer', references: [] })
     setup()
-    fireEvent.click(screen.getByRole('button', { name: 'Open AI study pet' }))
+    fireEvent.click(screen.getByRole('button', { name: 'AI tutor' }))
     fireEvent.change(screen.getByLabelText('Ask me about your lesson...'), { target: { value: 'My draft' } })
     Object.defineProperty(navigator, 'onLine', { configurable: true, value: false })
     act(() => window.dispatchEvent(new Event('offline')))
@@ -79,8 +84,35 @@ describe('AI study buddy', () => {
     const view = setup()
     act(() => openStudyBuddy({ title: 'Private', text: 'Private notes' }))
     state.user = { id: 'b' }
-    view.rerender(<QueryClientProvider client={view.client}><AiPet /></QueryClientProvider>)
-    fireEvent.click(screen.getByRole('button', { name: 'Open AI study pet' }))
+    view.rerender(<QueryClientProvider client={view.client}><TutorLauncher /><AiPet /></QueryClientProvider>)
+    fireEvent.click(screen.getByRole('button', { name: 'AI tutor' }))
     await waitFor(() => expect(screen.queryByDisplayValue('Private notes')).toBeNull())
+  })
+
+  it('keeps successful context after reopening and resets it when the source changes', async () => {
+    state.tutor.mockResolvedValueOnce({ answer: 'It uses light.', references: [] })
+      .mockResolvedValueOnce({ answer: 'Light provides energy.', references: [] })
+      .mockResolvedValueOnce({ answer: 'Roots absorb water.', references: [] })
+    setup()
+    act(() => openStudyBuddy({ title: 'Biology', text: 'Plants use light.' }))
+    const typeAndSend = (value: string) => {
+      fireEvent.change(screen.getByLabelText('Ask me about your lesson...'), { target: { value } })
+      fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+    }
+    typeAndSend('How does it grow?')
+    await screen.findByText('It uses light.')
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    fireEvent.click(screen.getByRole('button', { name: 'AI tutor' }))
+    typeAndSend('Why does it need that?')
+    await screen.findByText('Light provides energy.')
+    expect(state.tutor.mock.calls[1][0].history).toEqual([{ question: 'How does it grow?', answer: 'It uses light.' }])
+
+    fireEvent.change(screen.getByLabelText('Attached notes'), { target: { value: 'Roots absorb water.' } })
+    typeAndSend('Explain these notes.')
+    await screen.findByText('Roots absorb water.')
+    expect(state.tutor.mock.calls[2][0].history).toBeUndefined()
+    expect(screen.queryByText('It uses light.')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'New chat' }))
+    expect(screen.queryByText('Roots absorb water.')).toBeNull()
   })
 })

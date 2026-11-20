@@ -4,8 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { Icon, type IconName } from '../components/Icon'
 import { Modal } from '../components/Modal'
 import { ProgressBar } from '../components/ProgressBar'
-import { AiPet } from '../components/AiPet'
-import { BetaTutor } from '../components/BetaTutor'
+import { TutorLauncher } from '../components/AiPet'
+import { isImmersiveStudyRoute, isTutorRoute } from '../lib/aiStudy'
 import { TelegramLink } from '../components/TelegramLink'
 import { useOnline } from '../lib/useSettings'
 import { useApp, xpForNext } from '../lib/store'
@@ -29,8 +29,6 @@ const secondaryNav: NavItem[] = [
   { to: '/profile', label: 'nav.profile', icon: 'user' },
   { to: '/explore', label: 'nav.explore', icon: 'compass' },
 ]
-
-const immersiveRoutes = ['/study/review', '/study/boss', '/study/timer']
 
 function WorkspaceNavLink({ item, mobile }: { item: NavItem; mobile?: boolean }) {
   const { t } = useTranslation()
@@ -64,8 +62,8 @@ export function AppShell() {
   const shell = useRef<HTMLDivElement>(null)
   const header = useRef<HTMLElement>(null)
 
-  const immersive = immersiveRoutes.some((route) => location.pathname === route || location.pathname.startsWith(route + '/'))
-  const hideTutor = location.pathname.startsWith('/study/quiz') || location.pathname.startsWith('/study/minigames')
+  const immersive = isImmersiveStudyRoute(location.pathname)
+  const tutorAvailable = isTutorRoute(location.pathname) && (!betaEnabled || !guest)
 
   useLayoutEffect(() => {
     const shellElement = shell.current
@@ -85,14 +83,6 @@ export function AppShell() {
 
   if (!onboarded && location.pathname !== '/onboarding') return <Navigate to="/onboarding" replace />
 
-  if (immersive) {
-    return (
-      <div className="min-h-dvh bg-(--color-bg) text-(--color-text)">
-        <Outlet />
-      </div>
-    )
-  }
-
   const level = guest ? localLevel : game?.level
   const xp = guest ? localXp : game?.xpInLevel
   const stats = [
@@ -101,6 +91,8 @@ export function AppShell() {
     { label: 'shell.coinsEarned', value: guest ? localCoins : game?.coins },
     { label: 'shell.freezes', value: guest ? owned.filter((id) => id === 'freeze').length : game?.streakFreezes },
   ]
+
+  if (immersive) return <div className="min-h-dvh bg-(--color-bg) text-(--color-text)"><Outlet /></div>
 
   return (
     <div className="app-shell min-h-dvh" ref={shell}>
@@ -114,7 +106,7 @@ export function AppShell() {
           </Link>
 
           <div className="study-header-actions">
-            {!hideTutor && (betaEnabled ? !guest && <BetaTutor /> : <AiPet />)}
+            {tutorAvailable && <TutorLauncher />}
             <button className="study-header-action" onClick={() => setShowProgress(true)} aria-label={t('workspace.progress')}>
               <Icon name="chart" size={19} /><span className="study-header-label">{t('workspace.progress')}</span>
             </button>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useQueries, useQuery } from '@tanstack/react-query'
+import { queryOptions, useQueries, useQuery } from '@tanstack/react-query'
 import {
   cardsApi,
   decksApi,
@@ -8,6 +8,7 @@ import {
   reviewApi,
   type DeckSummary,
   type DueCard,
+  type ReviewQueueCard,
   type StudyCard,
 } from './api'
 import { isGuestMode, useAuth } from './auth'
@@ -60,6 +61,7 @@ export const studyKeys = {
   gameXpHistory: (userId?: string) => ['game', 'xp-history', userId ?? 'current'] as const,
   questsToday: (userId?: string) => ['quests', 'today', userId ?? 'current'] as const,
   reviewQueue: (userId?: string) => ['review', 'queue', userId ?? 'current'] as const,
+  weakCards: (userId?: string) => ['review', 'weak-cards', userId ?? 'current'] as const,
   dailyReviewProgress: (userId?: string) => ['review', 'today', userId ?? 'current'] as const,
   subjects: (userId?: string) => ['subjects', userId ?? 'current'] as const,
   shopItems: (userId?: string) => ['shop', 'items', userId ?? 'current'] as const,
@@ -74,6 +76,30 @@ export function useDecks(enabled = true) {
     queryFn: () => isGuestMode() ? useApp.getState().decks.map(toDeckSummary) : decksApi.list(),
     enabled,
   })
+}
+
+type WeakCard = Pick<ReviewQueueCard, 'id' | 'front' | 'back' | 'deckTitle' | 'lapses' | 'extra' | 'sourceTitle' | 'sourceExcerpt'>
+
+export function useWeakCards() {
+  const userId = useAuth((state) => state.user?.id)
+  const guest = isGuestMode()
+  const localDecks = useApp((state) => state.decks)
+  const query = useQuery({
+    queryKey: studyKeys.weakCards(userId),
+    queryFn: reviewApi.weakCards,
+    enabled: Boolean(userId) && !guest,
+  })
+
+  const cards: WeakCard[] = guest
+    ? localDecks.flatMap((deck) => deck.cards.filter((card) => card.lapses > 0)
+      .map(({ id, front, back, lapses }) => ({
+        id, front, back, lapses, deckTitle: deck.title, extra: {}, sourceTitle: null, sourceExcerpt: null,
+      })))
+      .sort((a, b) => b.lapses - a.lapses || a.id.localeCompare(b.id))
+      .slice(0, 5)
+    : query.data ?? []
+
+  return { cards, query }
 }
 
 export function useDeck(id: string | undefined) {
@@ -106,12 +132,11 @@ export function useDeckCards(deckId: string | undefined, enabled = true) {
   })
 }
 
-export function useDueCards(enabled = true) {
-  const user = useAuth((s) => s.user)
-  return useQuery({
-    queryKey: studyKeys.due(user?.id),
+export function dueCardsOptions(userId?: string) {
+  return queryOptions({
+    queryKey: studyKeys.due(userId),
     networkMode: 'always',
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (isGuestMode()) {
         return useApp.getState().decks.flatMap((deck) => deck.cards
           .filter((card) => card.due)
@@ -132,24 +157,28 @@ export function useDueCards(enabled = true) {
           })))
       }
       try {
-        const cards = await cardsApi.due(50)
-        if (user?.id && useAuth.getState().user?.id === user.id) {
-          void cacheDueCards(user.id, cards).catch(() => undefined)
+        const cards = await cardsApi.due(50, signal)
+        if (!signal.aborted && userId && useAuth.getState().user?.id === userId) {
+          await cacheDueCards(userId, cards).catch(() => undefined)
         }
         return cards
       } catch {
         // Offline: serve the last-cached due queue from IndexedDB so study never stops
-        if (user?.id && useAuth.getState().user?.id === user.id) {
-          const cached = await getCachedDueCards(user.id)
-          if (cached.length > 0) return cached
+        if (!signal.aborted && userId && useAuth.getState().user?.id === userId) {
+          const cached = await getCachedDueCards(userId)
+          if (cached) return cached
         }
         throw new Error('You are offline and have no cached cards.')
       }
     },
-    enabled,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 30,
   })
+}
+
+export function useDueCards(enabled = true) {
+  const userId = useAuth((state) => state.user?.id)
+  return useQuery({ ...dueCardsOptions(userId), enabled })
 }
 
 export function useGameState(enabled = true) {

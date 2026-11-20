@@ -1,4 +1,4 @@
-import { client, call, asBody, ApiError, setAccessToken, getAccessToken, refreshAccessToken, API_URL } from './api/client'
+import { client, call, asBody, ApiError, setAccessToken, getAccessToken, refreshAccessToken, API_URL, SESSION_REQUEST_TIMEOUT_MS } from './api/client'
 
 export { ApiError, setAccessToken, getAccessToken, API_URL }
 
@@ -77,7 +77,7 @@ export const authApi = {
 
   logout: () => call<void>(client.POST('/api/v1/auth/logout', {})),
 
-  me: () => call<Me>(client.GET('/api/v1/me')),
+  me: (signal?: AbortSignal) => call<Me>(client.GET('/api/v1/me', { signal })),
 
   updateMe: (input: UpdateProfileInput) =>
     call<Me>(client.PUT('/api/v1/me', { body: asBody(input) })),
@@ -86,7 +86,7 @@ export const authApi = {
 export async function restoreSession(): Promise<Me | null> {
   const token = await refreshAccessToken()
   if (!token) return null
-  return authApi.me()
+  return authApi.me(AbortSignal.timeout(SESSION_REQUEST_TIMEOUT_MS))
 }
 
 export const subjectsApi = {
@@ -362,6 +362,7 @@ export type AiGenerateInput = {
 
 export type AiTutorInput = {
   question: string
+  history?: { question: string; answer: string }[]
   sourceText?: string
   sourceTitle?: string
 }
@@ -404,21 +405,23 @@ export const cardsApi = {
 
   remove: (id: string) => call<void>(client.DELETE('/api/v1/cards/{id}', { params: { path: { id } } })),
 
-  due: (limit = 50) =>
-    call<DueCard[]>(client.GET('/api/v1/cards/due', { params: { query: { limit } } })),
+  due: (limit = 50, signal?: AbortSignal) =>
+    call<DueCard[]>(client.GET('/api/v1/cards/due', { params: { query: { limit } }, signal })),
 
 }
 
 export const reviewApi = {
   today: () => call<{ reviewedCards: number; resetsAt: string }>(client.GET('/api/v1/review/today')),
 
+  weakCards: () => call<ReviewQueueCard[]>(client.GET('/api/v1/review/weak-cards')),
+
   queue: (deckId?: string | null) =>
     call<ReviewQueueResponse>(
       client.GET('/api/v1/review/queue', { params: { query: { deckId: deckId ?? undefined } } }),
     ),
 
-  answer: (input: ReviewAnswerRequest) =>
-    call<ReviewAnswerResponse>(client.POST('/api/v1/review/answer', { body: input })),
+  answer: (input: ReviewAnswerRequest, signal?: AbortSignal) =>
+    call<ReviewAnswerResponse>(client.POST('/api/v1/review/answer', { body: input, signal })),
 
   undo: (cardId: string) =>
     call<ReviewUndoResponse>(client.POST('/api/v1/review/undo', { params: { query: { cardId } } })),
@@ -478,7 +481,7 @@ export const aiApi = {
   samples: () => call<StudySample[]>(client.GET('/api/v1/ai/samples')),
   sampleGenerate: (input: { sampleId: string; task: AiGenerateInput['task']; count: number }) =>
     call<{ items: AiCardItem[] }>(client.POST('/api/v1/ai/samples/generate', { body: input })),
-  sampleTutor: (input: { sampleId: string; promptId: string }) =>
+  sampleTutor: (input: { sampleId: string; promptId: string; previousPromptIds?: string[] }) =>
     call<AiTutorResponse>(client.POST('/api/v1/ai/samples/tutor', { body: input })),
 }
 

@@ -28,8 +28,8 @@ export function StudyQueue({ decksQuery, title, featured = false }: {
           ) : (
             <p role="status" className="study-muted">{t('workspace.queueLoading')}</p>
           )}
-          {decks && (featured || !due) && (
-            <p className="study-muted">{t(due ? 'workspace.reviewHint' : decks.length ? 'workspace.caughtUpHint' : 'workspace.firstDeckHint')}</p>
+          {decks && !due && (
+            <p className="study-muted">{t(decks.length ? 'workspace.caughtUpHint' : 'workspace.firstDeckHint')}</p>
           )}
         </div>
       </div>
@@ -37,7 +37,7 @@ export function StudyQueue({ decksQuery, title, featured = false }: {
       {decks ? (
         <Link className="study-action" to={due ? '/study/review' : decks.length ? '/study/decks' : '/study/decks?create=1'}>
           {t(due ? 'study.startReview' : decks.length ? 'workspace.browseDecks' : 'decks.createDeck')}
-          <Icon name="arrowRight" size={18} />
+          {!featured && <Icon name="arrowRight" size={18} />}
         </Link>
       ) : decksQuery.isError ? (
         <Button variant="secondary" onClick={() => void decksQuery.refetch()} disabled={decksQuery.isFetching}>

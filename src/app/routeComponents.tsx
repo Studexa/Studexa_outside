@@ -20,6 +20,7 @@ export const OnboardingPage = lazy(() => import('../features/onboarding/Onboardi
 export const StudyPage = lazy(() => import('../features/study/StudyPage').then((m) => ({ default: m.StudyPage })))
 export const LibraryPage = lazy(() => import('../features/library/LibraryPage').then((m) => ({ default: m.LibraryPage })))
 export const ReviewPage = lazy(() => import('../features/review/ReviewPage').then((m) => ({ default: m.ReviewPage })))
+export const PracticePage = lazy(() => import('../features/review/PracticePage').then((m) => ({ default: m.PracticePage })))
 export const BossPage = lazy(() => import('../features/boss/BossPage').then((m) => ({ default: m.BossPage })))
 export const TimerPage = lazy(() => import('../features/timer/TimerPage').then((m) => ({ default: m.TimerPage })))
 export const QuizPage = lazy(() => import('../features/quiz/QuizPage').then((m) => ({ default: m.QuizPage })))

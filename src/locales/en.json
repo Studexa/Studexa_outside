@@ -119,7 +119,16 @@
     "mute": "Mute sounds",
     "unmute": "Unmute sounds",
     "offline": "You are offline — your progress is saved on this device.",
-    "offlineQueued": "{{count}} answer(s) waiting to sync.",
+    "offlineQueued_one": "{{count}} answer waiting to sync.",
+    "offlineQueued_other": "{{count}} answers waiting to sync.",
+    "syncingReviews_one": "Syncing {{count}} answer…",
+    "syncingReviews_other": "Syncing {{count}} answers…",
+    "reviewSyncFailed": "Could not sync your review answers.",
+    "retryReviewSync": "Retry sync",
+    "reviewSyncUnavailable_one": "{{count}} answer could not sync because its card or deck is gone.",
+    "reviewSyncUnavailable_other": "{{count}} answers could not sync because their cards or decks are gone.",
+    "dismissUnavailableReviews": "Dismiss",
+    "reviewSyncDismissFailed": "Could not dismiss the notice. Try again.",
     "streakDays": "days in a row",
     "bestStreak": "Best streak",
     "freezes": "Streak freezes",
@@ -406,6 +415,10 @@
     "empty": "No notes yet",
     "emptyHint": "Capture a thought, a formula, or a lesson summary.",
     "emptyNote": "No content yet",
+    "loadFailed": "Your notes could not load.",
+    "createFailed": "Your note could not be created. Try again.",
+    "noMatches": "No notes match your search.",
+    "formatting": "Note formatting",
     "open": "Open",
     "untitled": "Untitled note",
     "general": "General",
@@ -577,6 +590,13 @@
     "lapses": "{{count}} lapses",
     "noWeakCards": "No cards to revisit right now.",
     "reviewWeak": "Review weak cards"
+  },
+  "practice": {
+    "title": "Practice weak cards",
+    "backToStats": "Back to Stats",
+    "finish": "Finish",
+    "complete": "Practice complete",
+    "loadError": "Could not load your cards to practice."
   },
   "profile": {
     "buddies": {
@@ -1069,7 +1089,30 @@
     "customIcon": "Custom",
     "color": "Color"
   },
+  "homeNews": {
+    "title": "What’s new",
+    "update": "App update",
+    "featuredBook": "Featured book",
+    "next": "Next slide",
+    "previous": "Previous slide",
+    "pause": "Pause slides",
+    "play": "Play slides",
+    "tutor": {
+      "title": "Meet the new AI tutor",
+      "description": "Follow up in the same conversation and check source excerpts alongside the answers.",
+      "action": "Open tutor"
+    },
+    "practice": {
+      "title": "Practice cards you’ve missed",
+      "description": "Start a short session with cards you’ve struggled with, even when they aren’t due.",
+      "action": "See cards in Stats"
+    }
+  },
   "pet": {
+    "newChat": "New chat",
+    "followUp": "Follow-up prompt",
+    "viewSource": "View source",
+    "sourceThread": "Changing the attached text starts a new chat when you send it.",
     "askBuddy": "Ask your study pet",
     "betaWelcome": "Good to see you. Pick a sample and we’ll work through it together.",
     "encouragement": {
@@ -1083,7 +1126,7 @@
     },
     "studyNote": "Study with AI",
     "clear": "Clear conversation and notes",
-    "disclosure": "Your question and attached text are sent to the configured AI provider when you press Send. AI can make mistakes; check important answers against your lesson.",
+    "disclosure": "When you send a question, your attachment and recent turns may also be sent to the AI provider. Check important answers against your lesson.",
     "studyActions": "Study prompts",
     "actions": { "explain": "Explain simply", "summarize": "Key points", "practice": "Practice question", "hint": "Give me a hint" },
     "prompts": {
@@ -1096,10 +1139,12 @@
     "references": "Source excerpts ({{count}})",
     "retry": "Retry this question",
     "limitError": "You have used today's AI allowance. It resets at midnight UTC.",
+    "providerAccessError": "Gemini denied access. Ask the app administrator to check the API key and project access.",
+    "providerLimitError": "Gemini is at its usage limit. Please try again later.",
     "setupError": "AI is not available yet. The app administrator needs to configure a provider.",
-    "timeoutError": "The tutor took too long to respond. Your question is ready to retry.",
-    "outputError": "The tutor returned an answer we could not validate. Please retry.",
-    "requestError": "The tutor could not answer right now. Check your connection and retry.",
+    "timeoutError": "AI took too long to respond. Please try again.",
+    "outputError": "The AI response could not be validated. Please try again.",
+    "requestError": "AI could not complete the request. Check your connection and try again.",
     "guestNotice": "Sign in to use AI tutoring. Your guest notes stay on this device.",
     "offlineNotice": "You are offline. Your draft is kept here; reconnect to send it.",
     "attached": "Attached: {{title}}",

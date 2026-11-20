@@ -5,6 +5,7 @@ import { Button } from '../../components/Button'
 import { Modal } from '../../components/Modal'
 import { aiApi, type AiTutorResponse } from '../../lib/api'
 import { ApiError } from '../../lib/api/client'
+import { aiErrorMessage } from '../../lib/aiErrors'
 import { readingsApi, type Reading, type ReadingAction } from '../../lib/api/readings'
 import { betaEnabled } from '../../lib/beta'
 import { isGuestMode, useAuth } from '../../lib/auth'
@@ -41,9 +42,9 @@ export function PassageQuestion({ passage, title, reading, onClose }: Props) {
   })
   const canSubmit = available && (!reading || !!passage.range) && online && !!limit && !tooLong && !ask.isPending
   const code = ask.error instanceof ApiError ? ask.error.code : ''
-  const error = code === 'AI_LIMIT_REACHED' ? t('pet.limitError') : code === 'AI_NOT_CONFIGURED' ? t('pet.setupError')
-    : code === 'READING_CHANGED' ? t('selection.changed')
-      : code === 'READING_SELECTION_TOO_LONG' ? t('selection.tooLong', { limit }) : t('pet.requestError')
+  const error = code === 'READING_CHANGED' ? t('selection.changed')
+    : code === 'READING_SELECTION_TOO_LONG' ? t('selection.tooLong', { limit })
+      : aiErrorMessage(t, ask.error, t('pet.requestError'))
 
   return <Modal open title={t('selection.ask')} onClose={onClose}>
     <div className="space-y-3">

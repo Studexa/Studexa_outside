@@ -6,6 +6,7 @@ import { Button } from '../../components/Button'
 import { Icon } from '../../components/Icon'
 import { Modal } from '../../components/Modal'
 import { ApiError, aiApi, cardsApi, noteAttachmentsApi, type AiCardItem, type NoteAttachment } from '../../lib/api'
+import { aiErrorMessage } from '../../lib/aiErrors'
 import { studyKeys, useDecks } from '../../lib/study'
 
 export type NoteStudySource =
@@ -154,7 +155,7 @@ export function NoteStudy({ noteId, userId, source, onClose, onInsertSummary, on
           </>}
         </>}
         {generating && <p role="status" className="text-sm">{t('notes.study.generating')}</p>}
-        {error && <p role="alert" className="text-sm text-[var(--color-danger)]">{t(`notes.study.${aiError}`)}</p>}
+        {error && <p role="alert" className="text-sm text-[var(--color-danger)]">{aiErrorMessage(t, error, t(`notes.study.${aiError}`))}</p>}
         {result === 'summary' && <section className="space-y-3">
           <h4 className="font-bold">{t('notes.study.summary')}</h4>
           <p className="whitespace-pre-wrap rounded-2xl bg-[var(--color-surface-alt)] p-3 text-sm [overflow-wrap:anywhere]">{summary}</p>

@@ -7,6 +7,7 @@ import './lib/i18n'
 import { router } from './app/router'
 import { applySettings } from './lib/settings'
 import { queryClient } from './lib/queryClient'
+import { SyncIndicator } from './components/SyncIndicator'
 
 applySettings()
 
@@ -14,6 +15,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
+      <SyncIndicator />
     </QueryClientProvider>
   </StrictMode>,
 )

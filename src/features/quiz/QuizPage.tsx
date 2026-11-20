@@ -12,6 +12,7 @@ import { useStudySamples } from '../../lib/useStudySamples'
 import { celebrate } from '../../lib/confetti'
 import { playSound } from '../../lib/sound'
 import { aiApi, type DeckSummary, type StudyCard } from '../../lib/api'
+import { aiErrorMessage } from '../../lib/aiErrors'
 import { useDeckCards, useDecks } from '../../lib/study'
 import { useApp } from '../../lib/store'
 import { betaEnabled, maxBetaAiItems } from '../../lib/beta'
@@ -338,8 +339,8 @@ export function QuizPage() {
               </p>
             )}
             {generate.isError && (
-              <p className="rounded-xl bg-[var(--color-danger-soft)] px-3 py-2 text-sm font-bold text-[var(--color-danger)]">
-                {generate.error.message}
+              <p role="alert" className="rounded-xl bg-[var(--color-danger-soft)] px-3 py-2 text-sm font-bold text-[var(--color-danger)]">
+                {aiErrorMessage(t, generate.error)}
               </p>
             )}
 

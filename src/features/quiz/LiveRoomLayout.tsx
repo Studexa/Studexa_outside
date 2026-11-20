@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../../components/Icon'
 import { ApiError } from '../../lib/api/client'
+import './liveRoom.css'
 
 export function LiveRoomLayout({ title, back = '/quiz', children }: PropsWithChildren<{ title: string; back?: string }>) {
   const { t } = useTranslation()

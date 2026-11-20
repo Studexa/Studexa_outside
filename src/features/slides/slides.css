@@ -1,0 +1,44 @@
+.slide-generator,
+.slide-form,
+.slide-fields,
+.slide-preview,
+.slide-library,
+.slide-host {
+  display: grid;
+  min-width: 0;
+  gap: .8rem;
+}
+
+.slide-fields > button,
+.slide-preview > button,
+.slide-host > button { justify-self: start; }
+
+.slide-fields label { display: grid; min-width: 0; gap: .375rem; font-weight: 650; }
+.slide-fields :is(select, textarea, input) { width: 100%; min-width: 0; padding: .65rem .75rem; border-radius: .65rem; }
+.slide-fields input[type='file'] { padding-inline: 0; font-weight: 400; }
+.slide-fields textarea { resize: vertical; font-weight: 400; }
+.slide-source-options { display: grid; gap: .8rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); }
+
+.slide-presenter { padding: .6rem; }
+.slide-canvas {
+  display: grid;
+  min-height: clamp(15rem, 38vw, 24rem);
+  align-content: center;
+  gap: .75rem;
+  padding: clamp(.9rem, 4vw, 2.4rem);
+  border: 1px solid var(--study-border);
+  border-inline-start: .25rem solid var(--study-ring);
+  border-radius: .75rem;
+  background: linear-gradient(130deg, var(--study-fill), var(--color-surface));
+  overflow-wrap: anywhere;
+}
+.slide-canvas h2 { font-size: clamp(1.45rem, 4vw, 2.6rem); font-weight: 750; line-height: 1.35; }
+.slide-canvas ul, .slide-questions ul { padding-inline-start: 1.25em; list-style: disc; }
+.slide-canvas li + li, .slide-questions li + li { margin-top: .45rem; }
+.slide-controls { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem; padding: .65rem .25rem .15rem; }
+.slide-controls button[aria-disabled='true'] { opacity: .55; cursor: default; }
+.slide-questions details { border-top: 1px solid var(--study-border); padding-block: .6rem; overflow-wrap: anywhere; }
+.slide-questions summary { min-height: 44px; padding-block: .5rem; cursor: pointer; font-weight: 650; }
+.slide-questions details > p { margin-top: .5rem; }
+.slide-deck-link { color: var(--study-ink); font-weight: 650; overflow-wrap: anywhere; }
+.slide-error { padding: .65rem; background: var(--color-danger-soft); color: var(--color-danger); border-radius: .65rem; }

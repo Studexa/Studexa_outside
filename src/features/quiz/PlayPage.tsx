@@ -75,18 +75,19 @@ export function PlayPage() {
       <LiveRoomError error={resume.error} />
       <Button disabled={resume.isPending} onClick={() => resume.mutate()}>{t('quizRoom.start')}</Button>
     </> : <p role="status">{t('quizRoom.waiting')}</p>)}
-    {state && question && <section className="study-panel space-y-4">
+    {state && question && <section className="study-panel live-quiz-board space-y-4">
       <div className="flex flex-wrap justify-between gap-2 text-sm font-bold">
         <span>{t('quizRoom.questionProgress', { index: question.index, total: state.questionCount })}</span>
         <span className="tabular-nums">{t('quizRoom.seconds', { seconds: secondsLeft })}</span>
       </div>
+      <progress className="live-quiz-timer" max={question.timeLimitSeconds} value={secondsLeft} aria-hidden="true" />
       <h2 className="text-xl font-bold [overflow-wrap:anywhere]">{question.text}</h2>
-      {answer ? <div className="space-y-2 rounded-xl bg-[var(--color-surface-alt)] p-4">
+      {answer ? <div className="live-quiz-feedback space-y-2 p-4" data-correct={answer.isCorrect} role="status">
         <p className="font-bold">{t(answer.isCorrect ? 'quizRoom.correct' : 'quizRoom.submitted')}</p>
         <p>{t('quizRoom.correctAnswer', { answer: answer.correctAnswer })}</p>
         {answer.explanation && <p className="text-[var(--color-muted)]">{answer.explanation}</p>}
         <p className="font-bold">{t('quizRoom.points', { score: answer.scoreAwarded })}</p>
-      </div> : <div className="grid gap-2 sm:grid-cols-2">
+      </div> : <div className="live-quiz-choices grid gap-2 sm:grid-cols-2">
         {parseOptions(question.options).map((choice) => <Button key={choice.value} variant="secondary"
           className="min-h-12 whitespace-normal text-left [overflow-wrap:anywhere]" disabled={submit.isPending || secondsLeft === 0}
           onClick={() => submit.mutate({ playerId: state.playerId, questionId: question.id, choice: choice.value,

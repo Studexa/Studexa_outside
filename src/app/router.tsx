@@ -5,7 +5,7 @@ import {
   AppShell, AuthCallbackPage, AuthPage, BossPage, CreateRoomPage, DeckEditorPage, DecksPage, DesignPage,
   ErrorBoundary, ExplorePage, HomePage, JoinRoomPage, LandingPage, LazyRoute, LibraryPage, LobbyPage, MinigamesPage, ReaderPage,
   NoteEditorPage, NotesPage, OnboardingPage, PlanPage, PlayPage, PracticePage, ProfilePage, QuizPage, RequireAuth,
-  ResultsPage, ReviewPage, SettingsPage, StatsPage, StudexaHeroDemoPage, StudyPage, SubjectsPage, TimerPage,
+  ResultsPage, ReviewPage, SettingsPage, SlideDeckPage, SlidesPage, StatsPage, StudexaHeroDemoPage, StudyPage, SubjectsPage, TimerPage,
 } from './routeComponents'
 
 const routes: RouteObject[] = [
@@ -106,6 +106,14 @@ const routes: RouteObject[] = [
             <StudyPage />
           </LazyRoute>
         ),
+      },
+      {
+        path: 'study/slides',
+        element: <RequireAuth accountOnly><LazyRoute><SlidesPage /></LazyRoute></RequireAuth>,
+      },
+      {
+        path: 'study/slides/:deckId',
+        element: <RequireAuth accountOnly><LazyRoute><SlideDeckPage /></LazyRoute></RequireAuth>,
       },
       {
         path: 'library',

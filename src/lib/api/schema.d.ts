@@ -180,6 +180,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/slide-decks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listSlideDecks"];
+        put?: never;
+        post: operations["saveSlideDeck"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/shop/buy": {
         parameters: {
             query?: never;
@@ -676,6 +692,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ai/slides/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["generateSlides"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/slides/extract": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["extractSlideText"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ai/samples/tutor": {
         parameters: {
             query?: never;
@@ -686,6 +734,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["sampleTutor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/samples/slides": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["generateSampleSlides"];
         delete?: never;
         options?: never;
         head?: never;
@@ -718,6 +782,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["generate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/slide-decks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getSlideDeck"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1438,6 +1518,37 @@ export interface components {
             color?: string;
             icon?: string;
         };
+        Content: {
+            title?: string;
+            slides?: components["schemas"]["Slide"][];
+            questions?: components["schemas"]["QuizQuestion"][];
+        };
+        QuizQuestion: {
+            question?: string;
+            choices?: string[];
+            /** Format: int32 */
+            correctIndex?: number;
+            explanation?: string;
+        };
+        Slide: {
+            title?: string;
+            bullets?: string[];
+        };
+        SlideDraft: {
+            /** Format: uuid */
+            id?: string;
+            content?: components["schemas"]["Content"];
+        };
+        Deck: {
+            /** Format: uuid */
+            id?: string;
+            title?: string;
+            /** Format: uuid */
+            quizId?: string;
+            slides?: components["schemas"]["Slide"][];
+            /** Format: date-time */
+            createdAt?: string;
+        };
         BuyItemRequest: {
             shopItemId: string;
         };
@@ -1784,20 +1895,33 @@ export interface components {
             correctAnswer?: string;
             explanation?: string;
         };
+        AiTutorRequest: {
+            question: string;
+            sourceText?: string;
+            sourceTitle?: string;
+            history?: components["schemas"]["Turn"][];
+        };
         Turn: {
             question: string;
             answer: string;
         };
-        AiTutorRequest: {
-            history?: components["schemas"]["Turn"][];
-            question: string;
-            sourceText?: string;
-            sourceTitle?: string;
+        SlideGenerateRequest: {
+            /** @enum {string} */
+            mode: "PROMPT" | "SOURCE";
+            text: string;
+            language: string;
+        };
+        ExtractedText: {
+            text?: string;
+            truncated?: boolean;
         };
         SampleTutorRequest: {
-            previousPromptIds?: string[];
             sampleId: string;
             promptId: string;
+            previousPromptIds?: string[];
+        };
+        SampleSlidesRequest: {
+            sampleId: string;
         };
         SampleGenerateRequest: {
             sampleId: string;
@@ -1830,6 +1954,13 @@ export interface components {
             count?: number;
             language?: string;
             basicOnly?: boolean;
+        };
+        DeckSummary: {
+            /** Format: uuid */
+            id?: string;
+            title?: string;
+            /** Format: date-time */
+            createdAt?: string;
         };
         ShopItemDto: {
             id?: string;
@@ -1894,12 +2025,6 @@ export interface components {
             /** Format: int32 */
             timePerQuestion?: number;
         };
-        DailyReviewProgress: {
-            /** Format: int64 */
-            reviewedCards?: number;
-            /** Format: date-time */
-            resetsAt?: string;
-        };
         ReviewQueueCard: {
             /** Format: uuid */
             id?: string;
@@ -1934,6 +2059,12 @@ export interface components {
             previewLabels?: {
                 [key: string]: string;
             };
+        };
+        DailyReviewProgress: {
+            /** Format: int64 */
+            reviewedCards?: number;
+            /** Format: date-time */
+            resetsAt?: string;
         };
         ReviewQueueResponse: {
             cards?: components["schemas"]["ReviewQueueCard"][];
@@ -2640,6 +2771,50 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["SubjectResponse"];
+                };
+            };
+        };
+    };
+    listSlideDecks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DeckSummary"][];
+                };
+            };
+        };
+    };
+    saveSlideDeck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SlideDraft"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Deck"];
                 };
             };
         };
@@ -3567,6 +3742,57 @@ export interface operations {
             };
         };
     };
+    generateSlides: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SlideGenerateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SlideDraft"];
+                };
+            };
+        };
+    };
+    extractSlideText: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExtractedText"];
+                };
+            };
+        };
+    };
     sampleTutor: {
         parameters: {
             query?: never;
@@ -3587,6 +3813,30 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AiTutorResponse"];
+                };
+            };
+        };
+    };
+    generateSampleSlides: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SampleSlidesRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SlideDraft"];
                 };
             };
         };
@@ -3635,6 +3885,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AiGenerateResponse"];
+                };
+            };
+        };
+    };
+    getSlideDeck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Deck"];
                 };
             };
         };

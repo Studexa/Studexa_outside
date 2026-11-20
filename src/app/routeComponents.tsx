@@ -18,6 +18,8 @@ export const AuthCallbackPage = lazy(() => import('../features/auth/AuthCallback
 export const SubjectsPage = lazy(() => import('../features/subjects/SubjectsPage').then((m) => ({ default: m.SubjectsPage })))
 export const OnboardingPage = lazy(() => import('../features/onboarding/OnboardingPage').then((m) => ({ default: m.OnboardingPage })))
 export const StudyPage = lazy(() => import('../features/study/StudyPage').then((m) => ({ default: m.StudyPage })))
+export const SlidesPage = lazy(() => import('../features/slides/SlidesPage').then((m) => ({ default: m.SlidesPage })))
+export const SlideDeckPage = lazy(() => import('../features/slides/SlideDeckPage').then((m) => ({ default: m.SlideDeckPage })))
 export const LibraryPage = lazy(() => import('../features/library/LibraryPage').then((m) => ({ default: m.LibraryPage })))
 export const ReviewPage = lazy(() => import('../features/review/ReviewPage').then((m) => ({ default: m.ReviewPage })))
 export const PracticePage = lazy(() => import('../features/review/PracticePage').then((m) => ({ default: m.PracticePage })))

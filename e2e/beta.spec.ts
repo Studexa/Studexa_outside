@@ -1,7 +1,9 @@
 import { execFileSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { expect, test, type Page } from '@playwright/test'
+import type { SlideDraft } from '../src/lib/api/slides'
 
 const password = 'Local-test-password-729'
 const inviteScript = fileURLToPath(new URL('../../scripts/beta-invites.mjs', import.meta.url))
@@ -517,6 +519,101 @@ test('two invited players can join and finish a live quiz after a refresh', asyn
     await expect(host.getByRole('heading', { name: 'Leaderboard' })).toBeVisible()
     await expect(player.getByRole('listitem').filter({ hasText: 'Live learner' })).toContainText(/\d+ points/)
     await expect.poll(() => roomUpdates).toBeGreaterThan(0)
+  } finally {
+    await hostContext.close()
+    await playerContext.close()
+  }
+})
+
+test('a saved slide deck opens a live quiz without sharing the slides or revealing answers early', async ({ browser, baseURL }) => {
+  const hostContext = await browser.newContext({ baseURL, viewport: { width: 1100, height: 800 } })
+  const playerContext = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' })
+  try {
+    const host = await hostContext.newPage()
+    const player = await playerContext.newPage()
+    await register(host, 'Slide host')
+    const { accessToken } = await register(player, 'Slide learner')
+    const fixture = new URL('../../backend/src/test/resources/slides-draft.json', import.meta.url)
+    const content = JSON.parse(readFileSync(fixture, 'utf8')) as SlideDraft['content']
+    const draft = { id: randomUUID(), content }
+    await host.route('**/api/v1/ai/samples/slides', async (route) => {
+      expect(route.request().postDataJSON()).toEqual({ sampleId: 'water-cycle-en' })
+      await route.fulfill({ json: draft })
+    })
+    await host.goto('/study')
+    await host.getByRole('link', { name: 'Slides', exact: true }).click()
+    await expect(host.getByLabel('Source file')).toHaveCount(0)
+    await host.getByLabel('Study sample').selectOption('water-cycle-en')
+    await host.getByRole('button', { name: 'Generate slides' }).click()
+    await expect(host.getByRole('heading', { name: 'Water cycle slides' })).toBeVisible()
+    await host.getByText(content.questions[0].question, { exact: true }).click()
+    await expect(host.getByText(content.questions[0].explanation)).toBeVisible()
+    await host.getByRole('button', { name: 'Save deck' }).click()
+    await expect(host).toHaveURL(`/study/slides/${draft.id}`)
+    await host.reload()
+    const presenter = host.getByRole('region', { name: content.slides[0].title })
+    await expect(presenter).toBeVisible()
+    await presenter.focus()
+    await host.keyboard.press('ArrowRight')
+    await expect(host.getByRole('heading', { name: content.slides[1].title })).toBeVisible()
+    await host.getByRole('button', { name: 'Previous slide' }).click()
+    await expect(presenter).toBeVisible()
+
+    await host.evaluate(() => localStorage.setItem('lang', 'km'))
+    await host.setViewportSize({ width: 280, height: 640 })
+    await host.reload()
+    await expect(host.locator('html')).toHaveAttribute('lang', 'km')
+    await host.getByRole('button', { name: 'ស្លាយបន្ទាប់' }).click()
+    await expect(host.getByRole('heading', { name: content.slides[1].title })).toBeVisible()
+    await expect.poll(() => host.evaluate(() => document.documentElement.scrollWidth)).toBe(280)
+    await host.evaluate(() => localStorage.setItem('lang', 'en'))
+    await host.setViewportSize({ width: 390, height: 844 })
+    await host.reload()
+    await host.getByRole('link', { name: 'Back to slides' }).click()
+    await host.getByRole('link', { name: content.title }).click()
+
+    await player.goto(`/study/slides/${draft.id}`)
+    await expect(player.getByRole('alert')).toHaveText('This slide deck could not be found in your account.')
+    await host.getByRole('button', { name: 'Host live quiz' }).click()
+    const invite = host.getByLabel('Room link')
+    await expect(invite).toHaveValue(/\/quiz\/lobby\/[A-Z0-9]{6}$/)
+    const code = new URL(await invite.inputValue()).pathname.split('/').at(-1)!
+    await player.goto('/quiz/join')
+    await player.getByLabel('Room Code (6 characters)').fill(code)
+    await player.getByRole('button', { name: 'Join Room' }).click()
+    await expect(host.getByText('Slide learner', { exact: true })).toBeVisible()
+    await host.getByRole('button', { name: 'Start Quiz' }).click()
+
+    for (const [index, question] of content.questions.entries()) {
+      await expect(player.getByRole('heading', { name: question.question })).toBeVisible()
+      await expect(player.getByText(question.explanation)).toHaveCount(0)
+      if (index === 0) {
+        const sessionId = new URL(player.url()).pathname.split('/').at(-1)!
+        const response = await player.request.get(`/api/v1/sessions/${sessionId}/state`, {
+          headers: { Authorization: 'Bearer ' + accessToken },
+        })
+        expect(response.ok()).toBeTruthy()
+        const state = await response.json()
+        expect(state.answer).toBeNull()
+        expect(state.question).not.toHaveProperty('correctAnswer')
+        expect(state.question.timeLimitSeconds).toBe(30)
+        await expect(player.locator('.live-quiz-timer')).toBeVisible()
+      }
+      const choice = question.choices[question.correctIndex]
+      await host.getByRole('button', { name: choice, exact: true }).click()
+      await player.getByRole('button', { name: choice, exact: true }).click()
+      await expect(player.getByText(question.explanation)).toBeVisible()
+      if (index === 0) {
+        await player.reload()
+        await expect(player.getByText(question.explanation)).toBeVisible()
+      }
+      const last = index === content.questions.length - 1
+      await host.getByRole('button', { name: last ? 'Finish quiz' : 'Next question' }).click()
+    }
+    await expect(player.getByRole('heading', { name: 'Leaderboard' })).toBeVisible()
+    await expect(host.getByRole('heading', { name: 'Leaderboard' })).toBeVisible()
+    await expect(player.locator('.live-quiz-podium li')).toHaveText(await host.locator('.live-quiz-podium li').allTextContents())
+    await expect(player.locator('canvas')).toHaveCount(0)
   } finally {
     await hostContext.close()
     await playerContext.close()

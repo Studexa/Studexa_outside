@@ -62,6 +62,7 @@ export function StudyPage() {
           {tools.map(({ to, icon, mode }) => (
             <Link key={to} to={to}><Icon name={icon} size={20} />{t('study.modes.' + mode)}</Link>
           ))}
+          {!isGuestMode() && <Link to="/study/slides"><Icon name="layers" size={20} />{t('slides.title')}</Link>}
           {!isGuestMode() && <Link to="/quiz"><Icon name="users" size={20} />{t('quizRoom.liveRooms')}</Link>}
           {!isGuestMode() && <Link to="/library"><Icon name="book" size={20} />{t('library.title')}</Link>}
         </div>

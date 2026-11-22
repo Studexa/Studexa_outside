@@ -170,7 +170,7 @@ function NoteEditor({ note }: { note: Note }) {
         </Button>}
         <button
           onClick={() => setDeleteOpen(true)}
-          className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--color-muted)] hover:bg-[var(--color-danger-soft)] hover:text-[var(--color-danger)]"
+          className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--color-muted)] hover:bg-[var(--color-danger-soft)] hover:text-[var(--color-danger-text)]"
           aria-label={t('notes.deleteNote')}
         >
           <Icon name="trash" size={19} />
@@ -248,7 +248,7 @@ function NoteEditor({ note }: { note: Note }) {
         }} />}
 
       {flash && (
-        <p role="status" className="rounded-xl bg-[var(--color-success-soft)] px-3 py-2 text-center text-sm font-bold text-[var(--color-success)]">
+        <p role="status" className="rounded-xl bg-[var(--color-success-soft)] px-3 py-2 text-center text-sm font-bold text-[var(--color-success-text)]">
           {flash}
         </p>
       )}

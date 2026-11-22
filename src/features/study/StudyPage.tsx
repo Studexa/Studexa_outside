@@ -5,68 +5,77 @@ import { StudyQueue } from '../../components/StudyQueue'
 import { useDecks } from '../../lib/study'
 import { isGuestMode } from '../../lib/auth'
 
-const tools: { to: string; icon: IconName; mode: string }[] = [
-  { to: '/study/quiz', icon: 'target', mode: 'quiz' },
-  { to: '/study/timer', icon: 'timer', mode: 'timer' },
-  { to: '/subjects', icon: 'bookmark', mode: 'subjects' },
-  { to: '/study/boss', icon: 'sword', mode: 'boss' },
-  { to: '/study/minigames', icon: 'gamepad', mode: 'minigames' },
+const tools: { to: string; icon: IconName; title: string; accountOnly?: boolean }[] = [
+  { to: '/study/quiz', icon: 'target', title: 'study.modes.quiz' },
+  { to: '/study/timer', icon: 'timer', title: 'study.modes.timer' },
+  { to: '/subjects', icon: 'bookmark', title: 'study.modes.subjects' },
+  { to: '/study/boss', icon: 'sword', title: 'study.modes.boss' },
+  { to: '/study/minigames', icon: 'gamepad', title: 'study.modes.minigames' },
+  { to: '/study/slides', icon: 'layers', title: 'slides.title', accountOnly: true },
+  { to: '/quiz', icon: 'users', title: 'quizRoom.liveRooms', accountOnly: true },
+  { to: '/library', icon: 'book', title: 'library.title', accountOnly: true },
 ]
 
 export function StudyPage() {
   const { t } = useTranslation()
   const decksQuery = useDecks()
   const decks = decksQuery.data
+  const guest = isGuestMode()
 
   return (
     <div className="study-workspace">
-      <header className="study-page-header study-feature-header">
-        <h1>{t('study.title')}</h1>
-        <p className="study-muted">{t('workspace.studyDescription')}</p>
+      <header className="study-page-header study-feature-header study-hub-header">
+        <div>
+          <h1>{t('study.title')}</h1>
+          <p className="study-muted">{t('workspace.studyDescription')}</p>
+        </div>
+        <span className="study-hub-sticker" aria-hidden="true"><Icon name="bolt" size={33} /></span>
       </header>
 
-      <StudyQueue decksQuery={decksQuery} title={t('workspace.queue')} />
+      <StudyQueue decksQuery={decksQuery} />
 
-      <section className="study-panel" aria-labelledby="deck-library-title">
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-          <h2 id="deck-library-title" className="study-section-title">{t('workspace.deckLibrary')}</h2>
-          <Link to="/study/decks" className="study-text-link">
-            {t('workspace.browseDecks')} <Icon name="arrowRight" size={16} />
-          </Link>
-        </div>
-
-        {decks?.length ? (
-          <ul className="study-deck-list mt-2">
-            {decks.slice(0, 4).map((deck) => (
-              <li key={deck.id}>
-                <Link to={'/study/decks/' + deck.id} className="study-deck-row">
-                  <span className="study-icon study-icon-small"><Icon name="layers" size={18} /></span>
-                  <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
-                    <span className="block font-semibold">{deck.title}</span>
-                    <span className="study-muted block">{deck.subjectName || t('decks.noSubject')}</span>
-                  </span>
-                  <span className="study-deck-count">{t('decks.dueCount', { count: deck.dueCount })}</span>
-                  <Icon name="chevronRight" size={17} className="shrink-0 text-(--color-muted)" />
-                </Link>
-              </li>
+      <div className="study-hub-grid">
+        <section className="study-panel study-hub-tools" aria-labelledby="study-tools-title">
+          <h2 id="study-tools-title" className="study-section-title">{t('workspace.studyTools')}</h2>
+          <div className="study-shortcuts mt-3">
+            {tools.filter((tool) => !guest || !tool.accountOnly).map(({ to, icon, title }) => (
+              <Link key={to} to={to}>
+                <span className="study-icon study-icon-small"><Icon name={icon} size={19} /></span>
+                <span>{t(title)}</span>
+              </Link>
             ))}
-          </ul>
-        ) : (
-          <p className="study-muted mt-2">{t(decks ? 'decks.noDecks' : decksQuery.isError ? 'workspace.deckError' : 'common.loading')}</p>
-        )}
-      </section>
+          </div>
+        </section>
 
-      <section className="study-panel" aria-labelledby="study-tools-title">
-        <h2 id="study-tools-title" className="study-section-title">{t('workspace.studyTools')}</h2>
-        <div className="study-shortcuts mt-3">
-          {tools.map(({ to, icon, mode }) => (
-            <Link key={to} to={to}><Icon name={icon} size={20} />{t('study.modes.' + mode)}</Link>
-          ))}
-          {!isGuestMode() && <Link to="/study/slides"><Icon name="layers" size={20} />{t('slides.title')}</Link>}
-          {!isGuestMode() && <Link to="/quiz"><Icon name="users" size={20} />{t('quizRoom.liveRooms')}</Link>}
-          {!isGuestMode() && <Link to="/library"><Icon name="book" size={20} />{t('library.title')}</Link>}
-        </div>
-      </section>
+        <section className="study-panel" aria-labelledby="deck-library-title">
+          <div className="flex flex-wrap items-center justify-between gap-x-4">
+            <h2 id="deck-library-title" className="study-section-title">{t('workspace.deckLibrary')}</h2>
+            <Link to="/study/decks" className="study-text-link">
+              {t('workspace.browseDecks')} <Icon name="arrowRight" size={16} />
+            </Link>
+          </div>
+
+          {decks?.length ? (
+            <ul className="study-deck-list mt-2">
+              {decks.slice(0, 4).map((deck) => (
+                <li key={deck.id}>
+                  <Link to={'/study/decks/' + deck.id} className="study-deck-row">
+                    <span className="study-icon study-icon-small"><Icon name="layers" size={18} /></span>
+                    <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+                      <span className="block font-semibold">{deck.title}</span>
+                      <span className="study-muted block">{deck.subjectName || t('decks.noSubject')}</span>
+                    </span>
+                    <span className="study-deck-count">{t('decks.dueCount', { count: deck.dueCount })}</span>
+                    <Icon name="chevronRight" size={17} className="shrink-0 text-(--color-muted)" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="study-muted mt-2">{t(decks ? 'decks.noDecks' : decksQuery.isError ? 'workspace.deckError' : 'common.loading')}</p>
+          )}
+        </section>
+      </div>
     </div>
   )
 }

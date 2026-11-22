@@ -114,7 +114,7 @@ export function LibraryPage() {
             value={passage} onChange={(event) => setPassage(event.target.value)} disabled={save.isPending} />
         </label>
         <p className="study-muted">{t(betaEnabled ? 'library.betaNote' : 'library.aiNote')}</p>
-        {save.isError && <p role="alert" className="text-sm text-[var(--color-danger)]">{t('library.saveError')}</p>}
+        {save.isError && <p role="alert" className="text-sm text-[var(--color-danger-text)]">{t('library.saveError')}</p>}
         <Button type="submit" full disabled={save.isPending}>{t(save.isPending ? 'notes.saving' : 'library.save')}</Button>
       </form>}
     </Modal>

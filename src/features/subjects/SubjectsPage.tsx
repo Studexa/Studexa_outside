@@ -100,7 +100,7 @@ export function SubjectsPage() {
       </div>
 
       {actionError && (
-        <p role="alert" className="rounded-2xl bg-[var(--color-danger-soft,var(--color-surface-alt))] px-3 py-2 text-sm font-bold text-[var(--color-danger)]">
+        <p role="alert" className="rounded-2xl bg-[var(--color-danger-soft,var(--color-surface-alt))] px-3 py-2 text-sm font-bold text-[var(--color-danger-text)]">
           {actionError}
         </p>
       )}
@@ -183,7 +183,7 @@ export function SubjectsPage() {
                   <Icon name={subject.archived ? 'checkCircle' : 'bookmark'} size={17} />
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => setPendingDelete(subject)} aria-label={t('common.delete')}>
-                  <Icon name="trash" size={17} className="text-[var(--color-danger)]" />
+                  <Icon name="trash" size={17} className="text-[var(--color-danger-text)]" />
                 </Button>
               </div>
             </article>
@@ -329,7 +329,7 @@ function SubjectEditor({
         </div>
 
         {error && (
-          <p role="alert" className="rounded-2xl bg-[var(--color-surface-alt)] px-3 py-2 text-sm font-bold text-[var(--color-danger)]">
+          <p role="alert" className="rounded-2xl bg-[var(--color-surface-alt)] px-3 py-2 text-sm font-bold text-[var(--color-danger-text)]">
             {error}
           </p>
         )}

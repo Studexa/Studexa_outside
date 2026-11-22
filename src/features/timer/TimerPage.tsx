@@ -78,14 +78,14 @@ export function TimerPage() {
 
   if (completed) {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-gradient-to-b from-emerald-50 to-[var(--color-bg)] px-4 py-8 text-center dark:from-emerald-950/40">
-        <Mascot species={buddy} mood="sparkle" size={170} accessory="scarf" className="animate-gentle-bounce" />
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-gradient-to-b from-[var(--color-accent-soft)] to-[var(--color-bg)] px-4 py-8 text-center">
+        <Mascot species={buddy} mood="sparkle" size={170} accessory="scarf" />
         <div className="w-full max-w-md rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-md)]">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--color-success)]">{t('timer.completeKicker')}</p>
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--color-success-text)]">{t('timer.completeKicker')}</p>
           <h1 className="mt-1 text-2xl font-black">{t('timer.completeTitle')}</h1>
           <p className="mt-1 text-sm text-[var(--color-muted)]">{t('timer.completeHint', { count: minutes })}</p>
           <div className="mt-4 rounded-2xl bg-[var(--color-success-soft)] p-4">
-            <p className="text-3xl font-black text-[var(--color-success)]">+{Math.round(25 * Math.min(1, minutes / 25))} XP</p>
+            <p className="text-3xl font-black text-[var(--color-success-text)]">+{Math.round(25 * Math.min(1, minutes / 25))} XP</p>
             <p className="text-xs font-bold text-[var(--color-muted)]">{t('timer.xpEarned')}</p>
           </div>
           <div className="mt-5 space-y-2">
@@ -102,10 +102,7 @@ export function TimerPage() {
   }
 
   return (
-    <div className="relative flex min-h-dvh flex-col overflow-hidden bg-gradient-to-b from-sky-50 via-[var(--color-bg)] to-emerald-50 text-[var(--color-text)] dark:from-[#0d1b2a] dark:via-[var(--color-bg)] dark:to-[#10231f]">
-      <div className="pointer-events-none absolute -left-20 top-10 h-64 w-64 rounded-full bg-sky-300/20 blur-3xl" />
-      <div className="pointer-events-none absolute -right-16 bottom-4 h-64 w-64 rounded-full bg-emerald-300/20 blur-3xl" />
-
+    <div className="flex min-h-dvh flex-col overflow-hidden bg-[var(--color-bg)] text-[var(--color-text)]">
       {!focusMode && (
         <header className="relative flex items-center gap-3 px-4 pt-4">
           <button
@@ -129,22 +126,22 @@ export function TimerPage() {
       )}
 
       {focusMode && (
-        <header className="relative flex items-center justify-between px-4 pt-4">
+        <header className="relative flex flex-wrap items-center justify-between gap-2 px-4 pt-4">
           <button
             onClick={() => setFocusMode(false)}
-            className="flex min-h-11 items-center gap-1.5 rounded-full bg-white/40 px-3 text-xs font-bold text-[var(--color-muted)] backdrop-blur dark:bg-white/10"
+            className="flex min-h-[44px] items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-xs font-bold text-[var(--color-muted)] hover:bg-[var(--color-surface-alt)]"
           >
             <Icon name="arrowLeft" size={16} /> {t('timer.exitFocus')}
           </button>
           <span className="text-xs font-black uppercase tracking-[0.2em] text-[var(--color-muted)]">{t('timer.focusMode')}</span>
-          <span className="w-11" />
+          <span className="hidden w-11 sm:block" />
         </header>
       )}
 
       <div className="relative flex flex-1 flex-col items-center justify-center gap-5 px-4 py-6">
-        <div className="relative flex items-center justify-center">
-          <GoalRing value={elapsed} max={total} size={focusMode ? 300 : 270} stroke={focusMode ? 16 : 14} tone="success">
-            <span className="text-5xl font-black tabular-nums sm:text-6xl">
+        <div className="relative flex max-w-full items-center justify-center">
+          <GoalRing value={elapsed} max={total} size={focusMode ? 300 : 270} stroke={focusMode ? 16 : 14}>
+            <span className="font-(family-name:--font-display) text-5xl font-black tabular-nums sm:text-6xl">
               {mm}:{String(ss).padStart(2, '0')}
             </span>
             <span className="mt-1 text-xs font-bold uppercase tracking-[0.2em] text-[var(--color-muted)]">
@@ -152,7 +149,7 @@ export function TimerPage() {
             </span>
           </GoalRing>
           <div className="absolute -bottom-4 -right-3 sm:-right-8">
-            <Mascot species={buddy} mood={running ? 'happy' : 'sleepy'} size={focusMode ? 110 : 96} className={running ? 'animate-gentle-bounce' : ''} />
+            <Mascot species={buddy} mood={running ? 'happy' : 'sleepy'} size={focusMode ? 110 : 96} />
           </div>
         </div>
 
@@ -163,7 +160,7 @@ export function TimerPage() {
                 key={m}
                 onClick={() => reset(m)}
                 aria-pressed={minutes === m}
-                className={`min-h-10 rounded-full border-2 px-4 text-sm font-bold transition ${
+                className={`min-h-[44px] rounded-full border-2 px-4 text-sm font-bold transition-colors motion-reduce:transition-none ${
                   minutes === m
                     ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]'
                     : 'border-[var(--color-border)] bg-[var(--color-surface)]/70 text-[var(--color-muted)]'

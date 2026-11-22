@@ -161,7 +161,7 @@ function BossGame({ items }: { items: StudyCardWithDeck[] }) {
 
           {!won && (
             <div className="mt-4 flex items-center justify-center gap-2 text-sm font-bold text-[var(--color-muted)]">
-              <Icon name="heart" size={18} className="text-[var(--color-danger)]" />
+              <Icon name="heart" size={18} className="text-[var(--color-danger-text)]" />
               {t('boss.retryHint')}
             </div>
           )}
@@ -183,10 +183,10 @@ function BossGame({ items }: { items: StudyCardWithDeck[] }) {
   }
 
   return (
-    <div className="relative flex min-h-dvh flex-col overflow-hidden bg-gradient-to-b from-[#0f172a] via-[#172554] to-[#020617] text-white">
+    <div className="relative flex min-h-dvh flex-col overflow-hidden bg-gradient-to-b from-[#201432] via-[#342151] to-[#150e20] text-white">
       <div className="pointer-events-none absolute inset-0 opacity-30">
-        <div className="absolute left-1/4 top-10 h-40 w-40 rounded-full bg-blue-600 blur-3xl" />
-        <div className="absolute bottom-10 right-10 h-52 w-52 rounded-full bg-indigo-700 blur-3xl" />
+        <div className="absolute left-1/4 top-10 h-40 w-40 rounded-full bg-violet-600 blur-3xl" />
+        <div className="absolute bottom-10 right-10 h-52 w-52 rounded-full bg-fuchsia-700 blur-3xl" />
       </div>
 
       <header className="relative flex items-center gap-3 px-4 pt-4">
@@ -210,7 +210,7 @@ function BossGame({ items }: { items: StudyCardWithDeck[] }) {
               key={i}
               name="heart"
               size={20}
-              className={i < hearts ? 'fill-current text-[var(--color-danger)]' : 'text-white/25'}
+              className={i < hearts ? 'fill-current text-rose-400' : 'text-white/25'}
             />
           ))}
         </div>
@@ -231,8 +231,8 @@ function BossGame({ items }: { items: StudyCardWithDeck[] }) {
               <span
                 className={`animate-pop-in inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black ${
                   feedback === 'correct'
-                    ? 'bg-[var(--color-success-soft)] text-[#047857] dark:text-[var(--color-success)]'
-                    : 'bg-[var(--color-danger-soft)] text-[#b91c1c] dark:text-[var(--color-danger)]'
+                    ? 'bg-[var(--color-success-soft)] text-[var(--color-success-text)]'
+                    : 'bg-[var(--color-danger-soft)] text-[var(--color-danger-text)]'
                 }`}
               >
                 <Icon name={feedback === 'correct' ? 'check' : 'close'} size={12} />
@@ -247,8 +247,8 @@ function BossGame({ items }: { items: StudyCardWithDeck[] }) {
               const chosen = selected === choice
               let tone = 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-primary)]'
               if (selected) {
-                if (isCorrect) tone = 'border-[var(--color-success)] bg-[var(--color-success-soft)] text-[#047857] dark:text-[var(--color-success)]'
-                else if (chosen) tone = 'border-[var(--color-danger)] bg-[var(--color-danger-soft)] text-[#b91c1c] dark:text-[var(--color-danger)]'
+                if (isCorrect) tone = 'border-[var(--color-success)] bg-[var(--color-success-soft)] text-[var(--color-success-text)]'
+                else if (chosen) tone = 'border-[var(--color-danger)] bg-[var(--color-danger-soft)] text-[var(--color-danger-text)]'
                 else tone = 'border-[var(--color-border)] opacity-60'
               }
               return (

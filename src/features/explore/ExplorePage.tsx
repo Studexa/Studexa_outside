@@ -190,7 +190,7 @@ function StarterDecks() {
       </div>
 
       {copyMutation.isError && (
-        <p className="rounded-xl bg-[var(--color-danger-soft)] px-3 py-2 text-sm font-bold text-[var(--color-danger)]">
+        <p className="rounded-xl bg-[var(--color-danger-soft)] px-3 py-2 text-sm font-bold text-[var(--color-danger-text)]">
           {copyMutation.error.message}
         </p>
       )}
@@ -199,7 +199,7 @@ function StarterDecks() {
         <button
           onClick={() => setSubject('all')}
           className={`min-h-10 shrink-0 rounded-full px-4 text-xs font-bold ${
-            subject === 'all' ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-surface-alt)] text-[var(--color-muted)]'
+            subject === 'all' ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)]' : 'bg-[var(--color-surface-alt)] text-[var(--color-muted)]'
           }`}
         >
           {t('explore.allSubjects')}
@@ -209,7 +209,7 @@ function StarterDecks() {
             key={item}
             onClick={() => setSubject(item)}
             className={`min-h-10 shrink-0 rounded-full px-4 text-xs font-bold ${
-              subject === item ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-surface-alt)] text-[var(--color-muted)]'
+              subject === item ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)]' : 'bg-[var(--color-surface-alt)] text-[var(--color-muted)]'
             }`}
           >
             {item}
@@ -243,7 +243,7 @@ function StarterDecks() {
                   </div>
                 </div>
                 <div className="mt-3 flex items-center gap-3 text-[11px] font-bold text-[var(--color-muted)]">
-                  <span className="inline-flex items-center gap-1 text-[var(--color-accent)]">
+                  <span className="inline-flex items-center gap-1 text-[var(--color-accent-text)]">
                     <Icon name="star" size={12} className="fill-current" /> {deck.rating}
                   </span>
                   <span className="inline-flex items-center gap-1">

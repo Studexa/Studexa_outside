@@ -148,8 +148,8 @@ export function PassageTools({ source, title, reading }: Props) {
           <Button type="button" size="sm" variant="secondary" onClick={() => void decks.refetch()}>{t('selection.refreshDecks')}</Button>
         </div>}
         {decks.isError && <Button type="button" size="sm" variant="secondary" onClick={() => void decks.refetch()}>{t('common.retry')}</Button>}
-        {tooLong && <p role="alert" className="text-sm text-[var(--color-danger)]">{t('selection.cardTooLong', { limit: cardLimit })}</p>}
-        {save.isError && <p role="alert" className="text-sm text-[var(--color-danger)]">{t('selection.saveFailed')}</p>}
+        {tooLong && <p role="alert" className="text-sm text-[var(--color-danger-text)]">{t('selection.cardTooLong', { limit: cardLimit })}</p>}
+        {save.isError && <p role="alert" className="text-sm text-[var(--color-danger-text)]">{t('selection.saveFailed')}</p>}
         <Button type="submit" full disabled={save.isPending || !deckId || !draft.front.trim() || !draft.back.trim() || tooLong}>
           {t('notes.createCard')}
         </Button>

@@ -46,11 +46,11 @@ export function PassageQuestion({ passage, title, reading, onClose }: Props) {
     : code === 'READING_SELECTION_TOO_LONG' ? t('selection.tooLong', { limit })
       : aiErrorMessage(t, ask.error, t('pet.requestError'))
 
-  return <Modal open title={t('selection.ask')} onClose={onClose}>
+  return <Modal open fitViewport title={t('selection.ask')} onClose={onClose}>
     <div className="space-y-3">
       <label className="block space-y-1 text-sm font-bold">
         <span>{t('selection.preview')}</span>
-        <textarea readOnly value={passage.text} rows={4} className="w-full rounded-xl p-2 font-normal" />
+        <textarea readOnly value={passage.text} rows={3} className="w-full rounded-xl p-2 font-normal" />
       </label>
       {!available ? <p role="status" className="study-muted">{t(guest ? 'pet.guestNotice' : 'selection.betaNotes')}</p> : <>
         <p className="study-muted">{t('notes.study.aiDisclosure')}</p>
@@ -59,7 +59,7 @@ export function PassageQuestion({ passage, title, reading, onClose }: Props) {
           {t('notes.study.sourceFailed')}
           <Button size="sm" variant="secondary" onClick={() => void limits.refetch()}>{t('common.retry')}</Button>
         </div>}
-        {tooLong && <p role="alert" className="text-sm text-[var(--color-danger)]">{t('selection.tooLong', { limit })}</p>}
+        {tooLong && <p role="alert" className="text-sm text-[var(--color-danger-text)]">{t('selection.tooLong', { limit })}</p>}
         <div className="flex flex-wrap gap-2">
           {actions.map((action) => <Button key={action} variant="secondary" size="sm" disabled={!canSubmit}
             onClick={() => { setAnswer(undefined); ask.mutate(action) }}>{t(`selection.actions.${action}`)}</Button>)}
@@ -76,7 +76,7 @@ export function PassageQuestion({ passage, title, reading, onClose }: Props) {
           <Button size="sm" type="submit" disabled={!canSubmit || !question.trim()}>{t('pet.send')}</Button>
         </form>}
         {ask.isPending && <p role="status" className="study-muted">{t('pet.thinking')}</p>}
-        {ask.isError && <p role="alert" className="text-sm text-[var(--color-danger)]">{error}</p>}
+        {ask.isError && <p role="alert" className="text-sm text-[var(--color-danger-text)]">{error}</p>}
         {answer && <div aria-live="polite" className="space-y-2 rounded-xl bg-[var(--color-surface-alt)] p-3 text-sm">
           <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{answer.answer}</p>
           {answer.references.map((reference, index) => <blockquote key={index} className="border-l-2 pl-2">

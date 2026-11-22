@@ -119,7 +119,7 @@ export function StudexaHeroDemoPage() {
   return (
     <div
       className={`min-h-screen transition-colors duration-300 font-sans p-4 md:p-8 flex flex-col items-center justify-center ${
-        theme === 'dark' ? 'bg-[#090d16] text-slate-100' : 'bg-[#f1f5f9] text-slate-900'
+        theme === 'dark' ? 'bg-[#181322] text-slate-100' : 'bg-[#f8f7fc] text-slate-900'
       }`}
     >
       {/* Top Controls Toolbar */}
@@ -145,7 +145,7 @@ export function StudexaHeroDemoPage() {
               onClick={() => setMode('autoplay')}
               className={`px-3 py-1 rounded-lg transition-all ${
                 mode === 'autoplay'
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-violet-700 text-white shadow-sm'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
@@ -158,7 +158,7 @@ export function StudexaHeroDemoPage() {
               }}
               className={`px-3 py-1 rounded-lg transition-all ${
                 mode === 'interactive'
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-violet-700 text-white shadow-sm'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
@@ -183,14 +183,14 @@ export function StudexaHeroDemoPage() {
         <div
           className={`relative w-full max-w-[760px] rounded-[24px] overflow-hidden border shadow-2xl transition-all duration-300 ${
             theme === 'dark'
-              ? 'bg-[#131b2e] border-slate-800 shadow-black/60'
-              : 'bg-[#fcfdfe] border-slate-200 shadow-indigo-950/10'
+              ? 'bg-[#241d30] border-[#4d405e] shadow-black/60'
+              : 'bg-[#fffefd] border-[#c9b6ed] shadow-violet-950/10'
           }`}
         >
           {/* Window Chrome Titlebar */}
           <div
             className={`px-4 py-3 flex items-center justify-between border-b ${
-              theme === 'dark' ? 'bg-[#0f172a] border-slate-800' : 'bg-slate-50/90 border-slate-200/80'
+              theme === 'dark' ? 'bg-[#382951] border-[#4d405e]' : 'bg-[#eee7ff] border-[#ded6ed]'
             }`}
           >
             <div className="flex items-center gap-2">
@@ -210,7 +210,7 @@ export function StudexaHeroDemoPage() {
                 <span>{cardsReviewed}/25</span>
                 <div className="w-20 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                   <motion.div
-                    className="h-full bg-blue-600 rounded-full"
+                    className="h-full bg-violet-700 rounded-full"
                     animate={{ width: `${(cardsReviewed / 25) * 100}%` }}
                     transition={{ duration: 0.4 }}
                   />

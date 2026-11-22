@@ -321,7 +321,7 @@ export function ProfilePage() {
         <section className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-extrabold">{t('profile.shop')}</h2>
-            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-accent-soft)] px-2.5 py-1 text-xs font-black text-[var(--color-accent)]">
+            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-accent-soft)] px-2.5 py-1 text-xs font-black text-[var(--color-accent-text)]">
               <Icon name="coin" size={13} /> {coins}
             </span>
           </div>
@@ -345,11 +345,11 @@ export function ProfilePage() {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-xs font-extrabold">{item.name ?? (item.nameKey ? t(item.nameKey) : item.id)}</span>
-                    <span className="mt-0.5 flex items-center gap-1 text-[10px] font-black text-[var(--color-accent)]">
+                    <span className="mt-0.5 flex items-center gap-1 text-[10px] font-black text-[var(--color-accent-text)]">
                       {isEquipped ? (
                         <span className="text-[var(--color-primary)]">{t('profile.equipped')}</span>
                       ) : isOwned ? (
-                        <span className="text-[var(--color-success)]">{t('profile.owned')}</span>
+                        <span className="text-[var(--color-success-text)]">{t('profile.owned')}</span>
                       ) : (
                         <>
                           <Icon name="coin" size={11} /> {item.price}
@@ -362,7 +362,7 @@ export function ProfilePage() {
             })}
           </div>
           {message && (
-            <p className="mt-2 rounded-xl bg-[var(--color-success-soft)] px-3 py-2 text-center text-xs font-bold text-[var(--color-success)]">
+            <p className="mt-2 rounded-xl bg-[var(--color-success-soft)] px-3 py-2 text-center text-xs font-bold text-[var(--color-success-text)]">
               {message}
             </p>
           )}
@@ -393,7 +393,7 @@ export function ProfilePage() {
             <p className="text-sm text-[var(--color-muted)]">
               {preview.name ? '' : t(`profile.itemDesc.${preview.id}`)}
             </p>
-            <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--color-accent-soft)] px-3 py-1 text-sm font-black text-[var(--color-accent)]">
+            <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--color-accent-soft)] px-3 py-1 text-sm font-black text-[var(--color-accent-text)]">
               <Icon name="coin" size={14} /> {preview.price}
             </p>
             <div className="mt-4 space-y-2">

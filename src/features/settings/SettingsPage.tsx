@@ -81,7 +81,7 @@ export function SettingsPage() {
               </button>
               <button
                 onClick={() => void signOut()}
-                className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-[var(--color-danger)]/30 bg-[var(--color-danger-soft)]/50 px-3 text-xs font-bold text-[var(--color-danger)] transition-colors hover:bg-[var(--color-danger-soft)] active:scale-[0.98]"
+                className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-[var(--color-danger)]/30 bg-[var(--color-danger-soft)]/50 px-3 text-xs font-bold text-[var(--color-danger-text)] transition-colors hover:bg-[var(--color-danger-soft)] active:scale-[0.98]"
               >
                 <Icon name="arrowRight" size={14} />
                 <span className="[overflow-wrap:anywhere]">{t('settings.signOut')}</span>
@@ -116,7 +116,7 @@ export function SettingsPage() {
                 aria-pressed={i18n.language === 'en'}
                 className={`flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-3.5 text-xs transition-all sm:min-h-9 ${
                   i18n.language === 'en'
-                    ? 'bg-[var(--color-primary)] text-white font-black shadow-xs'
+                    ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)] font-black shadow-xs'
                     : 'text-[var(--color-muted)] hover:text-[var(--color-text)] font-extrabold'
                 }`}
               >
@@ -127,7 +127,7 @@ export function SettingsPage() {
                 aria-pressed={i18n.language === 'km'}
                 className={`flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-3.5 text-xs transition-all sm:min-h-9 ${
                   i18n.language === 'km'
-                    ? 'bg-[var(--color-primary)] text-white font-black shadow-xs'
+                    ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)] font-black shadow-xs'
                     : 'text-[var(--color-muted)] hover:text-[var(--color-text)] font-extrabold'
                 }`}
               >
@@ -139,7 +139,7 @@ export function SettingsPage() {
           {/* Sound Effects Row */}
           <div className="flex items-center justify-between gap-3 p-3.5 sm:p-4">
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-success-soft)] text-[var(--color-success)] shadow-xs">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-success-soft)] text-[var(--color-success-text)] shadow-xs">
                 <Icon name={settings.sound ? 'volume' : 'volumeOff'} size={20} />
               </span>
               <div className="min-w-0">
@@ -159,12 +159,12 @@ export function SettingsPage() {
                 }
               }}
               className={`relative flex h-8 w-14 shrink-0 items-center rounded-full p-1 transition-colors ${
-                settings.sound ? 'bg-[var(--color-primary)]' : 'bg-slate-300 dark:bg-slate-700'
+                settings.sound ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-control-border)]'
               }`}
             >
               <span
-                className={`h-6 w-6 rounded-full bg-white shadow-sm transition-transform ${
-                  settings.sound ? 'translate-x-6' : 'translate-x-0'
+                className={`h-6 w-6 rounded-full shadow-sm transition-transform ${
+                  settings.sound ? 'translate-x-6 bg-[var(--color-on-primary)]' : 'translate-x-0 bg-white'
                 }`}
               />
               <span className="sr-only">{t('common.sound')}</span>
@@ -188,12 +188,12 @@ export function SettingsPage() {
               aria-checked={settings.reducedMotion}
               onClick={() => updateSettings({ reducedMotion: !settings.reducedMotion })}
               className={`relative flex h-8 w-14 shrink-0 items-center rounded-full p-1 transition-colors ${
-                settings.reducedMotion ? 'bg-[var(--color-primary)]' : 'bg-slate-300 dark:bg-slate-700'
+                settings.reducedMotion ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-control-border)]'
               }`}
             >
               <span
-                className={`h-6 w-6 rounded-full bg-white shadow-sm transition-transform ${
-                  settings.reducedMotion ? 'translate-x-6' : 'translate-x-0'
+                className={`h-6 w-6 rounded-full shadow-sm transition-transform ${
+                  settings.reducedMotion ? 'translate-x-6 bg-[var(--color-on-primary)]' : 'translate-x-0 bg-white'
                 }`}
               />
               <span className="sr-only">{t('common.reducedMotion')}</span>
@@ -211,7 +211,7 @@ export function SettingsPage() {
           {/* Theme Row */}
           <div className="flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:justify-between sm:p-4">
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-accent-soft)] text-[var(--color-accent)] shadow-xs">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-accent-soft)] text-[var(--color-accent-text)] shadow-xs">
                 <Icon name={settings.theme === 'antigravity' ? 'sparkles' : settings.theme === 'dark' ? 'moon' : 'sun'} size={20} />
               </span>
               <div className="min-w-0">
@@ -227,7 +227,7 @@ export function SettingsPage() {
                 aria-pressed={settings.theme === 'light'}
                 className={`flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-3.5 text-xs transition-all sm:min-h-9 ${
                   settings.theme === 'light'
-                    ? 'bg-[var(--color-primary)] text-white font-black shadow-xs'
+                    ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)] font-black shadow-xs'
                     : 'text-[var(--color-muted)] hover:text-[var(--color-text)] font-extrabold'
                 }`}
               >
@@ -238,7 +238,7 @@ export function SettingsPage() {
                 aria-pressed={settings.theme === 'dark'}
                 className={`flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-3.5 text-xs transition-all sm:min-h-9 ${
                   settings.theme === 'dark'
-                    ? 'bg-[var(--color-primary)] text-white font-black shadow-xs'
+                    ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)] font-black shadow-xs'
                     : 'text-[var(--color-muted)] hover:text-[var(--color-text)] font-extrabold'
                 }`}
               >
@@ -249,7 +249,7 @@ export function SettingsPage() {
                 aria-pressed={settings.theme === 'antigravity'}
                 className={`flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-3.5 text-xs transition-all sm:min-h-9 ${
                   settings.theme === 'antigravity'
-                    ? 'bg-[var(--color-primary)] text-white font-black shadow-xs'
+                    ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)] font-black shadow-xs'
                     : 'text-[var(--color-muted)] hover:text-[var(--color-text)] font-extrabold'
                 }`}
               >
@@ -279,7 +279,7 @@ export function SettingsPage() {
                   aria-pressed={settings.fontSize === size.id}
                   className={`flex min-h-11 items-center justify-center gap-1 rounded-lg px-2.5 text-xs transition-all sm:min-h-9 ${
                     settings.fontSize === size.id
-                      ? 'bg-[var(--color-primary)] text-white font-black shadow-xs'
+                      ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)] font-black shadow-xs'
                       : 'text-[var(--color-muted)] hover:text-[var(--color-text)] font-extrabold'
                   }`}
                 >
@@ -317,7 +317,7 @@ export function SettingsPage() {
 
           <div className="flex items-center justify-between gap-3 p-3.5 sm:p-4">
             <div className="flex items-center gap-3 min-w-0">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-accent-soft)] text-[var(--color-accent)] shadow-xs">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-accent-soft)] text-[var(--color-accent-text)] shadow-xs">
                 <Icon name="flame" size={20} />
               </span>
               <div className="min-w-0 flex-1">
@@ -349,13 +349,13 @@ export function SettingsPage() {
 
       {/* Section 5: Data & Reset (Danger Zone) */}
       <section>
-        <h2 className="mb-1.5 px-1 text-xs font-black uppercase tracking-wider text-[var(--color-danger)]">
+        <h2 className="mb-1.5 px-1 text-xs font-black uppercase tracking-wider text-[var(--color-danger-text)]">
           {t('settings.dangerZone')}
         </h2>
-        <div className="overflow-hidden rounded-[20px] border border-[var(--color-danger)]/30 bg-[var(--color-danger-soft)]/30 p-3.5 shadow-[var(--shadow-sm)] dark:bg-[var(--color-danger-soft)]/20 sm:rounded-[24px] sm:p-4">
+        <div className="overflow-hidden rounded-[20px] border border-[var(--color-danger)]/30 bg-[var(--color-danger-soft)]/30 p-3.5 shadow-[var(--shadow-sm)] sm:rounded-[24px] sm:p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-extrabold text-[var(--color-danger)]">{t('settings.reset')}</p>
+              <p className="text-sm font-extrabold text-[var(--color-danger-text)]">{t('settings.reset')}</p>
               <p className="text-xs text-[var(--color-muted)]">{t('settings.resetHint')}</p>
             </div>
             <Button variant="danger" onClick={() => setResetOpen(true)} className="w-full shrink-0 sm:w-auto">

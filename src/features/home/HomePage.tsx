@@ -59,9 +59,12 @@ export function HomePage() {
   return (
     <div className="study-workspace study-home">
       <header className="study-page-header study-home-welcome">
-        <Mascot species={buddy} size={48} className="study-welcome-pet" />
         <time className="study-date block" dateTime={todayKey}>{today}</time>
         <h1>{t('home.greeting', { name: nickname })}</h1>
+        <div className="study-welcome-art" aria-hidden="true">
+          <Mascot species={buddy} size={140} className="study-welcome-pet" />
+          <Icon name="sparkles" size={28} className="study-welcome-sparkles" />
+        </div>
         {(tutorAvailable || showStreak) && (
           <div className="study-welcome-actions">
             {tutorAvailable && (
@@ -79,7 +82,7 @@ export function HomePage() {
       </header>
 
       <div className="study-dashboard-grid">
-        <StudyQueue decksQuery={decks} title={t('workspace.queue')} featured />
+        <StudyQueue decksQuery={decks} />
 
         <section className="study-panel study-goal" aria-labelledby="daily-goal-title">
           <div className="study-panel-heading">

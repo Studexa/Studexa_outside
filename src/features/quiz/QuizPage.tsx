@@ -230,11 +230,11 @@ export function QuizPage() {
               <p className="text-[11px] font-bold text-[var(--color-muted)]">{t('quiz.score')}</p>
             </div>
             <div className="rounded-2xl bg-[var(--color-success-soft)] p-3">
-              <p className="text-2xl font-black text-[var(--color-success)]">{accuracy}%</p>
+              <p className="text-2xl font-black text-[var(--color-success-text)]">{accuracy}%</p>
               <p className="text-[11px] font-bold text-[var(--color-muted)]">{t('review.accuracy')}</p>
             </div>
             <div className="rounded-2xl bg-[var(--color-accent-soft)] p-3">
-              <p className="text-2xl font-black text-[var(--color-accent)]">+{xp}</p>
+              <p className="text-2xl font-black text-[var(--color-accent-text)]">+{xp}</p>
               <p className="text-[11px] font-bold text-[var(--color-muted)]">XP</p>
             </div>
           </div>
@@ -272,7 +272,7 @@ export function QuizPage() {
     return (
       <div className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col justify-center px-4 py-6">
         <div className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] sm:p-7">
-          <div className="flex items-start gap-3">
+          <div className="flex items-center gap-3 rounded-(--radius-card) bg-[var(--color-primary-soft)] p-3">
             <Mascot species={buddy} mood="happy" size={82} />
             <div>
               <h1 className="text-2xl font-black">{t('quiz.setupTitle')}</h1>
@@ -320,7 +320,7 @@ export function QuizPage() {
               />
             </div>
             </>}
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <label className="text-sm font-bold" htmlFor="quiz-count">{t('quiz.questionCount')}</label>
               <input
                 id="quiz-count"
@@ -334,12 +334,12 @@ export function QuizPage() {
             </div>
 
             {setupError && (
-              <p className="rounded-xl bg-[var(--color-danger-soft)] px-3 py-2 text-sm font-bold text-[var(--color-danger)]">
+              <p className="rounded-xl bg-[var(--color-danger-soft)] px-3 py-2 text-sm font-bold text-[var(--color-danger-text)]">
                 {setupError}
               </p>
             )}
             {generate.isError && (
-              <p role="alert" className="rounded-xl bg-[var(--color-danger-soft)] px-3 py-2 text-sm font-bold text-[var(--color-danger)]">
+              <p role="alert" className="rounded-xl bg-[var(--color-danger-soft)] px-3 py-2 text-sm font-bold text-[var(--color-danger-text)]">
                 {aiErrorMessage(t, generate.error)}
               </p>
             )}
@@ -385,7 +385,7 @@ export function QuizPage() {
           </div>
           <ProgressBar value={index} max={total} size="sm" />
         </div>
-        <span className="flex h-11 min-w-11 items-center justify-center gap-1 rounded-full bg-[var(--color-success-soft)] px-3 text-sm font-black text-[var(--color-success)]">
+        <span className="flex h-11 min-w-11 items-center justify-center gap-1 rounded-full bg-[var(--color-success-soft)] px-3 text-sm font-black text-[var(--color-success-text)]">
           <Icon name="check" size={16} /> {correct}
         </span>
       </header>
@@ -404,10 +404,10 @@ export function QuizPage() {
             {question.choices.map((choice) => {
               const right = choice === question.back
               const chosen = choice === selected
-              let tone = 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-primary)]'
+              let tone = 'border-[var(--paper-edge)] bg-[var(--color-primary-soft)] hover:border-[var(--color-primary)]'
               if (selected) {
-                if (right) tone = 'border-[var(--color-success)] bg-[var(--color-success-soft)] text-[var(--color-success)]'
-                else if (chosen) tone = 'border-[var(--color-danger)] bg-[var(--color-danger-soft)] text-[#b91c1c] dark:text-[var(--color-danger)]'
+                if (right) tone = 'border-[var(--color-success)] bg-[var(--color-success-soft)] text-[var(--color-success-text)]'
+                else if (chosen) tone = 'border-[var(--color-danger)] bg-[var(--color-danger-soft)] text-[var(--color-danger-text)]'
                 else tone = 'border-[var(--color-border)] opacity-55'
               }
               return (
@@ -428,8 +428,8 @@ export function QuizPage() {
               <div
                 className={`flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-bold ${
                   isCorrect
-                    ? 'bg-[var(--color-success-soft)] text-[var(--color-success)]'
-                    : 'bg-[var(--color-danger-soft)] text-[#b91c1c] dark:text-[var(--color-danger)]'
+                    ? 'bg-[var(--color-success-soft)] text-[var(--color-success-text)]'
+                    : 'bg-[var(--color-danger-soft)] text-[var(--color-danger-text)]'
                 }`}
               >
                 <Icon name={isCorrect ? 'checkCircle' : 'xCircle'} size={18} />

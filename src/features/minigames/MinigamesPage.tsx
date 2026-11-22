@@ -160,7 +160,7 @@ function Games({ cards }: { cards: StudyCard[] }) {
       {
         id: 'quick',
         icon: 'bolt',
-        tone: 'bg-[var(--color-accent-soft)] text-[var(--color-accent)]',
+        tone: 'bg-[var(--color-accent-soft)] text-[var(--color-accent-text)]',
         name: 'minigames.quick.name',
         desc: 'minigames.quick.desc',
         badge: 'minigames.quick.badge',
@@ -168,7 +168,7 @@ function Games({ cards }: { cards: StudyCard[] }) {
     ]
     return (
       <div className="space-y-3">
-        <div className="flex items-start gap-3 rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+        <div className="flex items-start gap-3 rounded-(--radius-card) border border-[var(--paper-edge)] bg-[var(--color-primary-soft)] p-4 shadow-(--shadow-sticker)">
           <Mascot species={buddy} mood="happy" size={78} />
           <div>
             <p className="font-extrabold">{t('minigames.hubTitle')}</p>
@@ -188,7 +188,7 @@ function Games({ cards }: { cards: StudyCard[] }) {
               <span className="min-w-0 flex-1">
                 <span className="block font-extrabold">{t(game.name)}</span>
                 <span className="mt-0.5 block text-xs font-semibold leading-snug text-[var(--color-muted)]">{t(game.desc)}</span>
-                <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--color-surface-alt)] px-2 py-0.5 text-[10px] font-black text-[var(--color-accent)]">
+                <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--color-surface-alt)] px-2 py-0.5 text-[10px] font-black text-[var(--color-accent-text)]">
                   <Icon name="bolt" size={11} /> {t(game.badge)}
                 </span>
               </span>
@@ -254,7 +254,7 @@ function Games({ cards }: { cards: StudyCard[] }) {
                 onClick={() => flip(index)}
                 className={`flex aspect-square items-center justify-center rounded-[20px] border-2 p-2 text-center text-xs font-extrabold leading-tight transition sm:text-sm ${
                   matched.includes(tile.cardId)
-                    ? 'border-[var(--color-success)] bg-[var(--color-success-soft)] text-[var(--color-success)]'
+                    ? 'border-[var(--color-success)] bg-[var(--color-success-soft)] text-[var(--color-success-text)]'
                     : open
                       ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]'
                       : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-muted)] hover:border-[var(--color-primary)]'
@@ -269,7 +269,7 @@ function Games({ cards }: { cards: StudyCard[] }) {
 
         {memoryWon ? (
           <div className="animate-pop-in rounded-[24px] border border-[var(--color-success)]/40 bg-[var(--color-success-soft)] p-5 text-center">
-            <p className="text-lg font-black text-[var(--color-success)]">{t('minigames.memory.wonTitle')}</p>
+            <p className="text-lg font-black text-[var(--color-success-text)]">{t('minigames.memory.wonTitle')}</p>
             <p className="text-sm text-[var(--color-muted)]">{t('minigames.memory.wonHint', { count: moves })}</p>
             <div className="mt-3 flex gap-2">
               <Button full onClick={resetMemory}>
@@ -315,7 +315,7 @@ function Games({ cards }: { cards: StudyCard[] }) {
           <p className="font-extrabold">{t('minigames.quick.name')}</p>
           <ProgressBar value={Math.max(0, statements.length - quickIndex)} max={statements.length || 1} size="sm" />
         </div>
-        <span className={`flex h-11 min-w-16 items-center justify-center gap-1 rounded-full px-3 text-sm font-black ${remaining <= 10 ? 'bg-[var(--color-danger-soft)] text-[var(--color-danger)]' : 'bg-[var(--color-accent-soft)] text-[var(--color-accent)]'}`}>
+        <span className={`flex h-11 min-w-16 items-center justify-center gap-1 rounded-full px-3 text-sm font-black ${remaining <= 10 ? 'bg-[var(--color-danger-soft)] text-[var(--color-danger-text)]' : 'bg-[var(--color-accent-soft)] text-[var(--color-accent-text)]'}`}>
           <Icon name="clock" size={15} /> {remaining}s
         </span>
       </div>
@@ -325,7 +325,7 @@ function Games({ cards }: { cards: StudyCard[] }) {
           <Mascot species={buddy} mood={quickScore >= 5 ? 'sparkle' : 'happy'} size={130} accessory={quickScore >= 5 ? 'hat' : null} />
           <p className="mt-2 text-lg font-black">{t('minigames.quick.doneTitle')}</p>
           <p className="text-sm text-[var(--color-muted)]">{t('minigames.quick.doneHint', { score: quickScore, total: statements.length })}</p>
-          <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--color-accent-soft)] px-3 py-1 text-sm font-black text-[var(--color-accent)]">
+          <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-[var(--color-accent-soft)] px-3 py-1 text-sm font-black text-[var(--color-accent-text)]">
             <Icon name="bolt" size={14} /> +{10 + quickScore * 2} XP
           </p>
           <div className="mt-4 flex gap-2">
@@ -349,8 +349,8 @@ function Games({ cards }: { cards: StudyCard[] }) {
             <p
               className={`mt-4 flex items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm font-bold ${
                 feedback === 'correct'
-                  ? 'bg-[var(--color-success-soft)] text-[var(--color-success)]'
-                  : 'bg-[var(--color-danger-soft)] text-[#b91c1c] dark:text-[var(--color-danger)]'
+                  ? 'bg-[var(--color-success-soft)] text-[var(--color-success-text)]'
+                  : 'bg-[var(--color-danger-soft)] text-[var(--color-danger-text)]'
               }`}
             >
               <Icon name={feedback === 'correct' ? 'checkCircle' : 'xCircle'} size={17} />

@@ -221,7 +221,10 @@ test('Home news opens books and the guided tutor keeps its thread across pages',
   const requests: unknown[] = []
   await page.route('**/api/v1/ai/samples/tutor', async (route) => {
     requests.push(route.request().postDataJSON())
-    await route.fulfill({ json: { answer: `Study answer ${requests.length}`, references: [] } })
+    const answer = requests.length === 3
+      ? 'Study answer 3\n\n' + 'Water droplets can form clouds as water vapor cools.\n'.repeat(36)
+      : `Study answer ${requests.length}`
+    await route.fulfill({ json: { answer, references: [] } })
   })
   const open = news.getByRole('button', { name: 'Open tutor' })
   await open.click()
@@ -246,19 +249,46 @@ test('Home news opens books and the guided tutor keeps its thread across pages',
     { sampleId: 'water-cycle-en', promptId: 'compare', previousPromptIds: ['explain'] },
   ])
 
-  await page.setViewportSize({ width: 390, height: 430 })
+  await page.setViewportSize({ width: 280, height: 640 })
+  await page.evaluate(() => {
+    const viewport = window.visualViewport!
+    Object.defineProperties(viewport, {
+      height: { configurable: true, value: 340 },
+      offsetTop: { configurable: true, value: 22 },
+    })
+    viewport.dispatchEvent(new Event('resize'))
+  })
   await tutor.getByRole('combobox').first().selectOption('water-cycle-km')
   await expect(tutor.getByText('Study answer 1')).toBeHidden()
-  await tutor.getByRole('button', { name: 'Ask Gemini' }).click()
-  await expect(tutor.getByText('Study answer 3')).toBeVisible()
+  const send = tutor.getByRole('button', { name: 'Ask Gemini' })
+  await send.click()
+  const answer = tutor.getByText(/^Study answer 3/)
+  await expect(answer).toBeVisible()
+  await expect.poll(() => answer.evaluate((paragraph) => {
+    const range = document.createRange()
+    range.setStart(paragraph.firstChild!, 0)
+    range.setEnd(paragraph.firstChild!, 14)
+    const line = range.getBoundingClientRect()
+    const transcript = paragraph.closest('.tutor-scroll')!.getBoundingClientRect()
+    return line.top >= transcript.top && line.bottom <= transcript.bottom
+  })).toBe(true)
   expect(requests[2]).toEqual({ sampleId: 'water-cycle-km', promptId: 'explain' })
-  await expect(tutor.getByRole('button', { name: 'Ask Gemini' })).toBeInViewport()
-  await expect.poll(async () => (await tutor.boundingBox())?.width).toBe(390)
+  await expect(tutor).toHaveCSS('height', '340px')
+  await expect(tutor).toHaveCSS('width', '280px')
+  expect((await send.boundingBox())!.y + (await send.boundingBox())!.height).toBeLessThanOrEqual(362)
+  expect(await tutor.evaluate((element) => element.scrollWidth)).toBe(280)
   await page.keyboard.press('Escape')
-  await page.evaluate(() => localStorage.setItem('lang', 'km'))
+  await page.evaluate(() => {
+    localStorage.setItem('lang', 'km')
+    localStorage.setItem('studexa_settings', JSON.stringify({ fontSize: 'lg' }))
+  })
   await page.goto('/')
   await expect(page.getByRole('region', { name: 'ព័ត៌មានថ្មីៗ' })).toBeVisible()
-  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(390)
+  await page.locator('.study-shell-header').getByRole('button', { name: 'គ្រូជំនួយ AI' }).click()
+  const khmerTutor = page.locator('.tutor-dialog[open]')
+  await expect(khmerTutor).toBeVisible()
+  await expect(khmerTutor.getByRole('button', { name: 'សួរ Gemini' })).toBeInViewport({ ratio: 1 })
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(280)
 })
 
 test('Explore rotates daily picks and turns a reading selection into a review card', async ({ page }) => {
@@ -329,6 +359,15 @@ test('Explore rotates daily picks and turns a reading selection into a review ca
   await page.getByRole('button', { name: 'Ask AI', exact: true }).click()
   const ask = page.getByRole('dialog', { name: 'Ask AI' })
   await expect(ask.getByLabel('Selected passage')).toHaveValue('It is a truth')
+  await page.evaluate(() => {
+    const viewport = window.visualViewport!
+    Object.defineProperty(viewport, 'height', { configurable: true, value: 280 })
+    viewport.dispatchEvent(new Event('resize'))
+  })
+  await expect.poll(async () => {
+    const box = (await ask.boundingBox())!
+    return box.y + box.height
+  }).toBeLessThan(280)
   await page.route('**/api/v1/library/readings/pride-chapter-1/ask', async (route) => {
     expect(route.request().postDataJSON()).toEqual({
       revision: 13055721, startBlock: index, startOffset: start, endBlock: index, endOffset: end,
@@ -340,6 +379,7 @@ test('Explore rotates daily picks and turns a reading selection into a review ca
   await expect(ask.getByText('The passage begins with a claim.')).toBeVisible()
   await ask.getByRole('button', { name: 'Close' }).click()
   await expect(ask).toBeHidden()
+  await page.evaluate(() => { Reflect.deleteProperty(window.visualViewport!, 'height') })
 
   await selectQuestion()
   await page.getByRole('button', { name: 'Make flashcard' }).click()

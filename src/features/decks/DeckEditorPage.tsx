@@ -322,12 +322,12 @@ export function DeckEditorPage() {
               <Icon name="plus" size={18} /> {createCard.isPending ? t('common.saving') : t('decks.addCard')}
             </Button>
             {formError && (
-              <p className="rounded-xl bg-[var(--color-danger-soft)] px-3 py-2 text-center text-sm font-bold text-[var(--color-danger)]">
+              <p className="rounded-xl bg-[var(--color-danger-soft)] px-3 py-2 text-center text-sm font-bold text-[var(--color-danger-text)]">
                 {formError}
               </p>
             )}
             {notice && (
-              <p className="rounded-xl bg-[var(--color-success-soft)] px-3 py-2 text-center text-sm font-bold text-[var(--color-success)]">
+              <p className="rounded-xl bg-[var(--color-success-soft)] px-3 py-2 text-center text-sm font-bold text-[var(--color-success-text)]">
                 {notice}
               </p>
             )}
@@ -341,7 +341,7 @@ export function DeckEditorPage() {
             <p className="text-xl font-extrabold">{front || t('decks.previewFront')}</p>
           </div>
           <div className="mt-2 flex min-h-40 flex-col items-center justify-center rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-center shadow-[var(--shadow-sm)]">
-            <span className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-success)]">{t('review.back')}</span>
+            <span className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-success-text)]">{t('review.back')}</span>
             <p className="text-xl font-extrabold">{back || t('decks.previewBack')}</p>
           </div>
         </section>
@@ -352,7 +352,7 @@ export function DeckEditorPage() {
         {cardsQuery.isLoading ? (
           <div className="flex justify-center p-6"><Spinner label={t('common.loading')} /></div>
         ) : cardsQuery.isError ? (
-          <p className="rounded-xl bg-[var(--color-danger-soft)] p-3 text-sm font-bold text-[var(--color-danger)]">
+          <p className="rounded-xl bg-[var(--color-danger-soft)] p-3 text-sm font-bold text-[var(--color-danger-text)]">
             {cardsQuery.error.message}
           </p>
         ) : cards.length === 0 ? (
@@ -387,7 +387,7 @@ export function DeckEditorPage() {
                 <button
                   onClick={() => removeCard.mutate(card.id)}
                   disabled={removeCard.isPending}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[var(--color-muted)] hover:bg-[var(--color-danger-soft)] hover:text-[var(--color-danger)]"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[var(--color-muted)] hover:bg-[var(--color-danger-soft)] hover:text-[var(--color-danger-text)]"
                   aria-label={t('decks.deleteCard')}
                 >
                   <Icon name="trash" size={18} />
@@ -415,7 +415,7 @@ export function DeckEditorPage() {
         </div>
       </Modal>
 
-      <Modal open={aiOpen} title={t('decks.aiGeneratorTitle')} onClose={() => setAiOpen(false)}>
+      <Modal open={aiOpen} fitViewport title={t('decks.aiGeneratorTitle')} onClose={() => setAiOpen(false)}>
         <div className="space-y-3">
           {betaEnabled ? <StudySamplePicker {...samplePicker} onChange={setSampleId} /> : <>
           <p className="text-sm text-[var(--color-muted)]">{t('decks.aiGeneratorHint')}</p>
@@ -441,7 +441,7 @@ export function DeckEditorPage() {
             />
           </div>
           </>}
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <label className="text-sm font-bold" htmlFor="ai-count">{t('decks.cardCountLabel')}</label>
             <input
               id="ai-count"
@@ -459,7 +459,7 @@ export function DeckEditorPage() {
             {generateCards.isPending ? t('decks.generating') : t('decks.generateAI')}
           </Button>
           {generateCards.isError && (
-            <p role="alert" className="rounded-xl bg-[var(--color-danger-soft)] px-3 py-2 text-sm font-bold text-[var(--color-danger)]">
+            <p role="alert" className="rounded-xl bg-[var(--color-danger-soft)] px-3 py-2 text-sm font-bold text-[var(--color-danger-text)]">
               {aiErrorMessage(t, generateCards.error)}
             </p>
           )}
@@ -469,7 +469,7 @@ export function DeckEditorPage() {
 
           {aiItems.length > 0 && (
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm font-extrabold">{t('decks.aiPreviewTitle', { count: aiItems.length })}</p>
                 <button
                   className="text-xs font-bold text-[var(--color-primary)]"
@@ -478,7 +478,7 @@ export function DeckEditorPage() {
                   {aiPicked.length === aiItems.length ? t('decks.clearAll') : t('decks.selectAll')}
                 </button>
               </div>
-              <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+              <div className="space-y-2">
                 {aiItems.map((item, index) => {
                   const picked = aiPicked.includes(index)
                   return (
@@ -491,7 +491,7 @@ export function DeckEditorPage() {
                       }`}
                     >
                       <div className="flex items-start gap-2">
-                        <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 ${picked ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white' : 'border-[var(--color-border)]'}`}>
+                        <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 ${picked ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-on-primary)]' : 'border-[var(--color-border)]'}`}>
                           {picked && <Icon name="check" size={12} />}
                         </span>
                         <div className="min-w-0 flex-1">

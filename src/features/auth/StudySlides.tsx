@@ -24,6 +24,7 @@ export function StudySlides() {
           fetchPriority={position === 0 ? 'high' : 'low'} decoding="async" />
       ))}
       <div className="auth-slide-shade" aria-hidden="true" />
+      <Icon name="sparkles" className="auth-slide-sticker" />
       <div className="auth-slide-footer">
         <div className="auth-slide-copy" aria-live="polite" aria-atomic="true">
           <h2>{t(`auth.slides.${slide.key}.title`)}</h2>

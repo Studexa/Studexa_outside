@@ -111,12 +111,12 @@ export function NoteStudy({ noteId, userId, source, onClose, onInsertSummary, on
   }
 
   return (
-    <Modal open title={t('notes.study.title')} onClose={() => { if (!busy) onClose() }}>
+    <Modal open fitViewport title={t('notes.study.title')} onClose={() => { if (!busy) onClose() }}>
       <div className="space-y-4">
         {(limits.isPending || (!!attachmentId && attachmentText.isPending)) && (
           <p role="status" className="text-sm text-[var(--color-muted)]">{t('notes.study.loadingSource')}</p>
         )}
-        {(limits.isError || attachmentText.isError) && <div className="flex items-center gap-2 text-sm" role="alert">
+        {(limits.isError || attachmentText.isError) && <div className="flex flex-wrap items-center gap-2 text-sm" role="alert">
           {t('notes.study.sourceFailed')}
           <Button variant="secondary" size="sm" onClick={() => {
             if (limits.isError) void limits.refetch()
@@ -155,7 +155,7 @@ export function NoteStudy({ noteId, userId, source, onClose, onInsertSummary, on
           </>}
         </>}
         {generating && <p role="status" className="text-sm">{t('notes.study.generating')}</p>}
-        {error && <p role="alert" className="text-sm text-[var(--color-danger)]">{aiErrorMessage(t, error, t(`notes.study.${aiError}`))}</p>}
+        {error && <p role="alert" className="text-sm text-[var(--color-danger-text)]">{aiErrorMessage(t, error, t(`notes.study.${aiError}`))}</p>}
         {result === 'summary' && <section className="space-y-3">
           <h4 className="font-bold">{t('notes.study.summary')}</h4>
           <p className="whitespace-pre-wrap rounded-2xl bg-[var(--color-surface-alt)] p-3 text-sm [overflow-wrap:anywhere]">{summary}</p>
@@ -194,7 +194,7 @@ export function NoteStudy({ noteId, userId, source, onClose, onInsertSummary, on
               {decks.data?.map((deck) => <option key={deck.id} value={deck.id}>{deck.title}</option>)}
             </select>
           </label>}
-          {save.isError && <p role="alert" className="text-sm text-[var(--color-danger)]">{t('notes.study.saveFailed')}</p>}
+          {save.isError && <p role="alert" className="text-sm text-[var(--color-danger-text)]">{t('notes.study.saveFailed')}</p>}
           <div className="flex flex-wrap gap-2">
             <Button disabled={save.isPending || !activeDeckId || !selected.length || selected.some((item) => !item.front.trim() || !item.back.trim())}
               onClick={() => save.mutate()}>

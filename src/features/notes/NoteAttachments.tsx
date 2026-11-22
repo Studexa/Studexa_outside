@@ -192,14 +192,14 @@ export function NoteAttachments({ noteId, userId, onStudy, children }: Props) {
         <p className="mt-2 text-xs" role="status" hidden={!uploading && !notice}>
           {uploading ? t('notes.files.uploading', { filename: uploading }) : notice}
         </p>
-        {!!errors.length && <ul className="mt-2 space-y-1 text-sm text-[var(--color-danger)] [overflow-wrap:anywhere]" role="alert">
+        {!!errors.length && <ul className="mt-2 space-y-1 text-sm text-[var(--color-danger-text)] [overflow-wrap:anywhere]" role="alert">
           {errors.map(({ filename, reason }, index) => <li key={index}>{filename} · {reason}</li>)}
         </ul>}
       </section>
       {children}
       <Modal open={!!removeTarget} title={t('notes.files.remove')} onClose={() => { if (!removing) setRemoveTarget(undefined) }}>
         <p className="text-sm [overflow-wrap:anywhere]">{t('notes.files.confirmRemove', { filename: removeTarget?.filename })}</p>
-        {removeError && <p className="mt-2 text-sm text-[var(--color-danger)]" role="alert">{t('notes.files.removeFailed')}</p>}
+        {removeError && <p className="mt-2 text-sm text-[var(--color-danger-text)]" role="alert">{t('notes.files.removeFailed')}</p>}
         <div className="mt-4 flex gap-2">
           <Button full variant="secondary" disabled={removing} onClick={() => setRemoveTarget(undefined)}>{t('common.cancel')}</Button>
           <Button full variant="danger" disabled={removing} onClick={() => void remove()}>{t('common.delete')}</Button>

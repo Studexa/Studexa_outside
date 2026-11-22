@@ -83,19 +83,19 @@ export function StatsPage() {
       icon: 'clock',
       value: String(activeDays),
       key: 'stats.activeDays',
-      tone: 'bg-[var(--color-success-soft)] text-[var(--color-success)]',
+      tone: 'bg-[var(--color-success-soft)] text-[var(--color-success-text)]',
     },
     {
       icon: 'target',
       value: String(cardsDue),
       key: 'stats.cardsDue',
-      tone: 'bg-[var(--color-accent-soft)] text-[var(--color-accent)]',
+      tone: 'bg-[var(--color-accent-soft)] text-[var(--color-accent-text)]',
     },
     {
       icon: 'flame',
       value: String(streakBest),
       key: 'stats.bestStreak',
-      tone: 'bg-[var(--color-danger-soft)] text-[#b91c1c] dark:text-[var(--color-danger)]',
+      tone: 'bg-[var(--color-danger-soft)] text-[var(--color-danger-text)]',
     },
   ]
 
@@ -241,7 +241,7 @@ export function StatsPage() {
                 <p className="truncate text-xs text-[var(--color-muted)]">{card.back}</p>
                 <div className="mt-1.5 flex items-center justify-between">
                   <span className="text-[10px] font-bold text-[var(--color-muted)]">{card.deckTitle}</span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-danger-soft)] px-2 py-0.5 text-[10px] font-black text-[#b91c1c] dark:text-[var(--color-danger)]">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-danger-soft)] px-2 py-0.5 text-[10px] font-black text-[var(--color-danger-text)]">
                     <Icon name="undo" size={10} /> {t('stats.lapses', { count: card.lapses })}
                   </span>
                 </div>

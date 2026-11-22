@@ -11,9 +11,9 @@ export function ProgressBar({ value, max = 100, tone = 'primary', size = 'md', l
   const pct = Math.max(0, Math.min(100, (value / Math.max(1, max)) * 100))
   const colors = {
     primary: 'var(--progress-bar-primary, var(--color-primary))',
-    accent: 'var(--color-accent)',
-    success: 'var(--color-success)',
-    danger: 'var(--color-danger)',
+    accent: 'var(--color-accent-ink)',
+    success: 'var(--color-success-text)',
+    danger: 'var(--color-danger-text)',
   }
   return (
     <div className={showLabel ? 'space-y-1' : ''}>
@@ -32,7 +32,7 @@ export function ProgressBar({ value, max = 100, tone = 'primary', size = 'md', l
         aria-label={label}
       >
         <div
-          className="h-full rounded-full transition-all duration-500"
+          className="h-full rounded-full transition-[width,background-color] duration-300 motion-reduce:transition-none"
           style={{ width: `${pct}%`, background: colors[tone] }}
         />
       </div>

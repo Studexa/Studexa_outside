@@ -228,7 +228,7 @@ export function PlanPage() {
                   key={key}
                   className={`relative flex aspect-square flex-col items-center justify-center rounded-xl text-xs font-bold ${
                     isToday
-                      ? 'bg-[var(--color-primary)] text-white'
+                      ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)]'
                       : inMonth
                         ? 'text-[var(--color-text)] hover:bg-[var(--color-surface-alt)]'
                         : 'text-[var(--color-muted)]/40'
@@ -238,7 +238,7 @@ export function PlanPage() {
                   {hasExam && (
                     <span
                       className={`absolute bottom-1 flex h-3.5 w-3.5 items-center justify-center rounded-full ${
-                        isToday ? 'bg-white text-[var(--color-primary)]' : 'bg-[var(--color-danger-soft)] text-[var(--color-danger)]'
+                        isToday ? 'bg-[var(--color-surface)] text-[var(--color-primary-text)]' : 'bg-[var(--color-danger-soft)] text-[var(--color-danger-text)]'
                       }`}
                     >
                       <Icon name="sword" size={9} />
@@ -251,7 +251,7 @@ export function PlanPage() {
 
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-bold text-[var(--color-muted)]">
             <span className="inline-flex items-center gap-1">
-              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-danger-soft)] text-[var(--color-danger)]">
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-danger-soft)] text-[var(--color-danger-text)]">
                 <Icon name="sword" size={9} />
               </span>
               {t('plan.examDay')}
@@ -260,7 +260,7 @@ export function PlanPage() {
               <span className="h-3 w-3 rounded bg-[var(--color-primary)]" /> {t('plan.today')}
             </span>
             <span className="inline-flex items-center gap-1">
-              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-success-soft)] text-[var(--color-success)]">
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-success-soft)] text-[var(--color-success-text)]">
                 <Icon name="flame" size={9} />
               </span>
               {t('plan.streak', { count: streak })}
@@ -347,7 +347,7 @@ export function PlanPage() {
                         <span
                           className={`flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-black ${
                             i < reached
-                              ? 'bg-[var(--color-primary)] text-white'
+                              ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)]'
                               : 'bg-[var(--color-surface-alt)] text-[var(--color-muted)]'
                           }`}
                         >
@@ -377,7 +377,7 @@ export function PlanPage() {
           className="mt-1 w-full rounded-2xl px-4 py-2.5"
           autoFocus
         />
-        {entryError && <p role="alert" className="mt-2 text-sm text-[var(--color-danger)]">{t('plan.saveError')}</p>}
+        {entryError && <p role="alert" className="mt-2 text-sm text-[var(--color-danger-text)]">{t('plan.saveError')}</p>}
         <Button full className="mt-3" onClick={createTask} disabled={!taskTitle.trim() || savingEntry}>
           {t('plan.addTask')}
         </Button>
@@ -435,7 +435,7 @@ export function PlanPage() {
               ))}
             </div>
           </div>
-          {entryError && <p role="alert" className="text-sm text-[var(--color-danger)]">{t('plan.saveError')}</p>}
+          {entryError && <p role="alert" className="text-sm text-[var(--color-danger-text)]">{t('plan.saveError')}</p>}
           <Button full onClick={createExam} disabled={!examTitle.trim() || !examDate || savingEntry}>
             {t('plan.addExam')}
           </Button>

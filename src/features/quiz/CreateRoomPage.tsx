@@ -110,7 +110,7 @@ export function CreateRoomPage() {
           </section>
         })}
       </fieldset>
-      {error && <p role="alert" className="rounded-xl bg-[var(--color-danger-soft)] p-3 text-sm text-[var(--color-danger)]">{error}</p>}
+      {error && <p role="alert" className="rounded-xl bg-[var(--color-danger-soft)] p-3 text-sm text-[var(--color-danger-text)]">{error}</p>}
       <Button type="submit" full disabled={loading}>{t(loading ? 'quizRoom.creating' : 'quizRoom.createRoom')}</Button>
     </form>
   </LiveRoomLayout>

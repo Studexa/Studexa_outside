@@ -7,6 +7,7 @@ import { aiErrorMessage } from '../lib/aiErrors'
 import { isTutorRoute, MAX_TUTOR_SOURCE, openStudyCompanion, STUDY_COMPANION_EVENT, STUDY_SOURCE_EVENT, type StudySource } from '../lib/aiStudy'
 import { isGuestMode, useAuth } from '../lib/auth'
 import { betaEnabled } from '../lib/beta'
+import { trackDialogViewport } from '../lib/dialogViewport'
 import { useApp } from '../lib/store'
 import { useOnline } from '../lib/useSettings'
 import { useStudySamples } from '../lib/useStudySamples'
@@ -59,7 +60,9 @@ function Tutor({ available }: { available: boolean }) {
   const guest = isGuestMode()
   const titleId = useId()
   const dialog = useRef<HTMLDialogElement>(null)
-  const transcript = useRef<HTMLDivElement>(null)
+  const latestTurn = useRef<HTMLDivElement>(null)
+  const sourceEditor = useRef<HTMLDivElement>(null)
+  const sourceToggle = useRef<HTMLButtonElement>(null)
   const composer = useRef<HTMLTextAreaElement>(null)
   const opener = useRef<HTMLElement | null>(null)
   const sending = useRef(false)
@@ -77,6 +80,8 @@ function Tutor({ available }: { available: boolean }) {
   const { sample, samples, query } = useStudySamples(betaEnabled && visible && online && !guest, sampleId)
   const prompt = sample?.prompts.find((item) => item.id === promptId) ?? sample?.prompts[0]
   const pending = pendingId !== undefined
+  const latestTurnId = turns.at(-1)?.id
+  const latestAnswer = turns.at(-1)?.response
 
   useEffect(() => {
     if (!available) return
@@ -106,28 +111,26 @@ function Tutor({ available }: { available: boolean }) {
     if (!visible || !element) return
     const previousFocus = opener.current ?? (document.activeElement as HTMLElement | null)
     const overflow = document.body.style.overflow
-    const viewport = window.visualViewport
-    const fitViewport = () => {
-      element.style.setProperty('--tutor-viewport-height', `${viewport?.height ?? window.innerHeight}px`)
-      element.style.setProperty('--tutor-viewport-top', `${viewport?.offsetTop ?? 0}px`)
-    }
-    fitViewport()
-    viewport?.addEventListener('resize', fitViewport)
-    viewport?.addEventListener('scroll', fitViewport)
+    const stopTracking = trackDialogViewport(element)
     element.showModal()
     document.body.style.overflow = 'hidden'
     return () => {
-      viewport?.removeEventListener('resize', fitViewport)
-      viewport?.removeEventListener('scroll', fitViewport)
+      stopTracking()
       element.close()
       document.body.style.overflow = overflow
-      if (previousFocus?.isConnected) previousFocus.focus()
+      if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true })
     }
   }, [visible])
 
   useEffect(() => {
-    if (visible && transcript.current) transcript.current.scrollTop = transcript.current.scrollHeight
-  }, [visible, turns, pendingId])
+    if (visible) latestTurn.current?.scrollIntoView?.({ block: 'start' })
+  }, [visible, latestTurnId, latestAnswer])
+
+  useEffect(() => {
+    if (!visible || !sourceOpen) return
+    sourceEditor.current?.focus({ preventScroll: true })
+    sourceEditor.current?.scrollIntoView?.({ block: 'nearest' })
+  }, [visible, sourceOpen])
 
   async function send(turn: Turn) {
     if (sending.current || guest || !online) return
@@ -195,17 +198,40 @@ function Tutor({ available }: { available: boolean }) {
       onCancel={(event) => { event.preventDefault(); setOpen(false) }}>
       {visible && <>
         <header className="tutor-heading">
-          <Mascot species={buddy} size={36} />
+          <Mascot species={buddy} size={36} className="tutor-mascot" />
           <h2 id={titleId}>{t('beta.tutor')}</h2>
-          <Button type="button" size="sm" variant="ghost" disabled={pending} onClick={clear}>{t('pet.newChat')}</Button>
+          <Button type="button" size="sm" variant="ghost" className="tutor-new-chat" aria-label={t('pet.newChat')} title={t('pet.newChat')}
+            disabled={pending} onClick={clear}><Icon name="plus" size={18} /><span>{t('pet.newChat')}</span></Button>
           <Button type="button" size="sm" variant="ghost" aria-label={t('common.close')} onClick={() => setOpen(false)}><Icon name="close" size={19} /></Button>
         </header>
-        <div className="tutor-scroll" ref={transcript}>
+        <div className="tutor-scroll">
           <div className="tutor-intro">
             {!turns.length && <p>{t(betaEnabled ? 'pet.betaWelcome' : 'pet.greeting')}</p>}
             <p className="study-muted">{t(betaEnabled ? 'beta.aiDisclosure' : 'pet.disclosure')}</p>
             {guest && <p role="status">{t('pet.guestNotice')}</p>}
           </div>
+          {!betaEnabled && !guest && !turns.length && <div className="tutor-tools">
+            {(['explain', 'summarize', 'practice', 'hint'] as const).map((action) => (
+              <button type="button" className="tutor-chip" disabled={pending} key={action}
+                onClick={() => { setDraft(t(`pet.prompts.${action}`)); composer.current?.focus() }}>{t(`pet.actions.${action}`)}</button>
+            ))}
+          </div>}
+          {!betaEnabled && sourceOpen && <div className="tutor-source-editor" ref={sourceEditor} tabIndex={-1}>
+            <input aria-label={t('pet.sourceTitleLabel')} value={source.title} maxLength={200} placeholder={t('decks.sourceTitlePlaceholder')}
+              onChange={(event) => setSource({ ...source, title: event.target.value })} />
+            <textarea aria-label={t('pet.sourceLabel')} value={source.text} maxLength={MAX_TUTOR_SOURCE} rows={3}
+              placeholder={t('pet.sourcePlaceholder')} onChange={(event) => { setSource({ ...source, text: event.target.value }); setTruncated(false) }} />
+            {truncated && <p role="status">{t('pet.truncated', { max: MAX_TUTOR_SOURCE })}</p>}
+            {!!turns.length && <p className="study-muted">{t('pet.sourceThread')}</p>}
+            <Button type="button" size="sm" variant="ghost" onClick={() => {
+              setSource(emptySource)
+              setSourceOpen(false)
+              setTruncated(false)
+              sourceToggle.current?.focus({ preventScroll: true })
+            }}>
+              {t('pet.removeSource')}
+            </Button>
+          </div>}
           {betaEnabled && !guest && (
             <div className="tutor-sources">
               <label>{t('beta.sample')}
@@ -227,7 +253,8 @@ function Tutor({ available }: { available: boolean }) {
               const error = turn.failure?.error
               const code = error instanceof ApiError ? error.code : ''
               const canRetry = !['AI_LIMIT_REACHED', 'AI_NOT_CONFIGURED', 'AI_PROVIDER_ACCESS_DENIED'].includes(code)
-              return <div className="tutor-turn" key={turn.id} lang={betaEnabled ? sample?.language : undefined}>
+              return <div className="tutor-turn" key={turn.id} ref={turn.id === latestTurnId ? latestTurn : undefined}
+                lang={betaEnabled ? sample?.language : undefined}>
                 <div className="tutor-question">{turn.question}</div>
                 {turn.response && <div className="tutor-answer">
                   <p>{turn.response.answer}</p>
@@ -250,7 +277,7 @@ function Tutor({ available }: { available: boolean }) {
         </div>
         <div className="tutor-footer">
           {!online && <p role="status">{t('pet.offlineNotice')}</p>}
-          {betaEnabled ? <form onSubmit={(event) => { event.preventDefault(); ask() }}>
+          {betaEnabled ? <form className="tutor-beta-form" onSubmit={(event) => { event.preventDefault(); ask() }}>
             {sample && <label className="tutor-prompt">{t(turns.some((turn) => turn.response) ? 'pet.followUp' : 'beta.prompt')}
               <select value={prompt?.id ?? ''} disabled={pending} lang={sample.language} onChange={(event) => setPromptId(event.target.value)}>
                 {sample.prompts.map((item) => <option key={item.id} value={item.id}>{item.question}</option>)}
@@ -258,25 +285,10 @@ function Tutor({ available }: { available: boolean }) {
             </label>}
             <Button type="submit" disabled={!sample || !prompt || !online || pending || guest}>{t('beta.askTutor')}</Button>
           </form> : <>
-            {sourceOpen && <div className="tutor-source-editor">
-              <input aria-label={t('pet.sourceTitleLabel')} value={source.title} maxLength={200} placeholder={t('decks.sourceTitlePlaceholder')}
-                onChange={(event) => setSource({ ...source, title: event.target.value })} />
-              <textarea aria-label={t('pet.sourceLabel')} value={source.text} maxLength={MAX_TUTOR_SOURCE} rows={3}
-                placeholder={t('pet.sourcePlaceholder')} onChange={(event) => { setSource({ ...source, text: event.target.value }); setTruncated(false) }} />
-              {truncated && <p role="status">{t('pet.truncated', { max: MAX_TUTOR_SOURCE })}</p>}
-              {!!turns.length && <p className="study-muted">{t('pet.sourceThread')}</p>}
-              <Button type="button" size="sm" variant="ghost" onClick={() => { setSource(emptySource); setSourceOpen(false); setTruncated(false) }}>
-                {t('pet.removeSource')}
-              </Button>
-            </div>}
-            <div className="tutor-tools">
-              <button type="button" className="study-text-link" aria-expanded={sourceOpen} disabled={guest}
-                onClick={() => setSourceOpen(!sourceOpen)}><Icon name="book" size={16} />{source.text.trim() ? t('pet.attached', { title: source.title || t('pet.sourceLabel') }) : t('pet.sourceToggle')}</button>
-              {!turns.length && (['explain', 'summarize', 'practice', 'hint'] as const).map((action) => (
-                <button type="button" className="tutor-chip" disabled={guest || pending} key={action}
-                  onClick={() => { setDraft(t(`pet.prompts.${action}`)); composer.current?.focus() }}>{t(`pet.actions.${action}`)}</button>
-              ))}
-            </div>
+            <button type="button" ref={sourceToggle} className="study-text-link tutor-attachment" aria-expanded={sourceOpen} disabled={guest}
+              onClick={() => setSourceOpen(!sourceOpen)}><Icon name="book" size={16} />
+              <span>{source.text.trim() ? t('pet.attached', { title: source.title || t('pet.sourceLabel') }) : t('pet.sourceToggle')}</span>
+            </button>
             <form onSubmit={(event) => { event.preventDefault(); ask() }}>
               <textarea ref={composer} aria-label={t('pet.placeholder')} value={draft} maxLength={questionLimit}
                 rows={2} disabled={guest} placeholder={t('pet.placeholder')} onChange={(event) => setDraft(event.target.value)}

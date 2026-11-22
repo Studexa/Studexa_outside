@@ -1,9 +1,12 @@
 import { useEffect, useId, useRef, type PropsWithChildren } from 'react'
 import { useTranslation } from 'react-i18next'
+import { trackDialogViewport } from '../lib/dialogViewport'
 import { Button } from './Button'
 import { Icon } from './Icon'
 
-export function Modal({ open, title, onClose, children }: PropsWithChildren<{ open: boolean; title: string; onClose: () => void }>) {
+export function Modal({ open, title, onClose, children, fitViewport = false }: PropsWithChildren<{
+  open: boolean; title: string; onClose: () => void; fitViewport?: boolean
+}>) {
   const { t } = useTranslation()
   const dialog = useRef<HTMLDialogElement>(null)
   const titleId = useId()
@@ -11,17 +14,19 @@ export function Modal({ open, title, onClose, children }: PropsWithChildren<{ op
     const element = dialog.current
     if (!element || !open) return
     const previousFocus = document.activeElement as HTMLElement | null
+    const stopTracking = fitViewport ? trackDialogViewport(element) : undefined
     element.showModal()
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
+      stopTracking?.()
       element.close()
       document.body.style.overflow = previousOverflow
-      previousFocus?.focus()
+      if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true })
     }
-  }, [open])
+  }, [fitViewport, open])
   return (
-    <dialog ref={dialog} aria-labelledby={titleId} className="app-dialog"
+    <dialog ref={dialog} aria-labelledby={titleId} className="app-dialog" data-fit-viewport={fitViewport || undefined}
       onCancel={(event) => { event.preventDefault(); onClose() }}
       onClick={(event) => { if (event.target === event.currentTarget) onClose() }}>
       {open && <>

@@ -83,7 +83,7 @@ export function OnboardingPage() {
     <div className="flex min-h-dvh flex-col bg-[var(--color-bg)] px-4 py-5 text-[var(--color-text)]">
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] text-white">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] text-[var(--color-on-primary)]">
             <Icon name="sparkles" size={22} />
           </span>
           <span className="text-lg font-black">{t('app.name')}</span>
@@ -257,7 +257,7 @@ export function OnboardingPage() {
           )}
 
           {error && (
-            <p role="alert" className="mt-4 rounded-2xl bg-[var(--color-surface-alt)] px-3 py-2 text-sm font-bold text-[var(--color-danger)]">
+            <p role="alert" className="mt-4 rounded-2xl bg-[var(--color-surface-alt)] px-3 py-2 text-sm font-bold text-[var(--color-danger-text)]">
               {error}
             </p>
           )}

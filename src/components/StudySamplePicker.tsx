@@ -9,10 +9,10 @@ export function StudySamplePicker({ sample, samples, query, onChange }: ReturnTy
   const { t } = useTranslation()
   const id = useId()
   return (
-    <div className="space-y-2">
+    <div className="min-w-0 space-y-2 [overflow-wrap:anywhere]">
       <p className="text-sm text-[var(--color-muted)]">{t('beta.aiDisclosure')}</p>
       {query.isError && (
-        <p role="alert" className="text-sm text-[var(--color-danger)]">
+        <p role="alert" className="text-sm text-[var(--color-danger-text)]">
           {t('beta.samplesError')}{' '}
           <button type="button" className="underline" onClick={() => void query.refetch()}>{t('beta.retry')}</button>
         </p>
@@ -23,7 +23,10 @@ export function StudySamplePicker({ sample, samples, query, onChange }: ReturnTy
         {!sample && <option value="">{t(query.isError ? 'beta.samplesError' : 'common.loading')}</option>}
         {samples.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}
       </select>
-      {sample && <p lang={sample.language} className="whitespace-pre-line text-sm">{sample.text}</p>}
+      {sample && <details className="rounded-xl bg-[var(--color-surface-alt)] px-3">
+        <summary className="min-h-11 py-2 text-sm font-semibold">{t('pet.viewSource')}</summary>
+        <p lang={sample.language} className="whitespace-pre-line pb-3 text-sm">{sample.text}</p>
+      </details>}
     </div>
   )
 }

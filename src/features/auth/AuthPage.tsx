@@ -194,7 +194,7 @@ export function AuthPage({ mode }: { mode: Mode }) {
             {error && (
               <p
                 role="alert"
-                className="rounded-2xl bg-[var(--color-danger-soft,var(--color-surface-alt))] px-3 py-2 text-sm font-bold text-[var(--color-danger)]"
+                className="rounded-2xl bg-[var(--color-danger-soft,var(--color-surface-alt))] px-3 py-2 text-sm font-bold text-[var(--color-danger-text)]"
               >
                 {error}
               </p>

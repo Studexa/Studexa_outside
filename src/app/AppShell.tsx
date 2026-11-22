@@ -69,7 +69,7 @@ export function AppShell() {
     const shellElement = shell.current
     const headerElement = header.current
     if (!shellElement || !headerElement) return
-    const measure = () => shellElement.style.setProperty('--study-header-offset', `${headerElement.offsetHeight}px`)
+    const measure = () => shellElement.style.setProperty('--study-header-offset', `${headerElement.getBoundingClientRect().height}px`)
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(headerElement)
@@ -124,11 +124,11 @@ export function AppShell() {
 
       <div className="study-shell-body">
         <aside className="study-sidebar">
-          <nav aria-label={t('nav.main')} className="space-y-1">
-            <div className="space-y-1">
+          <nav aria-label={t('nav.main')} className="study-sidebar-panel">
+            <div className="study-nav-group">
               {primaryNav.map((item) => <WorkspaceNavLink key={item.to} item={item} />)}
             </div>
-            <div className="mt-5 space-y-1 border-t border-(--study-border) pt-4">
+            <div className="study-nav-group">
               {workspaceSecondaryNav.map((item) => <WorkspaceNavLink key={item.to} item={item} />)}
               <TelegramLink />
             </div>
@@ -143,7 +143,7 @@ export function AppShell() {
       </div>
 
       <nav className="study-bottom-bar" aria-label={t('nav.main')}>
-        <div className="mx-auto grid max-w-md grid-cols-5">
+        <div className="study-tabs">
           {primaryNav.map((item) => <WorkspaceNavLink key={item.to} item={item} mobile />)}
           <details ref={mobileMore} className="mobile-more relative" onKeyDown={(event) => {
             if (event.key === 'Escape' && mobileMore.current?.open) {
@@ -152,7 +152,7 @@ export function AppShell() {
             }
           }}>
             <summary ref={moreTrigger} className="study-tab list-none">
-              <Icon name="layers" size={19} /><span>{t('shell.more')}</span>
+              <Icon name="menu" size={19} /><span>{t('shell.more')}</span>
             </summary>
             <div className="study-more-menu">
               {workspaceSecondaryNav.map((item) => <WorkspaceNavLink key={item.to} item={item} />)}

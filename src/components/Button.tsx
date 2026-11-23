@@ -1,10 +1,11 @@
-import type { ButtonHTMLAttributes } from 'react'
+import type { ButtonHTMLAttributes, Ref } from 'react'
 import { playSound } from '../lib/sound'
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'success' | 'accent'
   size?: 'sm' | 'md' | 'lg'
   full?: boolean
+  ref?: Ref<HTMLButtonElement>
 }
 
 export function Button({ variant = 'primary', size = 'md', full, className = '', onClick, ...props }: Props) {

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useLocalizedStarter } from '../../lib/starterContent'
 import { Icon, type IconName } from '../../components/Icon'
 import { Badge } from '../../components/Badge'
 import { Button } from '../../components/Button'
@@ -24,6 +25,7 @@ function heatLevel(count: number) {
 
 export function StatsPage() {
   const { t, i18n } = useTranslation()
+  const starter = useLocalizedStarter()
   const userId = useAuth((state) => state.user?.id)
   const guestMode = isGuestMode()
   const localStreak = useApp((s) => s.streak)
@@ -237,10 +239,10 @@ export function StatsPage() {
           <div className="mt-3 space-y-2">
             {weakCards.map((card) => (
               <div key={card.id} className="rounded-2xl bg-[var(--color-surface-alt)]/60 p-3">
-                <p className="text-sm font-extrabold">{card.front}</p>
-                <p className="truncate text-xs text-[var(--color-muted)]">{card.back}</p>
+                <p className="text-sm font-extrabold">{starter.card(card.deckId, card.front)}</p>
+                <p className="truncate text-xs text-[var(--color-muted)]">{starter.card(card.deckId, card.back)}</p>
                 <div className="mt-1.5 flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-[var(--color-muted)]">{card.deckTitle}</span>
+                  <span className="text-[10px] font-bold text-[var(--color-muted)]">{starter.deck(card.deckId, card.deckTitle)}</span>
                   <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-danger-soft)] px-2 py-0.5 text-[10px] font-black text-[var(--color-danger-text)]">
                     <Icon name="undo" size={10} /> {t('stats.lapses', { count: card.lapses })}
                   </span>

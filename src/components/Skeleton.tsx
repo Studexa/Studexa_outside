@@ -1,4 +1,5 @@
 import type { HTMLAttributes } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export function Skeleton({ className = '', ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
@@ -67,8 +68,9 @@ export function NoteCardSkeleton() {
 }
 
 export function PageSkeleton() {
+  const { t } = useTranslation()
   return (
-    <div className="space-y-4 animate-pulse" aria-busy="true" aria-label="Loading page">
+    <div className="space-y-4 animate-pulse" aria-busy="true" aria-label={t('common.loadingPage')}>
       <div className="flex items-center justify-between">
         <div className="space-y-2">
           <Skeleton className="h-7 w-44 rounded-xl" />
@@ -84,4 +86,3 @@ export function PageSkeleton() {
     </div>
   )
 }
-

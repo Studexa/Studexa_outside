@@ -3,8 +3,8 @@ export const STUDY_COMPANION_EVENT = 'studexa:open-companion'
 export const MAX_TUTOR_SOURCE = 12000
 export type StudySource = { title: string; text: string }
 
-const immersiveRoutes = ['/study/review', '/study/practice', '/study/boss', '/study/timer']
-const routesWithoutTutor = [...immersiveRoutes, '/study/quiz', '/study/minigames',
+const immersiveRoutes = ['/study/review', '/study/practice', '/study/boss', '/study/timer', '/study/quiz']
+const routesWithoutTutor = [...immersiveRoutes, '/study/minigames',
   '/auth', '/login', '/register', '/demo', '/onboarding', '/quiz']
 
 function includesRoute(routes: string[], pathname: string) {

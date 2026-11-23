@@ -18,9 +18,10 @@ import {
   xpForNext,
   type ShopItem,
 } from '../../lib/store'
-import { gameApi, petApi, shopApi, type ShopItemDto } from '../../lib/api'
+import { ApiError, gameApi, petApi, shopApi, type ShopItemDto } from '../../lib/api'
 import { isGuestMode, useAuth } from '../../lib/auth'
 import { studyKeys, useGameState } from '../../lib/study'
+import { formatStudyDate } from '../../lib/studyDate'
 
 /** Server item ids that differ from the i18n/UI ids. */
 const SERVER_ITEM_ID_TO_UI: Record<string, string> = { theme_ocean: 'themeOcean' }
@@ -149,7 +150,7 @@ export function ProfilePage() {
       window.setTimeout(() => setMessage(null), 2600)
     },
     onError: (err: Error) => {
-      setMessage(err.message || t('profile.notEnoughCoins'))
+      setMessage(t(err instanceof ApiError && err.code === 'NOT_ENOUGH_COINS' ? 'profile.notEnoughCoins' : 'common.error'))
       window.setTimeout(() => setMessage(null), 2600)
     },
   })
@@ -160,8 +161,8 @@ export function ProfilePage() {
       queryClient.invalidateQueries({ queryKey: studyKeys.pet(user?.id) })
       setPreview(null)
     },
-    onError: (err: Error) => {
-      setMessage(err.message || t('common.error'))
+    onError: () => {
+      setMessage(t('common.error'))
       window.setTimeout(() => setMessage(null), 2600)
     },
   })
@@ -172,6 +173,8 @@ export function ProfilePage() {
         earned,
         descriptionEn: code,
         nameEn: code,
+        descriptionKm: code,
+        nameKm: code,
         coinsReward: BADGES.find((badge) => badge.code === code)?.coins ?? 0,
       }))
     : (badgesQuery.data ?? [])
@@ -179,12 +182,9 @@ export function ProfilePage() {
   const ownedCount = earnedBadges.length
 
   const nextXp = xpForNext(level)
-  const [joined] = useState(() =>
-    new Intl.DateTimeFormat(i18n.language === 'km' ? 'km-KH' : 'en-US', {
-      month: 'long',
-      year: 'numeric',
-    }).format(new Date()),
-  )
+  const isKhmer = i18n.resolvedLanguage === 'km'
+  const [joinedAt] = useState(() => new Date())
+  const joined = formatStudyDate(joinedAt, isKhmer ? 'km' : 'en', 'month')
 
   const [preview, setPreview] = useState<UiShopItem | null>(null)
   const [nameOpen, setNameOpen] = useState(false)
@@ -292,7 +292,7 @@ export function ProfilePage() {
               return (
                 <div
                   key={badge.code}
-                  title={badge.descriptionEn}
+                  title={t(`badges.${badge.code}.desc`, { defaultValue: isKhmer ? badge.descriptionKm : badge.descriptionEn })}
                   className={`flex flex-col items-center gap-1 rounded-2xl border p-2 text-center ${
                     earned
                       ? 'border-[var(--color-accent)]/40 bg-[var(--color-accent-soft)]'
@@ -308,7 +308,9 @@ export function ProfilePage() {
                   >
                     <Icon name={earned ? badgeIcons[badge.code] ?? 'trophy' : 'lock'} size={19} />
                   </span>
-                  <p className="text-[10px] font-black leading-tight">{badge.nameEn}</p>
+                  <p className="text-[10px] font-black leading-tight">
+                    {t(`badges.${badge.code}.name`, { defaultValue: isKhmer ? badge.nameKm : badge.nameEn })}
+                  </p>
                   <p className="text-[9px] font-bold text-[var(--color-muted)]">
                     {earned ? `+${badge.coinsReward}` : t('profile.locked')}
                   </p>

@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Icon, type IconName } from '../components/Icon'
+import { LanguageSelector } from '../components/LanguageSelector'
 import { Modal } from '../components/Modal'
 import { ProgressBar } from '../components/ProgressBar'
 import { TutorLauncher } from '../components/AiPet'
@@ -92,7 +93,10 @@ export function AppShell() {
     { label: 'shell.freezes', value: guest ? owned.filter((id) => id === 'freeze').length : game?.streakFreezes },
   ]
 
-  if (immersive) return <div className="min-h-dvh bg-(--color-bg) text-(--color-text)"><Outlet /></div>
+  if (immersive) return <div className="min-h-dvh bg-(--color-bg) text-(--color-text)">
+    <div className="standalone-language"><LanguageSelector /></div>
+    <Outlet />
+  </div>
 
   return (
     <div className="app-shell min-h-dvh" ref={shell}>
@@ -100,12 +104,13 @@ export function AppShell() {
 
       <header className="study-shell-header" ref={header}>
         <div className="study-shell-header-inner">
-          <Link to="/" className="study-brand">
+          <Link to="/" className="study-brand" aria-label={t('app.name')}>
             <img className="study-brand-mark" src={studexaLogo} alt="" width={34} height={34} />
             <span>{t('app.name')}</span>
           </Link>
 
           <div className="study-header-actions">
+            <LanguageSelector />
             {tutorAvailable && <TutorLauncher />}
             <button className="study-header-action" onClick={() => setShowProgress(true)} aria-label={t('workspace.progress')}>
               <Icon name="chart" size={19} /><span className="study-header-label">{t('workspace.progress')}</span>

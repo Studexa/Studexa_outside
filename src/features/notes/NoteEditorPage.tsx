@@ -8,6 +8,7 @@ import { EmptyState } from '../../components/EmptyState'
 import { Icon } from '../../components/Icon'
 import { Modal } from '../../components/Modal'
 import { useApp, type Note } from '../../lib/store'
+import { useLocalizedStarter } from '../../lib/starterContent'
 import { openStudyBuddy } from '../../lib/aiStudy'
 import { betaEnabled } from '../../lib/beta'
 import { isGuestMode, useAuth } from '../../lib/auth'
@@ -40,6 +41,7 @@ export function NoteEditorPage() {
 
 function NoteEditor({ note }: { note: Note }) {
   const { t } = useTranslation()
+  const starter = useLocalizedStarter()
   const navigate = useNavigate()
   const userId = useAuth((state) => state.user?.id)
   const accountId = isGuestMode() ? undefined : userId
@@ -47,6 +49,7 @@ function NoteEditor({ note }: { note: Note }) {
   const deleteNote = useApp((s) => s.deleteNote)
 
   const [title, setTitle] = useState(note.title)
+  const [editingOriginal, setEditingOriginal] = useState(false)
   const [status, setStatus] = useState<'saved' | 'saving' | 'error'>('saved')
   const [selectedText, setSelectedText] = useState('')
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -77,6 +80,7 @@ function NoteEditor({ note }: { note: Note }) {
   }
 
   const queueSave = (patch: { title?: string; content?: string }) => {
+    setEditingOriginal(true)
     latest.current = { ...latest.current, ...patch }
     setStatus('saving')
     if (saveTimer.current) window.clearTimeout(saveTimer.current)
@@ -86,6 +90,7 @@ function NoteEditor({ note }: { note: Note }) {
   const editor = useEditor({
     extensions: [StarterKit],
     content: note.content,
+    immediatelyRender: false,
     editorProps: {
       attributes: {
         class: 'tiptap prose-none min-h-[42vh] px-4 py-4 outline-none sm:px-6',
@@ -113,7 +118,10 @@ function NoteEditor({ note }: { note: Note }) {
     navigate('/notes')
   }
 
-  const bodyText = useEditorState({ editor, selector: ({ editor }) => editor?.getText({ blockSeparator: '\n' }).trim() ?? '' }) ?? ''
+  const bodyText = useEditorState({
+    editor,
+    selector: ({ editor }) => editor?.schema ? editor.getText({ blockSeparator: '\n' }).trim() : '',
+  }) ?? ''
   const words = bodyText.split(/\s+/).filter(Boolean).length
   const canStudy = !!accountId && !betaEnabled
 
@@ -138,6 +146,19 @@ function NoteEditor({ note }: { note: Note }) {
     { icon: 'note' as const, label: t('notes.quote'), active: editor?.isActive('blockquote'), run: () => editor?.chain().focus().toggleBlockquote().run() },
     { icon: 'undo' as const, label: t('common.undo'), active: false, run: () => editor?.chain().focus().undo().run() },
   ]
+
+  const localized = starter.note(note)
+  if (localized !== note && !editingOriginal) {
+    return <article className="study-panel space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Link to="/notes" className="study-text-link"><Icon name="arrowLeft" size={16} />{t('common.back')}</Link>
+        <Button variant="secondary" onClick={() => setEditingOriginal(true)}>{t('notes.editOriginal')}</Button>
+      </div>
+      <h1 className="text-2xl font-semibold">{localized.title}</h1>
+      <p className="study-muted">{localized.subject}</p>
+      <div className="tiptap" dangerouslySetInnerHTML={{ __html: localized.content }} />
+    </article>
+  }
 
   const noteEditor = (
     <>
@@ -164,8 +185,8 @@ function NoteEditor({ note }: { note: Note }) {
               onClick={() => void flush().catch(() => undefined)}>{t('common.retry')}</button>
           )}
         </div>
-        {!betaEnabled && <Button variant="secondary" size="sm" disabled={!editor?.getText().trim()}
-          onClick={(event) => openStudyBuddy({ title, text: selectedText || editor?.getText({ blockSeparator: '\n' }) || '' }, event.currentTarget)}>
+        {!betaEnabled && <Button variant="secondary" size="sm" disabled={!bodyText}
+          onClick={(event) => openStudyBuddy({ title, text: selectedText || bodyText }, event.currentTarget)}>
           <Icon name="sparkles" size={16} /> {t('pet.studyNote')}
         </Button>}
         <button

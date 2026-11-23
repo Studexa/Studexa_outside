@@ -104,6 +104,39 @@ const publicDecks = [
 ]
 
 const subjects = ['Mathematics', 'Biology', 'Khmer', 'English', 'Physics', 'History']
+const khmerSubjects: Record<string, string> = {
+  Mathematics: 'គណិតវិទ្យា', Biology: 'ជីវវិទ្យា', Khmer: 'ភាសាខ្មែរ',
+  English: 'ភាសាអង់គ្លេស', Physics: 'រូបវិទ្យា', History: 'ប្រវត្តិសាស្ត្រ',
+}
+const khmerDecks: Record<string, { title: string; cards: { front: string; back: string }[] }> = {
+  'pub-1': { title: 'លំហាត់ពិជគណិតខ្លីៗ', cards: [
+    { front: 'ដោះស្រាយសមីការ 3x = 21', back: 'x = 7' },
+    { front: 'បំបែក x² − 4 ជាផលគុណកត្តា', back: '(x − 2)(x + 2)' },
+    { front: 'មេគុណប្រាប់ទិសនៃបន្ទាត់ y = −2x + 1', back: '−2' },
+  ] },
+  'pub-2': { title: 'មូលដ្ឋានជីវវិទ្យាកោសិកា', cards: [
+    { front: 'ផ្នែកនៃកោសិកាដែលផលិតថាមពល', back: 'មីតូកុងឌ្រី' },
+    { front: 'ផ្នែកដែលរស្មីសំយោគកើតឡើង', back: 'ក្លរ៉ូប្លាស' },
+    { front: 'ផ្នែកដែលគ្រប់គ្រងសារធាតុចូលកោសិកា', back: 'ភ្នាសកោសិកា' },
+  ] },
+  'pub-3': { title: 'សុភាសិតខ្មែរ', cards: [
+    { front: '«ចេះដប់ មិនស្មើចេះមួយ»', back: 'ចេះជ្រៅមួយមុខប្រសើរជាងចេះរាក់ៗច្រើនមុខ។' },
+    { front: '«ដំរីស្លាប់ ដោយដើមចេក»', back: 'រឿងធំអាចបរាជ័យដោយសារមូលហេតុតូចតាច។' },
+  ] },
+  'pub-4': { title: 'កិរិយាសព្ទអង់គ្លេសមិនទៀងទាត់', cards: [
+    { front: 'ទម្រង់អតីតកាលនៃពាក្យ “go”', back: 'went' },
+    { front: 'ទម្រង់អតីតកាលនៃពាក្យ “write”', back: 'wrote' },
+    { front: 'ទម្រង់អតីតកាលនៃពាក្យ “think”', back: 'thought' },
+  ] },
+  'pub-5': { title: 'រូបមន្តរូបវិទ្យា', cards: [
+    { front: 'រូបមន្តល្បឿន', back: 'ចម្ងាយ ÷ រយៈពេល' },
+    { front: 'រូបមន្តកម្លាំង', back: 'ម៉ាស × សំទុះ' },
+  ] },
+  'pub-6': { title: 'ឆ្នាំសំខាន់ៗក្នុងប្រវត្តិសាស្ត្រពិភពលោក', cards: [
+    { front: 'ឆ្នាំដែលសង្គ្រាមលោកលើកទីពីរបានបញ្ចប់', back: '1945' },
+    { front: 'ឆ្នាំដែលជញ្ជាំងប៊ែរឡាំងបានដួលរលំ', back: '1989' },
+  ] },
+}
 
 export function ExplorePage() {
   const { t } = useTranslation()
@@ -127,7 +160,12 @@ export function ExplorePage() {
 }
 
 function StarterDecks() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const language = i18n.resolvedLanguage
+  const subjectLabel = (value: string) => language === 'km' ? khmerSubjects[value] ?? value : value
+  const localizedDeck = (deck: (typeof publicDecks)[number]) => language === 'km'
+    ? { ...deck, ...khmerDecks[deck.id], subject: subjectLabel(deck.subject) }
+    : deck
   const queryClient = useQueryClient()
   const guestMode = isGuestMode()
   const [query, setQuery] = useState('')
@@ -161,14 +199,15 @@ function StarterDecks() {
   })
 
   const filtered = publicDecks.filter((deck) => {
-    const matchQuery = `${deck.title} ${deck.subject} ${deck.author}`.toLowerCase().includes(query.toLowerCase())
+    const display = localizedDeck(deck)
+    const matchQuery = `${display.title} ${display.subject} ${deck.author}`.toLowerCase().includes(query.toLowerCase())
     const matchSubject = subject === 'all' || deck.subject === subject
     return matchQuery && matchSubject
   })
 
   const copyDeck = (deck: (typeof publicDecks)[number]) => {
     if (copyMutation.isPending) return
-    copyMutation.mutate(deck)
+    copyMutation.mutate(localizedDeck(deck))
   }
 
   return (
@@ -191,7 +230,7 @@ function StarterDecks() {
 
       {copyMutation.isError && (
         <p className="rounded-xl bg-[var(--color-danger-soft)] px-3 py-2 text-sm font-bold text-[var(--color-danger-text)]">
-          {copyMutation.error.message}
+          {t('common.error')}
         </p>
       )}
 
@@ -212,7 +251,7 @@ function StarterDecks() {
               subject === item ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)]' : 'bg-[var(--color-surface-alt)] text-[var(--color-muted)]'
             }`}
           >
-            {item}
+            {subjectLabel(item)}
           </button>
         ))}
       </div>
@@ -236,9 +275,9 @@ function StarterDecks() {
                     {deck.icon}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <h2 className="truncate font-extrabold">{deck.title}</h2>
+                    <h2 className="truncate font-extrabold">{localizedDeck(deck).title}</h2>
                     <p className="text-xs font-semibold text-[var(--color-muted)]">
-                      {deck.subject} · {t('explore.by', { name: deck.author })}
+                      {subjectLabel(deck.subject)} · {t('explore.by', { name: deck.author })}
                     </p>
                   </div>
                 </div>

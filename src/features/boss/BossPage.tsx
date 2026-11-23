@@ -12,6 +12,7 @@ import { useApp } from '../../lib/store'
 import { useAllStudyCards, type StudyCardWithDeck } from '../../lib/study'
 import type { DeckSummary, StudyCard } from '../../lib/api'
 import { Spinner } from '../../components/Spinner'
+import { useLocalizedStarter } from '../../lib/starterContent'
 
 type Question = { card: StudyCard; deck: DeckSummary; choices: string[] }
 
@@ -46,6 +47,7 @@ export function BossPage() {
 
 function BossGame({ items }: { items: StudyCardWithDeck[] }) {
   const { t } = useTranslation()
+  const starter = useLocalizedStarter()
   const navigate = useNavigate()
   const buddy = useApp((s) => s.buddy)
   const recordBoss = useApp((s) => s.recordBoss)
@@ -225,7 +227,7 @@ function BossGame({ items }: { items: StudyCardWithDeck[] }) {
         <div className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-[var(--color-text)] shadow-[0_20px_50px_rgba(0,0,0,0.35)] sm:p-5">
           <div className="flex items-center justify-between">
             <span className="rounded-full bg-[var(--color-primary-soft)] px-2.5 py-1 text-[10px] font-black text-[var(--color-primary)]">
-              {question.deck.subjectName ?? question.deck.title}
+              {starter.deck(question.deck.id, question.deck.subjectName ?? question.deck.title)}
             </span>
             {feedback && (
               <span
@@ -240,7 +242,7 @@ function BossGame({ items }: { items: StudyCardWithDeck[] }) {
               </span>
             )}
           </div>
-          <p className="mt-3 text-center text-xl font-extrabold leading-snug sm:text-2xl">{question.card.front}</p>
+          <p className="mt-3 text-center text-xl font-extrabold leading-snug sm:text-2xl">{starter.card(question.deck.id, question.card.front)}</p>
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
             {question.choices.map((choice) => {
               const isCorrect = choice === question.card.back
@@ -258,7 +260,7 @@ function BossGame({ items }: { items: StudyCardWithDeck[] }) {
                   disabled={!!selected}
                   className={`min-h-12 rounded-2xl border-2 px-3 py-2.5 text-sm font-bold transition ${tone}`}
                 >
-                  {choice}
+                  {starter.card(choice === question.card.back ? question.deck.id : items.find(({ card }) => card.back === choice)?.deck.id, choice)}
                 </button>
               )
             })}

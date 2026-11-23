@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { useLocalizedStarter } from '../../lib/starterContent'
 import { Icon } from '../../components/Icon'
 import { Mascot } from '../../components/Mascot'
 import { ProgressBar } from '../../components/ProgressBar'
@@ -52,7 +53,7 @@ export function ReviewPage() {
       <main className="review-workspace review-centered">
         <EmptyState
           title={t('review.loadError')}
-          hint={dueQuery.error.message}
+          hint={t('review.noCachedCards')}
           action={<Button onClick={() => void dueQuery.refetch()}>{t('common.retry')}</Button>}
         />
         <Link className="study-text-link" to="/study"><Icon name="arrowLeft" size={16} />{t('nav.study')}</Link>
@@ -69,6 +70,7 @@ function ReviewSession({ dueQuery, initialCards, userId }: {
   userId?: string
 }) {
   const { t } = useTranslation()
+  const starter = useLocalizedStarter()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const recordReviewSession = useApp((s) => s.recordReviewSession)
@@ -365,7 +367,7 @@ function ReviewSession({ dueQuery, initialCards, userId }: {
           </Link>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-(--study-ink)">{t('review.title')}</p>
-            <h1 className="review-deck-title font-semibold [overflow-wrap:anywhere]">{current?.deckTitle}</h1>
+            <h1 className="review-deck-title font-semibold [overflow-wrap:anywhere]">{current && starter.deck(current.deckId, current.deckTitle)}</h1>
           </div>
           <p className="review-position text-sm font-semibold tabular-nums">{t('workspace.cardPosition', { current: index + 1, total })}</p>
         </div>
@@ -374,7 +376,7 @@ function ReviewSession({ dueQuery, initialCards, userId }: {
       <div className="review-session-body">
         <ProgressBar value={index} max={total} size="sm" label={t('workspace.reviewProgress')} />
         <div className="review-card-meta flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-          {current?.deckSubject && <span className="font-semibold [overflow-wrap:anywhere]">{current.deckSubject}</span>}
+          {current?.deckSubject && <span className="font-semibold [overflow-wrap:anywhere]">{starter.deck(current.deckId, current.deckSubject)}</span>}
           <span className="study-muted">{t('decks.types.' + typeKey[current?.type ?? 'BASIC'])}</span>
         </div>
 

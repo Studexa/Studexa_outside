@@ -17,6 +17,7 @@ import { betaEnabled, maxBetaAiItems } from '../../lib/beta'
 import { StudySamplePicker } from '../../components/StudySamplePicker'
 import { useStudySamples } from '../../lib/useStudySamples'
 import { useApp } from '../../lib/store'
+import { useLocalizedStarter } from '../../lib/starterContent'
 
 type EditorType = 'basic' | 'reverse' | 'cloze' | 'choice'
 
@@ -36,6 +37,7 @@ const toEditorType: Record<CardType, EditorType> = {
 
 export function DeckEditorPage() {
   const { t, i18n } = useTranslation()
+  const starter = useLocalizedStarter()
   const { deckId } = useParams()
   const queryClient = useQueryClient()
   const deckQuery = useDeck(deckId)
@@ -177,7 +179,7 @@ export function DeckEditorPage() {
     return (
       <EmptyState
         title={t('decks.notFound')}
-        hint={deckQuery.error?.message ?? t('decks.notFoundHint')}
+        hint={t('decks.notFoundHint')}
         action={<Link to="/study/decks"><Button>{t('decks.backToDecks')}</Button></Link>}
       />
     )
@@ -204,11 +206,7 @@ export function DeckEditorPage() {
     )
   }
 
-  const formError =
-    createCard.error?.message ??
-    bulkCreate.error?.message ??
-    removeCard.error?.message ??
-    addGenerated.error?.message
+  const formError = createCard.isError || bulkCreate.isError || removeCard.isError || addGenerated.isError
 
   return (
     <div className="space-y-4">
@@ -229,9 +227,9 @@ export function DeckEditorPage() {
               {deck.icon || '📚'}
             </span>
             <div className="min-w-0">
-              <h1 className="truncate text-xl font-black">{deck.title}</h1>
+              <h1 className="truncate text-xl font-black">{starter.deck(deck.id, deck.title)}</h1>
               <p className="text-xs font-semibold text-[var(--color-muted)]">
-                {deck.subjectName || t('decks.noSubject')}
+                {deck.subjectName ? starter.deck(deck.id, deck.subjectName) : t('decks.noSubject')}
               </p>
             </div>
           </div>
@@ -323,7 +321,7 @@ export function DeckEditorPage() {
             </Button>
             {formError && (
               <p className="rounded-xl bg-[var(--color-danger-soft)] px-3 py-2 text-center text-sm font-bold text-[var(--color-danger-text)]">
-                {formError}
+                {t('common.error')}
               </p>
             )}
             {notice && (
@@ -353,7 +351,7 @@ export function DeckEditorPage() {
           <div className="flex justify-center p-6"><Spinner label={t('common.loading')} /></div>
         ) : cardsQuery.isError ? (
           <p className="rounded-xl bg-[var(--color-danger-soft)] p-3 text-sm font-bold text-[var(--color-danger-text)]">
-            {cardsQuery.error.message}
+            {t('common.error')}
           </p>
         ) : cards.length === 0 ? (
           <EmptyState title={t('decks.noCards')} hint={t('decks.noCardsHint')} />
@@ -365,8 +363,8 @@ export function DeckEditorPage() {
                 className="flex items-start gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-extrabold">{card.front}</p>
-                  <p className="mt-0.5 truncate text-xs text-[var(--color-muted)]">{card.back}</p>
+                  <p className="text-sm font-extrabold">{starter.card(deck.id, card.front)}</p>
+                  <p className="mt-0.5 truncate text-xs text-[var(--color-muted)]">{starter.card(deck.id, card.back)}</p>
                   <div className="mt-1 flex flex-wrap items-center gap-2">
                     <span className="text-[10px] font-bold uppercase tracking-wide text-[var(--color-muted)]">
                       {t(`decks.types.${toEditorType[card.type]}`)}

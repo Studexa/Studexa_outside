@@ -18,11 +18,11 @@ export function DesignPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-(--radius-card) border border-[var(--paper-edge)] bg-[var(--color-primary-soft)] p-4">
         <div>
-          <h2 className="text-sm font-extrabold text-[var(--color-primary-text)]">Stageshow Hero Demo</h2>
-          <p className="text-xs text-[var(--color-muted)]">Interactive flashcard flip & mascot reward mockup.</p>
+          <h2 className="text-sm font-extrabold text-[var(--color-primary-text)]">{t('demo.title')}</h2>
+          <p className="text-xs text-[var(--color-muted)]">{t('demo.designHint')}</p>
         </div>
         <Link to="/demo" className="study-action">
-          View Demo ↗
+          {t('demo.view')}
         </Link>
       </div>
 

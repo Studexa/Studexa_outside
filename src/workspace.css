@@ -72,6 +72,11 @@
 .study-header-actions { display: flex; flex-shrink: 0; align-items: center; gap: .125rem; }
 .study-header-label { display: none; }
 
+@media (max-width: 22rem) {
+  .study-brand > span:last-child { display: none; }
+  .study-header-actions .language-selector { max-width: 5.3rem; }
+}
+
 @media (min-width: 36rem) {
   .study-header-actions { gap: .5rem; }
   .study-header-label { display: inline; }

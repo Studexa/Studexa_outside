@@ -7,6 +7,7 @@ import { ProgressBar } from '../../components/ProgressBar'
 import { Spinner } from '../../components/Spinner'
 import { useAuth } from '../../lib/auth'
 import { useWeakCards } from '../../lib/study'
+import { useLocalizedStarter } from '../../lib/starterContent'
 import { ReviewCardContent } from './ReviewCardContent'
 
 export function PracticePage() {
@@ -37,6 +38,7 @@ function BackToStats() {
 
 function PracticeSession({ initialCards }: { initialCards: ReturnType<typeof useWeakCards>['cards'] }) {
   const { t } = useTranslation()
+  const starter = useLocalizedStarter()
   const [cards] = useState(initialCards)
   const [index, setIndex] = useState(0)
   const [flipped, setFlipped] = useState(false)
@@ -71,7 +73,7 @@ function PracticeSession({ initialCards }: { initialCards: ReturnType<typeof use
       </header>
       <div className="review-session-body">
         <ProgressBar value={index} max={cards.length} size="sm" label={t('workspace.reviewProgress')} />
-        <p className="review-card-meta study-muted [overflow-wrap:anywhere]">{card.deckTitle}</p>
+        <p className="review-card-meta study-muted [overflow-wrap:anywhere]">{starter.deck(card.deckId, card.deckTitle)}</p>
         <button ref={reveal} type="button" className="study-panel review-card" aria-label={t('review.flipLabel')}
           aria-pressed={flipped} aria-describedby="review-card-content" onClick={() => setFlipped((previous) => !previous)}>
           <ReviewCardContent card={card} flipped={flipped} />

@@ -6,6 +6,7 @@ import { EmptyState } from '../../components/EmptyState'
 import { Icon } from '../../components/Icon'
 import { formatStudyDate } from '../../lib/studyDate'
 import { useApp } from '../../lib/store'
+import { useLocalizedStarter } from '../../lib/starterContent'
 
 function plainText(html: string) {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
@@ -13,6 +14,7 @@ function plainText(html: string) {
 
 export function NotesPage() {
   const { t, i18n } = useTranslation()
+  const starter = useLocalizedStarter()
   const navigate = useNavigate()
   const notes = useApp((s) => s.notes)
   const addNote = useApp((s) => s.addNote)
@@ -33,7 +35,7 @@ export function NotesPage() {
   }, [attempt, loadNotes])
 
   const search = query.trim().toLowerCase()
-  const filtered = notes.map((note) => ({ ...note, excerpt: plainText(note.content) }))
+  const filtered = notes.map(starter.note).map((note) => ({ ...note, excerpt: plainText(note.content) }))
     .filter((note) => `${note.title} ${note.excerpt} ${note.subject}`.toLowerCase().includes(search))
     .sort((first, second) => Date.parse(second.updatedAt) - Date.parse(first.updatedAt))
 

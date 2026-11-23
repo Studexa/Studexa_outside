@@ -9,6 +9,7 @@ import { ProgressBar } from '../../components/ProgressBar'
 import { StudyQueue } from '../../components/StudyQueue'
 import { openStudyCompanion } from '../../lib/aiStudy'
 import { HomeNews } from './HomeNews'
+import { PetGallery } from './PetGallery'
 import { betaEnabled } from '../../lib/beta'
 import { examsApi } from '../../lib/api/plan'
 import { isGuestMode, useAuth } from '../../lib/auth'
@@ -140,6 +141,8 @@ export function HomePage() {
 
         <HomeNews date={now} tutorAvailable={tutorAvailable} />
       </div>
+
+      <PetGallery />
 
       <details className="study-panel study-rewards">
         <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-3 font-semibold">

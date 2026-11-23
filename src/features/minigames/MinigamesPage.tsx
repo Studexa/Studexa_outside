@@ -11,9 +11,10 @@ import { useApp } from '../../lib/store'
 import { useAllStudyCards } from '../../lib/study'
 import type { StudyCard } from '../../lib/api'
 import { Spinner } from '../../components/Spinner'
+import { useLocalizedStarter } from '../../lib/starterContent'
 
-type Tile = { key: string; cardId: string; text: string }
-type Statement = { front: string; back: string; isTrue: boolean }
+type Tile = { key: string; cardId: string; deckId: string; text: string }
+type Statement = { front: string; back: string; frontDeckId: string; backDeckId: string; isTrue: boolean }
 type Mode = 'hub' | 'memory' | 'quick'
 
 function shuffle<T>(items: T[]): T[] {
@@ -27,8 +28,8 @@ function shuffle<T>(items: T[]): T[] {
 
 function buildTiles(cards: StudyCard[]): Tile[] {
   return shuffle(cards.slice(0, 3).flatMap((card) => [
-    { key: `${card.id}-front`, cardId: card.id, text: card.front },
-    { key: `${card.id}-back`, cardId: card.id, text: card.back },
+    { key: `${card.id}-front`, cardId: card.id, deckId: card.deckId, text: card.front },
+    { key: `${card.id}-back`, cardId: card.id, deckId: card.deckId, text: card.back },
   ]))
 }
 
@@ -40,6 +41,8 @@ function buildStatements(cards: StudyCard[]): Statement[] {
     return {
       front: card.front,
       back: isTrue ? card.back : decoy.back,
+      frontDeckId: card.deckId,
+      backDeckId: isTrue ? card.deckId : decoy.deckId,
       isTrue: isTrue || decoy.back === card.back,
     }
   })
@@ -65,6 +68,7 @@ export function MinigamesPage() {
 
 function Games({ cards }: { cards: StudyCard[] }) {
   const { t } = useTranslation()
+  const starter = useLocalizedStarter()
   const buddy = useApp((s) => s.buddy)
   const addXp = useApp((s) => s.addXp)
   const navigate = useNavigate()
@@ -259,9 +263,9 @@ function Games({ cards }: { cards: StudyCard[] }) {
                       ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]'
                       : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-muted)] hover:border-[var(--color-primary)]'
                 }`}
-                aria-label={open ? tile.text : t('minigames.memory.hidden')}
+                aria-label={open ? starter.card(tile.deckId, tile.text) : t('minigames.memory.hidden')}
               >
-                {open ? <span className="line-clamp-3">{tile.text}</span> : <Icon name="star" size={26} />}
+                {open ? <span className="line-clamp-3">{starter.card(tile.deckId, tile.text)}</span> : <Icon name="star" size={26} />}
               </button>
             )
           })}
@@ -342,8 +346,8 @@ function Games({ cards }: { cards: StudyCard[] }) {
           <p className="text-center text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-muted)]">
             {t('minigames.quick.statement')}
           </p>
-          <p className="mt-3 text-center text-lg font-extrabold leading-snug">{statement?.front}</p>
-          <p className="mt-2 text-center text-xl font-black text-[var(--color-primary)]">{statement?.back}</p>
+          <p className="mt-3 text-center text-lg font-extrabold leading-snug">{statement && starter.card(statement.frontDeckId, statement.front)}</p>
+          <p className="mt-2 text-center text-xl font-black text-[var(--color-primary)]">{statement && starter.card(statement.backDeckId, statement.back)}</p>
 
           {feedback ? (
             <p

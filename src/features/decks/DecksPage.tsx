@@ -104,7 +104,7 @@ export function DecksPage() {
         </div>
       ) : decksQuery.isError ? (
         <div className="rounded-[24px] border border-[var(--color-danger)]/30 bg-[var(--color-danger-soft)] p-5 text-center">
-          <p className="font-bold text-[var(--color-danger-text)]">{decksQuery.error.message}</p>
+          <p className="font-bold text-[var(--color-danger-text)]">{t('workspace.deckError')}</p>
           <Button variant="secondary" size="sm" className="mt-3" onClick={() => void decksQuery.refetch()}>
             {t('common.retry')}
           </Button>
@@ -205,7 +205,7 @@ export function DecksPage() {
           </div>
           {createDeck.isError && (
             <p className="rounded-xl bg-[var(--color-danger-soft)] px-3 py-2 text-sm font-bold text-[var(--color-danger-text)]">
-              {createDeck.error.message}
+              {t('common.error')}
             </p>
           )}
           <Button full onClick={create} disabled={!title.trim() || createDeck.isPending}>

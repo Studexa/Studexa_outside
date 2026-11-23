@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { LanguageSelector } from '../../components/LanguageSelector'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mascot } from '../../components/Mascot'
 import { Icon } from '../../components/Icon'
@@ -8,6 +10,7 @@ import { celebrate } from '../../lib/confetti'
 type DemoBeat = 'idle' | 'hover_card' | 'flipped' | 'hover_rating' | 'rated'
 
 export function StudexaHeroDemoPage() {
+  const { t } = useTranslation()
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
   const [mode, setMode] = useState<'autoplay' | 'interactive'>('autoplay')
   const [beat, setBeat] = useState<DemoBeat>('idle')
@@ -130,15 +133,16 @@ export function StudexaHeroDemoPage() {
             className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-colors bg-white/70 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 shadow-sm hover:opacity-80"
           >
             <Icon name="arrowLeft" size={14} />
-            Back to App
+            {t('demo.back')}
           </Link>
           <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            Stageshow Live Mockup
+            {t('demo.title')}
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          <LanguageSelector />
           {/* Mode switch */}
           <div className="flex items-center rounded-xl bg-slate-200/80 dark:bg-slate-800 p-1 border border-slate-300/60 dark:border-slate-700 text-xs font-bold">
             <button
@@ -149,7 +153,7 @@ export function StudexaHeroDemoPage() {
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              Autoplay Demo
+              {t('demo.autoplay')}
             </button>
             <button
               onClick={() => {
@@ -162,7 +166,7 @@ export function StudexaHeroDemoPage() {
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              Try Yourself
+              {t('demo.tryIt')}
             </button>
           </div>
 
@@ -172,7 +176,7 @@ export function StudexaHeroDemoPage() {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:opacity-80"
           >
             <Icon name={theme === 'light' ? 'moon' : 'sun'} size={14} />
-            {theme === 'light' ? 'Dark Theme' : 'Light Theme'}
+            {t(theme === 'light' ? 'common.dark' : 'common.light')}
           </button>
         </div>
       </header>
@@ -200,7 +204,7 @@ export function StudexaHeroDemoPage() {
               <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-1" />
               <span className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
                 <Icon name="book" size={13} className="text-blue-500" />
-                Biology 101 › Cellular Respiration
+                {t('demo.biologyDeck')}
               </span>
             </div>
 
@@ -224,7 +228,7 @@ export function StudexaHeroDemoPage() {
                 className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-500 text-xs font-black border border-amber-500/20"
               >
                 <Icon name="flame" size={14} />
-                <span>{streakCount} Days</span>
+                <span>{t('demo.days', { count: streakCount })}</span>
               </motion.div>
             </div>
           </div>
@@ -239,7 +243,7 @@ export function StudexaHeroDemoPage() {
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-extrabold">
                 <Icon name="cards" size={13} />
-                Card 14 • Spaced Repetition (SM-2)
+                {t('demo.repetition')}
               </span>
 
               {/* Quiet UI Bars */}
@@ -273,14 +277,14 @@ export function StudexaHeroDemoPage() {
                   }}
                 >
                   <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                    Question
+                    {t('demo.question')}
                   </p>
                   <h3 className="text-xl md:text-2xl font-black leading-snug px-2">
-                    What is the primary function of ATP synthase in cellular respiration?
+                    {t('demo.questionText')}
                   </h3>
                   <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-blue-500/80">
                     <Icon name="sparkles" size={13} />
-                    <span>Click or tap to flip card</span>
+                    <span>{t('demo.flip')}</span>
                   </div>
                 </div>
 
@@ -294,16 +298,16 @@ export function StudexaHeroDemoPage() {
                 >
                   <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-emerald-500">
                     <span className="flex items-center gap-1">
-                      <Icon name="check" size={13} /> Answer
+                      <Icon name="check" size={13} /> {t('demo.answer')}
                     </span>
-                    <span className="text-slate-400">Grounded Citation</span>
+                    <span className="text-slate-400">{t('demo.citation')}</span>
                   </div>
                   <p className="text-lg md:text-xl font-extrabold leading-snug text-slate-800 dark:text-slate-100">
-                    Synthesizes <span className="text-blue-600 dark:text-blue-400 underline decoration-blue-300">ATP</span> from ADP and inorganic phosphate via the electrochemical proton gradient.
+                    {t('demo.answerText')}
                   </p>
                   <div className="flex items-center justify-center">
                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700">
-                      Campbell Biology • p. 194
+                      {t('demo.bookPage')}
                     </span>
                   </div>
                 </div>
@@ -330,8 +334,8 @@ export function StudexaHeroDemoPage() {
                           : 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border-rose-500/20'
                       }`}
                     >
-                      <div className="font-black text-sm">Again</div>
-                      <div className="text-[10px] opacity-80">&lt; 1 min</div>
+                  <div className="font-black text-sm">{t('review.ratings.again')}</div>
+                      <div className="text-[10px] opacity-80">{t('demo.shortInterval')}</div>
                     </button>
 
                     {/* Hard */}
@@ -343,8 +347,8 @@ export function StudexaHeroDemoPage() {
                           : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border-amber-500/20'
                       }`}
                     >
-                      <div className="font-black text-sm">Hard</div>
-                      <div className="text-[10px] opacity-80">1 day</div>
+                  <div className="font-black text-sm">{t('review.ratings.hard')}</div>
+                      <div className="text-[10px] opacity-80">{t('demo.days', { count: 1 })}</div>
                     </button>
 
                     {/* Good (Target of the demo) */}
@@ -359,8 +363,8 @@ export function StudexaHeroDemoPage() {
                           : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border-emerald-500/20'
                       }`}
                     >
-                      <div className="font-black text-sm">Good</div>
-                      <div className="text-[10px] opacity-80">4 days</div>
+                  <div className="font-black text-sm">{t('review.ratings.good')}</div>
+                      <div className="text-[10px] opacity-80">{t('demo.days', { count: 4 })}</div>
                     </button>
 
                     {/* Easy */}
@@ -372,8 +376,8 @@ export function StudexaHeroDemoPage() {
                           : 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 border-blue-500/20'
                       }`}
                     >
-                      <div className="font-black text-sm">Easy</div>
-                      <div className="text-[10px] opacity-80">7 days</div>
+                  <div className="font-black text-sm">{t('review.ratings.easy')}</div>
+                      <div className="text-[10px] opacity-80">{t('demo.days', { count: 7 })}</div>
                     </button>
                   </motion.div>
                 )}
@@ -461,14 +465,14 @@ export function StudexaHeroDemoPage() {
 
             <div className="min-w-0">
               <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                Study Buddy
+                {t('demo.buddy')}
               </p>
               <div className="flex items-center gap-1 font-black text-sm">
                 <span className="text-amber-500">+20 XP</span>
                 <span className="text-xs text-slate-400">• +5 🪙</span>
               </div>
               <p className="text-[10px] font-semibold text-emerald-500">
-                {showReward ? 'Memory strengthened!' : 'Active recalling'}
+                {t(showReward ? 'demo.reward' : 'demo.recalling')}
               </p>
             </div>
           </div>
@@ -478,14 +482,14 @@ export function StudexaHeroDemoPage() {
       {/* Footer Notes & Reset */}
       <footer className="mt-8 text-center text-xs text-slate-400 max-w-md">
         <p>
-          Stageshow demo crafted for <strong>Studexa</strong> • Demonstrates spaced repetition flashcards, SM-2 retention ratings, and mascot gamification.
+          {t('demo.description')}
         </p>
         {mode === 'interactive' && (
           <button
             onClick={handleReset}
             className="mt-3 px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 font-bold hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
           >
-            Reset Card
+            {t('demo.reset')}
           </button>
         )}
       </footer>

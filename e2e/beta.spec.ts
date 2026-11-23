@@ -473,30 +473,47 @@ test.describe('passage tools with mobile touch', () => {
   })
 })
 
-test('sign-in and registration fit on screen and the book slides change', async ({ page }) => {
-  for (const viewport of [{ width: 1280, height: 720 }, { width: 390, height: 667 }, { width: 667, height: 375 }]) {
+test('sign-in and registration show the study illustration and switch languages without losing form input', async ({ page }) => {
+  await page.route('**/api/v1/auth/refresh', (route) => route.fulfill({ status: 401, json: {} }))
+  for (const viewport of [{ width: 1280, height: 720 }, { width: 390, height: 667 }, { width: 667, height: 375 }, { width: 320, height: 568 }]) {
     await page.setViewportSize(viewport)
     for (const path of ['/login', '/register']) {
       await page.goto(path)
       await expect(page.locator('#auth-title')).toBeVisible()
-      const overflow = await page.locator('.auth-form-pane').evaluate((pane) => ({
-        page: document.documentElement.scrollHeight - window.innerHeight,
-        form: pane.scrollHeight - pane.clientHeight,
-      }))
-      expect(overflow).toEqual({ page: 0, form: 0 })
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(viewport.width)
+      const illustration = page.locator('.auth-illustration img')
+      if (viewport.width <= 390 && path === '/register') {
+        await expect(illustration).toBeHidden()
+      } else {
+        await expect(illustration).toBeVisible()
+        await expect.poll(() => illustration.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0)
+      }
+      if (viewport.width === 390 && path === '/login') {
+        const form = await page.locator('.auth-form-pane').boundingBox()
+        const art = await page.locator('.auth-illustration').boundingBox()
+        expect(form!.y).toBeLessThan(art!.y)
+      }
+      for (const lang of ['en', 'km']) {
+        await page.locator('.language-selector').selectOption(lang)
+        await expect(page.locator('html')).toHaveAttribute('lang', lang)
+        await expect(page.locator('.auth-submit')).toBeInViewport({ ratio: 1 })
+        await expect(page.locator('.auth-account-link')).toBeInViewport({ ratio: 1 })
+        expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(viewport.width)
+      }
     }
   }
 
-  await expect(page.getByRole('heading', { name: 'Turn the page.' })).toBeVisible()
-  await page.getByRole('button', { name: 'Next slide' }).click()
-  await expect(page.getByRole('heading', { name: 'Make it stick.' })).toBeVisible()
-  await page.getByRole('button', { name: 'Next slide' }).click()
-  await expect(page.getByRole('heading', { name: 'Study together.' })).toBeVisible()
-  await page.getByRole('button', { name: 'Previous slide' }).click()
-  await expect(page.getByRole('heading', { name: 'Make it stick.' })).toBeVisible()
-  await expect.poll(() => page.locator('.auth-screen').evaluate((screen) => getComputedStyle(screen, '::before').animationName)).toBe('auth-library-light')
-  await page.emulateMedia({ reducedMotion: 'reduce' })
-  await expect.poll(() => page.locator('.auth-screen').evaluate((screen) => getComputedStyle(screen, '::before').animationName)).toBe('none')
+  const email = page.locator('#email')
+  await page.locator('.language-selector').selectOption('en')
+  await email.fill('learner@')
+  await page.locator('.auth-submit').click()
+  await expect(page.locator('#email-error')).toHaveText('Enter a valid email address.')
+  await page.getByLabel('Language', { exact: true }).selectOption('km')
+  await expect(page.locator('html')).toHaveAttribute('lang', 'km')
+  await expect(email).toHaveValue('learner@')
+  await expect(page.locator('#email-error')).toHaveText(/[ក-៿]/)
+  await page.reload()
+  await expect(page.locator('.language-selector')).toHaveValue('km')
 })
 
 test('two invited players can join and finish a live quiz after a refresh', async ({ browser, baseURL }) => {
@@ -741,7 +758,7 @@ test('the workspace fits narrow phones and uses compact navigation on tablets', 
   const bottomBar = page.locator('.study-bottom-bar')
 
   await expect(home.locator('h2, .study-rewards summary')).toHaveText([
-    'Review queue', "Today's goal", 'Study tools', 'Upcoming exam', 'What’s new', 'Study habits',
+    'Review queue', "Today's goal", 'Study tools', 'Upcoming exam', 'What’s new', 'Pet Gallery', 'Study habits',
   ])
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(390)
   await expect(dashboard).toHaveCSS('grid-template-columns', /^\S+$/)
@@ -873,7 +890,7 @@ test('invited students can save study data, use AI samples, and switch accounts'
             type: quiz ? 'MULTIPLE_CHOICE' : 'BASIC',
             front: quiz ? 'តើពពកកើតពីអ្វី?' : 'How do clouds form?',
             back: quiz ? 'ដំណក់ទឹក' : 'Water vapor condenses.',
-            choices: quiz ? ['ដំណក់ទឹក', 'ខ្សាច់', 'ថ្ម'] : [],
+            choices: quiz ? ['ដំណក់ទឹក', 'ខ្សាច់', 'ថ្ម', 'ដី'] : [],
             explanation: null,
             sourceTitle: quiz ? 'វដ្តទឹក' : 'The water cycle',
             sourceExcerpt: null,
@@ -978,10 +995,13 @@ test('invited students can save study data, use AI samples, and switch accounts'
     await learner.evaluate(() => localStorage.setItem('lang', 'km'))
     await learner.goto('/study/quiz')
     await expect(learner.locator('html')).toHaveAttribute('lang', 'km')
+    await learner.getByRole('button', { name: 'តោះចាប់ផ្តើម' }).click()
     await learner.getByLabel('អត្ថបទគំរូសម្រាប់សិក្សា').selectOption('water-cycle-km')
     await learner.getByRole('button', { name: 'បង្កើតកម្រងសំណួរដោយ AI' }).click()
+    await learner.getByRole('button', { name: 'ចាប់ផ្តើមកម្រងសំណួរ', exact: true }).click()
     await expect(learner.getByText('តើពពកកើតពីអ្វី?')).toBeVisible()
-    await learner.getByRole('button', { name: /ដំណក់ទឹក/ }).click()
+    await expect(learner.locator('.solo-quiz-choice')).toHaveCount(4)
+    await learner.getByText('ដំណក់ទឹក', { exact: true }).click()
     await learner.getByRole('button', { name: 'មើលលទ្ធផល' }).click()
     await expect(learner.getByRole('heading', { name: 'ធ្វើបានល្អ' })).toBeVisible()
   } finally {

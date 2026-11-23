@@ -168,6 +168,27 @@ body {
 }
 :lang(km), .lang-km { line-height: 1.8; font-family: 'Noto Sans Khmer', system-ui, sans-serif; letter-spacing: normal; }
 :root:lang(km) { --font-display: 'Noto Sans Khmer', system-ui, sans-serif; }
+
+.language-selector {
+  min-height: 2.5rem;
+  max-width: 100%;
+  padding: .25rem .45rem;
+  border: 1px solid var(--color-control-border);
+  border-radius: .65rem;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: 'Noto Sans Khmer', system-ui, sans-serif;
+  font-size: .8rem;
+  font-weight: 700;
+}
+
+.standalone-language {
+  display: flex;
+  justify-content: end;
+  max-width: 72rem;
+  margin-inline: auto;
+  padding: .6rem 1rem 0;
+}
 :where(h1, h2, h3) { text-wrap: balance; letter-spacing: -0.025em; }
 :where(h1) { font-family: var(--font-display); }
 :lang(km) :where(h1, h2, h3, p, span) { letter-spacing: normal; }

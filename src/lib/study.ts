@@ -14,6 +14,7 @@ import {
 import { isGuestMode, useAuth } from './auth'
 import { cacheDueCards, getCachedDueCards } from './offlineDb'
 import { useApp, type Deck as LocalDeck } from './store'
+import { useLocalizedStarter } from './starterContent'
 
 function toDeckSummary(deck: LocalDeck): DeckSummary {
   return {
@@ -69,16 +70,22 @@ export const studyKeys = {
   pet: (userId?: string) => ['pet', userId ?? 'current'] as const,
 }
 
-export function useDecks(enabled = true) {
+export function useDecks(enabled = true, localize = true) {
   const user = useAuth((s) => s.user)
+  const starter = useLocalizedStarter()
   return useQuery({
     queryKey: studyKeys.decks(user?.id),
     queryFn: () => isGuestMode() ? useApp.getState().decks.map(toDeckSummary) : decksApi.list(),
+    select: localize ? (decks) => decks.map((deck) => ({
+      ...deck,
+      title: starter.deck(deck.id, deck.title),
+      subjectName: deck.subjectName && starter.deck(deck.id, deck.subjectName),
+    })) : undefined,
     enabled,
   })
 }
 
-type WeakCard = Pick<ReviewQueueCard, 'id' | 'front' | 'back' | 'deckTitle' | 'lapses' | 'extra' | 'sourceTitle' | 'sourceExcerpt'>
+type WeakCard = Pick<ReviewQueueCard, 'id' | 'front' | 'back' | 'deckId' | 'deckTitle' | 'lapses' | 'extra' | 'sourceTitle' | 'sourceExcerpt'>
 
 export function useWeakCards() {
   const userId = useAuth((state) => state.user?.id)
@@ -93,7 +100,7 @@ export function useWeakCards() {
   const cards: WeakCard[] = guest
     ? localDecks.flatMap((deck) => deck.cards.filter((card) => card.lapses > 0)
       .map(({ id, front, back, lapses }) => ({
-        id, front, back, lapses, deckTitle: deck.title, extra: {}, sourceTitle: null, sourceExcerpt: null,
+        id, front, back, lapses, deckId: deck.id, deckTitle: deck.title, extra: {}, sourceTitle: null, sourceExcerpt: null,
       })))
       .sort((a, b) => b.lapses - a.lapses || a.id.localeCompare(b.id))
       .slice(0, 5)
@@ -117,17 +124,17 @@ export function useDeck(id: string | undefined) {
   })
 }
 
+function listStudyCards(deckId: string) {
+  if (!isGuestMode()) return cardsApi.list(deckId)
+  const local = useApp.getState().decks.find((deck) => deck.id === deckId)
+  return Promise.resolve(local?.cards.map((card) => toStudyCard(deckId, card)) ?? [])
+}
+
 export function useDeckCards(deckId: string | undefined, enabled = true) {
   const user = useAuth((s) => s.user)
   return useQuery({
     queryKey: studyKeys.cards(deckId ?? '', user?.id),
-    queryFn: () => {
-      if (isGuestMode()) {
-        const local = useApp.getState().decks.find((deck) => deck.id === deckId)
-        return Promise.resolve(local?.cards.map((card) => toStudyCard(deckId as string, card)) ?? [])
-      }
-      return cardsApi.list(deckId as string)
-    },
+    queryFn: () => listStudyCards(deckId as string),
     enabled: Boolean(deckId) && enabled,
   })
 }
@@ -233,12 +240,12 @@ export type StudyCardWithDeck = { card: StudyCard; deck: DeckSummary }
 
 export function useAllStudyCards() {
   const userId = useAuth((state) => state.user?.id)
-  const decksQuery = useDecks()
+  const decksQuery = useDecks(true, false)
   const decks = decksQuery.data ?? []
   const cardQueries = useQueries({
     queries: decks.map((deck) => ({
       queryKey: studyKeys.cards(deck.id, userId),
-      queryFn: () => cardsApi.list(deck.id),
+      queryFn: () => listStudyCards(deck.id),
     })),
   })
   const cards: StudyCardWithDeck[] = cardQueries.flatMap((query, index) => {

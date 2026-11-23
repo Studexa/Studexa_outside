@@ -231,7 +231,7 @@ const seedDecks: Deck[] = [
   },
 ]
 
-const seedNotes: Note[] = [
+export const seedNotes: Note[] = [
   {
     id: 'note-cells',
     title: 'Cell biology summary',

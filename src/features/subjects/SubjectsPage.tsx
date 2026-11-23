@@ -7,6 +7,7 @@ import { Modal } from '../../components/Modal'
 import { SubjectCardSkeleton } from '../../components/Skeleton'
 import { useAuth } from '../../lib/auth'
 import { studyKeys } from '../../lib/study'
+import { formatStudyDate } from '../../lib/studyDate'
 import {
   ApiError,
   subjectsApi,
@@ -27,12 +28,12 @@ const suggestions = [
   { key: 'khmer', icon: 'ក', color: '#ec4899' },
 ] as const
 
-function errorMessage(err: unknown, fallback: string) {
-  return err instanceof ApiError ? err.message : fallback
+function subjectErrorKey(err: unknown) {
+  return err instanceof ApiError && err.code === 'INVALID_NAME' ? 'subjects.nameRequired' : 'subjects.actionError'
 }
 
 export function SubjectsPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
   const userId = useAuth((state) => state.user?.id)
   const [includeArchived, setIncludeArchived] = useState(false)
@@ -48,7 +49,7 @@ export function SubjectsPage() {
       void queryClient.invalidateQueries({ queryKey: ['subjects'] })
       void queryClient.invalidateQueries({ queryKey: studyKeys.weakCards(userId) })
     },
-    onError: (err) => setActionError(errorMessage(err, t('subjects.actionError'))),
+    onError: (err) => setActionError(subjectErrorKey(err)),
   })
 
   const deleteMutation = useMutation({
@@ -59,7 +60,7 @@ export function SubjectsPage() {
       void queryClient.invalidateQueries({ queryKey: ['subjects'] })
       void queryClient.invalidateQueries({ queryKey: studyKeys.weakCards(userId) })
     },
-    onError: (err) => setActionError(errorMessage(err, t('subjects.actionError'))),
+    onError: (err) => setActionError(subjectErrorKey(err)),
   })
 
   const subjectsQuery = useQuery({
@@ -101,7 +102,7 @@ export function SubjectsPage() {
 
       {actionError && (
         <p role="alert" className="rounded-2xl bg-[var(--color-danger-soft,var(--color-surface-alt))] px-3 py-2 text-sm font-bold text-[var(--color-danger-text)]">
-          {actionError}
+          {t(actionError)}
         </p>
       )}
 
@@ -115,7 +116,7 @@ export function SubjectsPage() {
         <div className="rounded-[24px] border border-dashed border-[var(--color-border)] p-8 text-center">
           <p className="font-bold">{t('subjects.loadError')}</p>
           <p className="mt-1 text-sm text-[var(--color-muted)]">
-            {errorMessage(subjectsQuery.error, t('subjects.actionError'))}
+            {t('subjects.loadError')}
           </p>
           <Button className="mt-4" variant="secondary" onClick={() => void subjectsQuery.refetch()}>
             {t('common.retry')}
@@ -165,7 +166,9 @@ export function SubjectsPage() {
                 <div className="min-w-0 flex-1">
                   <h2 className="truncate font-black">{subject.name}</h2>
                   <p className="text-xs text-[var(--color-muted)]">
-                    {subject.archived ? t('subjects.archived') : t('subjects.updated', { date: new Date(subject.updatedAt).toLocaleDateString() })}
+                    {subject.archived ? t('subjects.archived') : t('subjects.updated', {
+                      date: formatStudyDate(new Date(subject.updatedAt), i18n.resolvedLanguage ?? 'en', 'medium'),
+                    })}
                   </p>
                 </div>
               </div>
@@ -245,13 +248,13 @@ function SubjectEditor({
     mutationFn: (input: SubjectInput | UpdateSubjectInput) =>
       subject ? subjectsApi.update(subject.id, input) : subjectsApi.create(input as SubjectInput),
     onSuccess: onSaved,
-    onError: (err) => setError(errorMessage(err, t('subjects.actionError'))),
+    onError: (err) => setError(subjectErrorKey(err)),
   })
 
   const submit = () => {
     const trimmed = name.trim()
     if (!trimmed) {
-      setError(t('subjects.nameRequired'))
+      setError('subjects.nameRequired')
       return
     }
     setError(null)
@@ -330,7 +333,7 @@ function SubjectEditor({
 
         {error && (
           <p role="alert" className="rounded-2xl bg-[var(--color-surface-alt)] px-3 py-2 text-sm font-bold text-[var(--color-danger-text)]">
-            {error}
+            {t(error)}
           </p>
         )}
 

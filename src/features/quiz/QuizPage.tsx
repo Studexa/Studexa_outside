@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -17,6 +17,9 @@ import { useDeckCards, useDecks } from '../../lib/study'
 import { useApp } from '../../lib/store'
 import { betaEnabled, maxBetaAiItems } from '../../lib/beta'
 import { isGuestMode } from '../../lib/auth'
+import { useLocalizedStarter } from '../../lib/starterContent'
+import { starterQuizExplanation } from './starterQuizExplanations'
+import './soloQuiz.css'
 
 type Question = {
   id: string
@@ -25,9 +28,35 @@ type Question = {
   choices: string[]
   deckTitle: string
   deckSubject: string
+  starterDeckId?: string
   explanation: string | null
   sourceTitle: string | null
   sourceExcerpt: string | null
+}
+
+type Stage = 'intro' | 'setup' | 'ready' | 'play' | 'results' | 'flashcards-before' | 'flashcards-after'
+type Outcome = { kind: 'correct' | 'incorrect'; choice: string } | { kind: 'timeout' }
+type Round = { index: number; deadline: number | null; outcome?: Outcome }
+const secondsPerQuestion = 40
+
+function Countdown({ deadline, onExpire }: { deadline: number; onExpire: () => void }) {
+  const [seconds, setSeconds] = useState(secondsPerQuestion)
+  const { t } = useTranslation()
+
+  useEffect(() => {
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000))
+      setSeconds(remaining)
+      if (remaining === 0) onExpire()
+    }
+    const clock = window.setInterval(tick, 125)
+    tick()
+    return () => window.clearInterval(clock)
+  }, [deadline, onExpire])
+
+  return <span className="solo-quiz-countdown" role="timer">
+    <Icon name="timer" size={16} />{t('quiz.secondsRemaining', { count: seconds })}
+  </span>
 }
 
 function shuffle<T>(items: T[]): T[] {
@@ -41,20 +70,22 @@ function shuffle<T>(items: T[]): T[] {
 
 function fromCards(cards: StudyCard[], deck: DeckSummary): Question[] {
   const all = cards.filter((card) => card.front.trim() && card.back.trim())
-  const answers = Array.from(new Set(all.map((card) => card.back)))
+  const answers = Array.from(new Set(all.map((card) => card.back.trim())))
   if (all.length < 4 || answers.length < 4) return []
   return shuffle(all)
     .slice(0, 10)
     .map((card) => {
-      const wrong = shuffle(answers.filter((answer) => answer !== card.back)).slice(0, 3)
+      const back = card.back.trim()
+      const wrong = shuffle(answers.filter((answer) => answer !== back)).slice(0, 3)
       return {
         id: card.id,
         front: card.front,
-        back: card.back,
-        choices: shuffle([card.back, ...wrong]),
+        back,
+        choices: shuffle([back, ...wrong]),
         deckTitle: deck.title,
         deckSubject: deck.subjectName ?? deck.title,
-        explanation: typeof card.extra.explanation === 'string' ? card.extra.explanation : null,
+        starterDeckId: isGuestMode() ? deck.id : undefined,
+        explanation: typeof card.extra.explanation === 'string' ? card.extra.explanation.trim() : null,
         sourceTitle: card.sourceTitle,
         sourceExcerpt: card.sourceExcerpt,
       }
@@ -63,10 +94,11 @@ function fromCards(cards: StudyCard[], deck: DeckSummary): Question[] {
 
 export function QuizPage() {
   const { t, i18n } = useTranslation()
+  const starter = useLocalizedStarter()
   const navigate = useNavigate()
   const buddy = useApp((s) => s.buddy)
   const recordQuiz = useApp((s) => s.recordQuiz)
-  const decksQuery = useDecks()
+  const decksQuery = useDecks(true, false)
   const decks = decksQuery.data ?? []
 
   const [selectedDeckId, setSelectedDeckId] = useState('')
@@ -77,16 +109,49 @@ export function QuizPage() {
   const samplePicker = useStudySamples(betaEnabled, sampleId)
   const maxAiCount = betaEnabled ? maxBetaAiItems : 15
   const [setupError, setSetupError] = useState<string | null>(null)
+  const [stage, setStage] = useState<Stage>('intro')
+  const [timed, setTimed] = useState(false)
   const [questions, setQuestions] = useState<Question[]>([])
-  const [index, setIndex] = useState(0)
-  const [selected, setSelected] = useState<string | null>(null)
-  const [correct, setCorrect] = useState(0)
-  const [finished, setFinished] = useState(false)
-  const resultRecorded = useRef(false)
+  const [round, setRound] = useState<Round | null>(null)
+  // Guard clicks and timer callbacks synchronously, before React renders the result.
+  const currentRound = useRef<Round | null>(null)
+  const [outcomes, setOutcomes] = useState<Outcome[]>([])
+  const [flashIndex, setFlashIndex] = useState(0)
+  const [flipped, setFlipped] = useState(false)
+  const activeTitle = useRef<HTMLHeadingElement>(null)
+  const nextAction = useRef<HTMLButtonElement>(null)
 
   const effectiveDeckId = selectedDeckId || decks[0]?.id || ''
   const selectedDeck = decks.find((deck) => deck.id === effectiveDeckId)
   const cardsQuery = useDeckCards(effectiveDeckId, Boolean(effectiveDeckId))
+
+  const prepare = (built: Question[]) => {
+    setQuestions(built)
+    setSetupError(null)
+    setStage('ready')
+  }
+
+  const updateRound = (value: Round | null) => {
+    currentRound.current = value
+    setRound(value)
+  }
+
+  const openQuestion = (index: number) => {
+    updateRound({ index, deadline: timed ? Date.now() + secondsPerQuestion * 1000 : null })
+  }
+
+  const startQuiz = () => {
+    if (!questions.length || currentRound.current) return
+    setOutcomes([])
+    openQuestion(0)
+    setStage('play')
+  }
+
+  const openFlashcards = (origin: 'before' | 'after') => {
+    setFlashIndex(0)
+    setFlipped(false)
+    setStage(origin === 'before' ? 'flashcards-before' : 'flashcards-after')
+  }
 
   const generate = useMutation({
     mutationFn: () => betaEnabled
@@ -101,98 +166,135 @@ export function QuizPage() {
       }),
     onSuccess: (data) => {
       if (!betaEnabled && !selectedDeck) return
-      const built = data.items
-        .filter((item) => item.choices.length >= 2 && item.choices.includes(item.back))
-        .map((item, itemIndex) => ({
+      const built = data.items.flatMap((item, itemIndex): Question[] => {
+        const back = item.back.trim()
+        const choices = [...new Set(item.choices.map((choice) => choice.trim()).filter(Boolean))]
+        if (!item.front.trim() || !back || choices.length !== 4 || !choices.includes(back)) return []
+        return [{
           id: `ai-${itemIndex}`,
           front: item.front,
-          back: item.back,
-          choices: shuffle(item.choices),
+          back,
+          choices: shuffle(choices),
           deckTitle: betaEnabled ? (item.sourceTitle ?? t('beta.sample')) : (selectedDeck?.title ?? ''),
           deckSubject: betaEnabled ? t('beta.sample') : (selectedDeck?.subjectName ?? selectedDeck?.title ?? ''),
-          explanation: item.explanation,
+          explanation: item.explanation?.trim() ?? null,
           sourceTitle: item.sourceTitle,
           sourceExcerpt: item.sourceExcerpt,
-        }))
+        }]
+      })
       if (built.length === 0) {
-        setSetupError(t('quiz.aiNoItems'))
+        setSetupError('quiz.aiNoItems')
         return
       }
-      setQuestions(built)
-      setIndex(0)
-      setSelected(null)
-      setCorrect(0)
-      setFinished(false)
-      resultRecorded.current = false
-      setSetupError(null)
+      prepare(built)
     },
   })
 
   const startPractice = () => {
     if (!selectedDeck) {
-      setSetupError(t('quiz.chooseDeck'))
+      setSetupError('quiz.chooseDeck')
       return
     }
     const built = fromCards(cardsQuery.data ?? [], selectedDeck)
     if (built.length === 0) {
-      setSetupError(t('quiz.needMoreCards'))
+      setSetupError('quiz.needMoreCards')
       return
     }
-    setQuestions(built)
-    setIndex(0)
-    setSelected(null)
-    setCorrect(0)
-    setFinished(false)
-    resultRecorded.current = false
-    setSetupError(null)
+    prepare(built)
   }
 
-  const question = questions[index]
+  const question = round && questions[round.index]
+  const outcome = round?.outcome
   const total = questions.length
-  const isCorrect = selected !== null && !!question && selected === question.back
+  const correct = outcomes.filter((entry) => entry.kind === 'correct').length
+  const setupLoading = stage === 'setup' && decksQuery.isLoading
+  const localCard = (item: Question, value: string) => starter.card(item.starterDeckId, value)
+  const explanationFor = (item: Question) => item.explanation || starterQuizExplanation(item, i18n.resolvedLanguage)
+
+  useEffect(() => {
+    if (setupLoading) return
+    window.scrollTo(0, 0)
+    activeTitle.current?.focus({ preventScroll: true })
+  }, [stage, round?.index, setupLoading])
+
+  useEffect(() => {
+    if (outcome) nextAction.current?.focus()
+  }, [outcome])
 
   const reset = () => {
+    generate.reset()
     setQuestions([])
-    setIndex(0)
-    setSelected(null)
-    setCorrect(0)
-    setFinished(false)
-    resultRecorded.current = false
+    setOutcomes([])
     setSetupError(null)
+    updateRound(null)
+    setStage('setup')
   }
 
-  const choose = (choice: string) => {
-    if (!question || selected) return
-    setSelected(choice)
-    const right = choice === question.back
-    playSound(right ? 'success' : 'error')
-    if (right) setCorrect((value) => value + 1)
+  const settle = (choice: string | null) => {
+    if (!round || !question || outcome || currentRound.current !== round) return
+    const expired = round.deadline !== null && Date.now() >= round.deadline
+    if (!expired && (choice === null || !question.choices.includes(choice))) return
+    const result: Outcome = expired || choice === null
+      ? { kind: 'timeout' }
+      : { kind: choice === question.back ? 'correct' : 'incorrect', choice }
+    updateRound({ ...round, outcome: result })
+    setOutcomes((previous) => [...previous, result])
+    playSound(result.kind === 'correct' ? 'success' : 'error')
   }
 
   const next = () => {
-    if (index + 1 >= total) {
-      if (resultRecorded.current) return
-      resultRecorded.current = true
-      const score = correct
-      recordQuiz(score, total)
-      setFinished(true)
-      if (score / total >= 0.7) celebrate()
-      playSound('success')
+    if (!round || !outcome || currentRound.current !== round) return
+    if (round.index + 1 < total) {
+      openQuestion(round.index + 1)
       return
     }
-    setIndex((value) => value + 1)
-    setSelected(null)
+    updateRound(null)
+    recordQuiz(correct, total)
+    setStage('results')
+    if (correct / total >= 0.7) celebrate()
+    playSound('success')
   }
 
-  if (decksQuery.isLoading) {
-    return <div className="flex min-h-dvh items-center justify-center"><Spinner label={t('common.loading')} /></div>
+  const answerDetail = (item: Question) => {
+    const explanation = explanationFor(item)
+    return <>
+      <p className="font-bold">{t('quiz.answerText', { answer: localCard(item, item.back) })}</p>
+      {explanation && <p className="mt-2">{explanation}</p>}
+    </>
   }
 
-  if (!betaEnabled && decks.length === 0) {
+  if (stage === 'intro') {
+    return <div className="solo-quiz-screen solo-quiz-intro" role="main">
+      <div className="solo-quiz-card solo-quiz-welcome text-center">
+        <Mascot species={buddy} mood="sparkle" size={156} className="solo-quiz-mascot" />
+        <h1 ref={activeTitle} tabIndex={-1}>{t('quiz.welcomeTitle')}</h1>
+        <p>{t('quiz.welcomeHint')}</p>
+        <Button full size="lg" onClick={() => setStage('setup')}>
+          {t('quiz.beginSetup')} <Icon name="arrowRight" size={18} />
+        </Button>
+        <Link to="/study" className="study-text-link">{t('quiz.backToStudy')}</Link>
+      </div>
+    </div>
+  }
+
+  if (setupLoading) {
+    return <div role="main" className="solo-quiz-screen items-center"><Spinner label={t('common.loading')} /></div>
+  }
+
+  if (stage === 'setup' && !betaEnabled && decksQuery.isError && !decks.length) {
+    return <div className="solo-quiz-screen" role="main">
+      <div className="solo-quiz-card space-y-3 text-center">
+        <h1 className="text-2xl font-black">{t('workspace.deckError')}</h1>
+        <Button onClick={() => void decksQuery.refetch()}>{t('common.retry')}</Button>
+      </div>
+    </div>
+  }
+
+  if (stage === 'setup' && !betaEnabled && decks.length === 0) {
     return (
-      <div className="mx-auto flex min-h-dvh max-w-lg flex-col items-center justify-center gap-4 p-6 text-center">
+      <div role="main" className="solo-quiz-screen items-center text-center">
         <Mascot species={buddy} mood="sleepy" size={140} />
-        <h1 className="text-2xl font-black">{t('quiz.emptyTitle')}</h1>
+        <h1 ref={activeTitle} tabIndex={-1} className="text-2xl font-black">{t('quiz.emptyTitle')}</h1>
         <p className="text-[var(--color-muted)]">{t('quiz.emptyHint')}</p>
         <Button onClick={() => navigate('/study/decks')}>{t('quiz.addCards')}</Button>
         {!isGuestMode() && <Link to="/quiz" className="study-text-link">{t('quizRoom.liveRooms')}</Link>}
@@ -200,7 +302,7 @@ export function QuizPage() {
     )
   }
 
-  if (finished) {
+  if (stage === 'results') {
     const accuracy = Math.round((correct / total) * 100)
     const xp = 10 + correct * 2 + (correct === total ? 20 : 0)
     const great = accuracy >= 70
@@ -211,13 +313,13 @@ export function QuizPage() {
       )
       .slice(0, 6)
     return (
-      <div className="mx-auto flex min-h-dvh w-full max-w-xl flex-col justify-center gap-4 p-4 sm:p-6">
-        <div className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-center shadow-[var(--shadow-md)]">
+      <div className="solo-quiz-screen solo-quiz-results" role="main">
+        <div className="solo-quiz-card solo-quiz-score text-center">
           <div className="mx-auto w-fit animate-pop-in">
             <Mascot species={buddy} mood={great ? 'sparkle' : 'happy'} size={150} accessory={great ? 'hat' : null} />
           </div>
           <p className="mt-2 text-xs font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">{t('quiz.resultsKicker')}</p>
-          <h1 className="mt-1 text-2xl font-black">{t('quiz.resultsTitle')}</h1>
+          <h1 ref={activeTitle} tabIndex={-1} className="mt-1 text-2xl font-black">{t('quiz.resultsTitle')}</h1>
           <p className="mt-1 text-sm text-[var(--color-muted)]">
             {great ? t('quiz.resultsGreat') : t('quiz.resultsTry')}
           </p>
@@ -256,7 +358,10 @@ export function QuizPage() {
           )}
 
           <div className="mt-5 space-y-2">
-            <Button full size="lg" onClick={reset}>
+            <Button full size="lg" onClick={() => openFlashcards('after')}>
+              <Icon name="cards" size={19} /> {t('quiz.studyAsCards')}
+            </Button>
+            <Button full variant="secondary" onClick={reset}>
               <Icon name="reset" size={19} /> {t('quiz.playAgain')}
             </Button>
             <Button full variant="secondary" onClick={() => navigate('/study')}>
@@ -264,24 +369,44 @@ export function QuizPage() {
             </Button>
           </div>
         </div>
+        <section className="solo-quiz-card">
+          <h2 className="text-lg font-extrabold">{t('quiz.answerReview')}</h2>
+          <ol className="solo-quiz-review">
+            {questions.map((item, index) => {
+              const entry = outcomes[index]
+              return <li key={item.id}>
+                <details>
+                  <summary>
+                    <span>{index + 1}. {localCard(item, item.front)}</span>
+                    <strong data-outcome={entry.kind}>{t(`quiz.outcome.${entry.kind}`)}</strong>
+                  </summary>
+                  <div className="solo-quiz-review-detail">
+                    {'choice' in entry && <p className="study-muted">{t('quiz.yourAnswer', { answer: localCard(item, entry.choice) })}</p>}
+                    {answerDetail(item)}
+                  </div>
+                </details>
+              </li>
+            })}
+          </ol>
+        </section>
       </div>
     )
   }
 
-  if (total === 0) {
+  if (stage === 'setup') {
     return (
-      <div className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col justify-center px-4 py-6">
-        <div className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] sm:p-7">
+      <div className="solo-quiz-screen solo-quiz-setup" role="main">
+        <div className="solo-quiz-card">
           <div className="flex items-center gap-3 rounded-(--radius-card) bg-[var(--color-primary-soft)] p-3">
             <Mascot species={buddy} mood="happy" size={82} />
             <div>
-              <h1 className="text-2xl font-black">{t('quiz.setupTitle')}</h1>
+              <h1 ref={activeTitle} tabIndex={-1} className="text-2xl font-black">{t('quiz.setupTitle')}</h1>
               <p className="text-sm text-[var(--color-muted)]">{t(betaEnabled ? 'beta.quizHint' : 'quiz.setupHint')}</p>
               {!isGuestMode() && <Link to="/quiz" className="study-text-link mt-2">{t('quizRoom.liveRooms')}</Link>}
             </div>
           </div>
 
-          <div className="mt-5 space-y-3">
+          <fieldset className="mt-5 space-y-3" disabled={generate.isPending}>
             {decks.length > 0 && <div>
               <label className="text-sm font-bold" htmlFor="quiz-deck">{t('quiz.deck')}</label>
               <select
@@ -292,7 +417,7 @@ export function QuizPage() {
               >
                 {decks.map((deck) => (
                   <option key={deck.id} value={deck.id}>
-                    {deck.title} · {t('decks.cardCount', { count: deck.cardCount })}
+                    {starter.deck(deck.id, deck.title)} · {t('decks.cardCount', { count: deck.cardCount })}
                   </option>
                 ))}
               </select>
@@ -333,9 +458,14 @@ export function QuizPage() {
               />
             </div>
 
+            <label className="solo-quiz-timing">
+              <input type="checkbox" checked={timed} onChange={(event) => setTimed(event.target.checked)} />
+              <span>{t('quiz.timedPractice', { count: secondsPerQuestion })}</span>
+            </label>
+
             {setupError && (
               <p className="rounded-xl bg-[var(--color-danger-soft)] px-3 py-2 text-sm font-bold text-[var(--color-danger-text)]">
-                {setupError}
+                {t(setupError)}
               </p>
             )}
             {generate.isError && (
@@ -353,106 +483,121 @@ export function QuizPage() {
               full
               variant="secondary"
               onClick={startPractice}
-              disabled={cardsQuery.isLoading || !selectedDeck}
+              disabled={cardsQuery.isLoading || generate.isPending || !selectedDeck}
             >
               {cardsQuery.isLoading ? t('common.loading') : t('quiz.practiceSaved')}
             </Button>
             <Link to="/study/decks" className="block text-center text-xs font-bold text-[var(--color-muted)]">
               {t('decks.backToDecks')}
             </Link>
-          </div>
+          </fieldset>
         </div>
       </div>
     )
   }
 
-  return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col px-4 py-4">
-      <header className="flex items-center gap-3">
-        <button
-          onClick={() => navigate('/study')}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-muted)]"
-          aria-label={t('common.exit')}
-        >
-          <Icon name="close" size={20} />
-        </button>
-        <div className="min-w-0 flex-1">
-          <div className="mb-1 flex items-center justify-between text-xs font-bold text-[var(--color-muted)]">
-            <span>{t('quiz.title')}</span>
-            <span>
-              {index + 1} / {total}
-            </span>
-          </div>
-          <ProgressBar value={index} max={total} size="sm" />
-        </div>
-        <span className="flex h-11 min-w-11 items-center justify-center gap-1 rounded-full bg-[var(--color-success-soft)] px-3 text-sm font-black text-[var(--color-success-text)]">
-          <Icon name="check" size={16} /> {correct}
+  if (stage === 'ready') {
+    return <div className="solo-quiz-screen solo-quiz-ready" role="main">
+      <div className="solo-quiz-card text-center space-y-4">
+        <h1 ref={activeTitle} tabIndex={-1} className="text-2xl font-extrabold">{t('quiz.readyTitle')}</h1>
+        <p className="study-muted">
+          {t('quiz.questionTotal', { count: total })} · {t(timed ? 'quiz.timedPractice' : 'quiz.untimed', { count: secondsPerQuestion })}
+        </p>
+        <Button full size="lg" onClick={startQuiz}>{t('quiz.startQuiz')} <Icon name="arrowRight" size={18} /></Button>
+        <Button full variant="secondary" onClick={() => openFlashcards('before')}>
+          <Icon name="cards" size={18} /> {t('quiz.studyAsCards')}
+        </Button>
+        <button type="button" className="study-text-link" onClick={reset}>{t('quiz.backToSetup')}</button>
+      </div>
+    </div>
+  }
+
+  if (stage === 'flashcards-before' || stage === 'flashcards-after') {
+    const item = questions[flashIndex]
+    const move = (step: number) => {
+      setFlashIndex((position) => Math.min(total - 1, Math.max(0, position + step)))
+      setFlipped(false)
+    }
+    return <div className="solo-quiz-screen solo-quiz-flashcards" role="main">
+      <header className="text-center space-y-2">
+        <h1 ref={activeTitle} tabIndex={-1} className="text-2xl font-extrabold">{t('quiz.flashcardsTitle')}</h1>
+        <p className="solo-quiz-position" role="status">{t('workspace.cardPosition', { current: flashIndex + 1, total })}</p>
+      </header>
+      <button type="button" className="solo-quiz-flip solo-quiz-card" aria-label={t('quiz.flipCard')}
+        aria-pressed={flipped} aria-describedby="solo-quiz-card-content" onClick={() => setFlipped(!flipped)}>
+        <span className="solo-quiz-flip-face" key={flipped ? 'answer' : 'question'}>
+          <span className="solo-quiz-card-side">{t(flipped ? 'review.back' : 'review.front')}</span>
+          <span id="solo-quiz-card-content">
+            {flipped
+              ? <><strong>{localCard(item, item.back)}</strong>{explanationFor(item) && <span className="mt-3 block text-sm">{explanationFor(item)}</span>}</>
+              : <strong>{localCard(item, item.front)}</strong>}
+          </span>
+          <span className="solo-quiz-card-side"><Icon name="reset" size={16} /> {t('quiz.flipCard')}</span>
         </span>
+      </button>
+      <div className="grid grid-cols-2 gap-2">
+        <Button variant="secondary" disabled={flashIndex === 0} onClick={() => move(-1)}>{t('quiz.previousCard')}</Button>
+        <Button variant="secondary" disabled={flashIndex + 1 === total} onClick={() => move(1)}>{t('quiz.nextCard')}</Button>
+      </div>
+      {stage === 'flashcards-before' ? <>
+        <Button full onClick={startQuiz}>{t('quiz.startQuiz')}</Button>
+        <button type="button" className="study-text-link self-center" onClick={() => setStage('ready')}>{t('common.back')}</button>
+      </> : <Button full onClick={() => setStage('results')}>{t('quiz.backToScore')}</Button>}
+    </div>
+  }
+
+  if (!round || !question) return null
+
+  const position = t('quiz.questionProgress', { current: round.index + 1, total })
+  return (
+    <div className="solo-quiz-screen solo-quiz-play" role="main">
+      <header className="solo-quiz-play-heading">
+        <button type="button" onClick={() => navigate('/study')} className="solo-quiz-exit" aria-label={t('common.exit')}>
+          <Icon name="arrowLeft" size={20} />
+        </button>
+        <strong className="min-w-0 [overflow-wrap:anywhere]">{starter.deck(question.starterDeckId, question.deckTitle)}</strong>
       </header>
 
-      <div className="flex flex-1 flex-col justify-center py-5">
-        <div className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] sm:p-7">
-          <div className="flex items-center justify-between gap-2">
-            <span className="rounded-full bg-[var(--color-primary-soft)] px-2.5 py-1 text-[10px] font-black text-[var(--color-primary)]">
-              {question.deckSubject}
-            </span>
-            <span className="truncate text-[11px] font-bold text-[var(--color-muted)]">{question.deckTitle}</span>
-          </div>
-          <p className="mt-4 text-xl font-extrabold leading-snug sm:text-2xl">{question.front}</p>
-
-          <div className="mt-5 grid gap-2">
-            {question.choices.map((choice) => {
-              const right = choice === question.back
-              const chosen = choice === selected
-              let tone = 'border-[var(--paper-edge)] bg-[var(--color-primary-soft)] hover:border-[var(--color-primary)]'
-              if (selected) {
-                if (right) tone = 'border-[var(--color-success)] bg-[var(--color-success-soft)] text-[var(--color-success-text)]'
-                else if (chosen) tone = 'border-[var(--color-danger)] bg-[var(--color-danger-soft)] text-[var(--color-danger-text)]'
-                else tone = 'border-[var(--color-border)] opacity-55'
-              }
-              return (
-                <button
-                  key={choice}
-                  onClick={() => choose(choice)}
-                  disabled={!!selected}
-                  className={`min-h-13 rounded-2xl border-2 px-4 py-3 text-left text-sm font-bold transition ${tone}`}
-                >
-                  {choice}
-                </button>
-              )
-            })}
-          </div>
-
-          {selected && (
-            <div className="mt-4 animate-pop-in">
-              <div
-                className={`flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-bold ${
-                  isCorrect
-                    ? 'bg-[var(--color-success-soft)] text-[var(--color-success-text)]'
-                    : 'bg-[var(--color-danger-soft)] text-[var(--color-danger-text)]'
-                }`}
-              >
-                <Icon name={isCorrect ? 'checkCircle' : 'xCircle'} size={18} />
-                {isCorrect ? t('quiz.correct') : t('quiz.wrong', { answer: question.back })}
-              </div>
-              {question.explanation && (
-                <p className="mt-2 rounded-2xl bg-[var(--color-surface-alt)] px-3 py-2 text-xs font-semibold text-[var(--color-muted)]">
-                  {question.explanation}
-                </p>
-              )}
-              <Button full className="mt-3" onClick={next}>
-                {index + 1 >= total ? t('quiz.seeResults') : t('quiz.next')}
-                <Icon name="arrowRight" size={18} />
-              </Button>
-            </div>
+      <div className="solo-quiz-progress">
+        <ProgressBar label={position} value={round.index + Number(Boolean(outcome))} max={total} size="sm" />
+        <div className="solo-quiz-position">
+          <span>{position}</span>
+          {round.deadline !== null && !outcome && (
+            <Countdown key={round.index} deadline={round.deadline} onExpire={() => settle(null)} />
           )}
         </div>
-
-        <div className="mt-3 flex items-center justify-center gap-2 text-xs font-semibold text-[var(--color-muted)]">
-          <Mascot species={buddy} mood="happy" size={42} />
-          {t('quiz.hint')}
-        </div>
       </div>
+
+      <div className="solo-quiz-prompt">
+        <h1 ref={activeTitle} tabIndex={-1} className="solo-quiz-question" id="quiz-question">
+          {localCard(question, question.front)}
+        </h1>
+      </div>
+
+      <div className="solo-quiz-choices" role="group" aria-labelledby="quiz-question">
+        {question.choices.map((choice, index) => {
+          const right = choice === question.back
+          const chosen = outcome && 'choice' in outcome && outcome.choice === choice
+          const tone = outcome && right ? 'correct' : chosen ? 'incorrect' : undefined
+          return <button key={choice} type="button" className="solo-quiz-choice" data-tone={tone}
+            data-chosen={Boolean(chosen)} disabled={Boolean(outcome)} onClick={() => settle(choice)}>
+            <span className="solo-quiz-letter">{'ABCD'[index]}</span>
+            <span>{localCard(question, choice)}</span>
+            {tone && <Icon name={right ? 'checkCircle' : 'xCircle'} size={18} />}
+          </button>
+        })}
+      </div>
+
+      {outcome && <div className="solo-quiz-feedback">
+        <div role="status" className="solo-quiz-feedback-detail" data-outcome={outcome.kind}>
+          <p className="text-base font-extrabold">{t(`quiz.outcome.${outcome.kind}`)}</p>
+          {answerDetail(question)}
+        </div>
+        <Button ref={nextAction} full size="lg" className="solo-quiz-next" onClick={next}>
+          {round.index + 1 === total ? t('quiz.seeResults') : t('quiz.next')}
+          <Icon name="arrowRight" size={18} />
+        </Button>
+      </div>}
     </div>
   )
 }

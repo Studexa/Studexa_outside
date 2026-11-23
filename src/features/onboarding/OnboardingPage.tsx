@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { LanguageSelector } from '../../components/LanguageSelector'
 import { Button } from '../../components/Button'
 import { Mascot } from '../../components/Mascot'
 import { Icon } from '../../components/Icon'
@@ -8,7 +9,6 @@ import { celebrate } from '../../lib/confetti'
 import { playSound } from '../../lib/sound'
 import { useApp, type BuddySpecies, type LevelOfStudy } from '../../lib/store'
 import { useAuth } from '../../lib/auth'
-import { ApiError } from '../../lib/api'
 
 const levels: { id: LevelOfStudy; icon: 'book' | 'target' | 'trophy' | 'sparkles' }[] = [
   { id: 'middle', icon: 'book' },
@@ -47,11 +47,11 @@ export function OnboardingPage() {
         dailyGoalCards: goal,
       })
       return true
-    } catch (err) {
+    } catch {
       if (typeof window !== 'undefined' && localStorage.getItem('studexa_guest_mode') === 'true') {
         return true
       }
-      setError(err instanceof ApiError ? err.message : t('onboarding.saveError'))
+      setError('onboarding.saveError')
       return false
     } finally {
       setSaving(false)
@@ -81,20 +81,23 @@ export function OnboardingPage() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-[var(--color-bg)] px-4 py-5 text-[var(--color-text)]">
-      <div className="mx-auto flex w-full max-w-5xl items-center justify-between">
+      <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] text-[var(--color-on-primary)]">
             <Icon name="sparkles" size={22} />
           </span>
           <span className="text-lg font-black">{t('app.name')}</span>
         </div>
-        <button
-          onClick={() => void skip()}
-          disabled={saving}
-          className="min-h-11 rounded-full px-3 text-sm font-bold text-[var(--color-muted)] hover:bg-[var(--color-surface-alt)] disabled:opacity-50"
-        >
-          {t('common.skip')}
-        </button>
+        <div className="flex items-center gap-2">
+          <LanguageSelector />
+          <button
+            onClick={() => void skip()}
+            disabled={saving}
+            className="min-h-11 rounded-full px-3 text-sm font-bold text-[var(--color-muted)] hover:bg-[var(--color-surface-alt)] disabled:opacity-50"
+          >
+            {t('common.skip')}
+          </button>
+        </div>
       </div>
 
       <div className="mx-auto mt-4 flex w-full max-w-5xl items-center gap-1.5" aria-label={t('onboarding.progress')}>
@@ -258,7 +261,7 @@ export function OnboardingPage() {
 
           {error && (
             <p role="alert" className="mt-4 rounded-2xl bg-[var(--color-surface-alt)] px-3 py-2 text-sm font-bold text-[var(--color-danger-text)]">
-              {error}
+              {t(error)}
             </p>
           )}
 
